@@ -1,0 +1,98 @@
+global:
+  nameOverride: auth-mgr
+
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    initContainers:
+      init-data-permissions:
+        image:
+          repository: busybox
+          tag: "1.37"
+        command:
+          - /bin/sh
+          - -ec
+          - |
+            chown -R 10001:10001 /opt/auth-mgr
+            find /opt/auth-mgr -type d -exec chmod 0700 {} \;
+            find /opt/auth-mgr -type f -exec chmod 0600 {} \;
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+    containers:
+      main:
+        image:
+          repository: ${AUTH_MGR_IMAGE_REPOSITORY}
+          tag: ${AUTH_MGR_IMAGE_TAG}
+          pullPolicy: IfNotPresent
+        env:
+          LOG_LEVEL: warn
+          NODE_ENV: production
+          DATA_DIR: /opt/auth-mgr/
+          PUBLIC_ORIGIN: https://mgr.auth.${DOMAIN}
+          TRUSTED_PROXY_CIDRS: ${CLUSTER_CIDR}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 1
+            memory: 512Mi
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        primary: true
+        port: 80
+        targetPort: 8080
+
+persistence:
+  data:
+    enabled: true
+    forceRename: auth-mgr-data
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 20Gi
+    retain: true
+    globalMounts:
+      - path: /opt/auth-mgr/
+        readOnly: false
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    className: "nginx"
+    hosts:
+      - host: mgr.auth.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: auth-mgr
+              port: 80
+    tls:
+      - hosts:
+          - auth.${DOMAIN}
+          - "*.auth.${DOMAIN}"
+        secretName: auth.${DOMAIN}-tls

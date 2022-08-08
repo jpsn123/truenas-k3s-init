@@ -1,0 +1,12 @@
+ARG BASE_IMAGE_REF=""
+
+FROM ${BASE_IMAGE_REF}
+ARG BASE_IMAGE=""
+ARG BASE_IMAGE_DIGEST=""
+ARG APT_PACKAGES=""
+LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
+LABEL org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}"
+USER root
+# __WORKSPACE_CUSTOM_RUN__
+
+USER coder

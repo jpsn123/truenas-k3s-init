@@ -1,0 +1,65 @@
+controller:
+  image:
+    digest: ""
+  ingressClass: nginx
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: true
+    controllerValue: "k8s.io/ingress-nginx"
+  enableAnnotationValidations: true # TODO: bug on annotation redirect, remove if fix https://github.com/kubernetes/ingress-nginx/issues/11175
+  allowSnippetAnnotations: true
+
+  config:
+    use-gzip: "true"
+    gzip-level: "4"
+    gzip-min-length: "256"
+    client-header-buffer-size: "4k"
+    large-client-header-buffers: "8 128k"
+    client-body-buffer-size: "256k"
+    proxy-body-size: "100M"
+    server-name-hash-bucket-size: "256"
+    use-http2: "true"
+    ssl-ciphers: "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4"
+    ssl-protocols: "TLSv1.3 TLSv1.2"
+    server-tokens: "false"
+    hsts: "true"
+    hsts-include-subdomains: "true"
+    hsts-max-age: "15724800"
+    hsts-preload: "true"
+    http-snippet: |-
+      sendfile  on;
+    global-auth-cache-duration: "200 202 401 60m"
+    load-balance: "ewma"
+    annotations-risk-level: Critical
+    # disable-access-log: "true"
+    skip-access-log-urls: '~^.+\.(jpg|jpeg|gif|bmp|css|png|html|htm|ico|xml|svg|js|map|woff|woff2|ttf)$'
+    annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount"
+
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+
+  proxySetHeaders: {}
+
+  addHeaders:
+    Referrer-Policy: strict-origin-when-cross-origin
+
+  admissionWebhooks:
+    port: 18443
+
+  service:
+    enabled: true
+    type: LoadBalancer
+    loadBalancerIP: ${INGRESS_IP}
+    externalTrafficPolicy: Local
+    internalTrafficPolicy: Local
+
+  kind: DaemonSet
+  hostNetwork: false
+  hostPort:
+    enabled: false
+defaultBackend:
+  enabled: "true"

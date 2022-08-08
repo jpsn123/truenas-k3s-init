@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mirror-code-server
+  namespace: ${NS}
+  annotations:
+    mirror-jobs/base-image: alpine:3.22
+spec:
+  schedule: "0 3 * * *"
+  timeZone: ${TIMEZONE}
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: sync
+              image: ${JFROG_REGISTRY}/jutze/mirror-code-server:1.1.2
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: ${SHARED_SECRET}
+              env:
+                - name: MIRROR_PATH
+                  value: general/mirrors/code-server
+                - name: KEEP_VERSIONS
+                  value: "3"
+                - name: REQUEST_TIMEOUT
+                  value: "300"
+                - name: UPSTREAM_URL
+                  value: https://github.com/coder/code-server
+                - name: CODE_SERVER_OS
+                  value: linux
+                - name: CODE_SERVER_ARCH
+                  value: amd64
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              volumeMounts:
+                - name: temporary
+                  mountPath: /tmp
+          volumes:
+            - name: temporary
+              emptyDir:
+                sizeLimit: 1Gi

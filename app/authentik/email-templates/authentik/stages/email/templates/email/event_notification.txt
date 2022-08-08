@@ -1,0 +1,23 @@
+{% load authentik_stages_email %}{% load i18n %}{% autoescape off %}亲爱的 ${BRAND_PREFIX} 用户，
+Dear ${BRAND_PREFIX} user,
+
+以下通知已创建：
+The following notification was created:
+
+    {{ body|indent }}
+
+{% if key_value %}
+附加属性：
+Additional attributes:
+{% for key, value in key_value.items %}
+    {{ key }}: {{ value|indent }}{% endfor %}
+{% endif %}
+
+{% if source %}
+此邮件由通知传输 {{ source.from }} 发送。
+This email was sent from the notification transport {{ source.from }}.
+{% endif %}
+
+--
+Powered by ${BRAND_PREFIX}.
+{% endautoescape %}

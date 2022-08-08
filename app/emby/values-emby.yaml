@@ -1,0 +1,97 @@
+global:
+  nameOverride: emby
+
+defaultPodOptions:
+  automountServiceAccountToken: false
+
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      emby:
+        image:
+          repository: amilys/embyserver
+          tag: 4.9.5.0
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          UID: 0
+          GID: 0
+          GIDLIST: "33,1000"
+        probes:
+          liveness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 0
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
+          startup:
+            enabled: false
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    ports:
+      http:
+        enabled: true
+        port: 8096
+
+ingress:
+  main:
+    enabled: true
+    primary: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    className: "nginx"
+    hosts:
+      - host: mov.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: emby
+              port: 8096
+    tls:
+      - hosts:
+          - mov.${DOMAIN}
+        secretName: mov.${DOMAIN}-tls
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
+    globalMounts: []
+    advancedMounts:
+      main: # the controller with the "main"
+        emby:
+          - path: /config
+            readOnly: false
+#  media:
+#    enabled: true
+#    type: hostPath
+#    hostPath: /mnt/media
+#    advancedMounts:
+#      main:
+#        emby:
+#        - path: /media
+#          readOnly: false

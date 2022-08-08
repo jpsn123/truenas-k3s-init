@@ -1,0 +1,54 @@
+global:
+  defaultStorageClass: "${DEFAULT_LARGE_STORAGE_CLASS}"
+  security:
+    allowInsecureImages: true
+
+mode: standalone
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/minio
+
+persistence:
+  enabled: true
+  annotations:
+    helm.sh/resource-policy: keep
+  size: 5000Gi
+  existingClaim: "minio-data"
+
+resources:
+  requests:
+    cpu: 1
+    memory: 512Mi
+  limits:
+    cpu: 4
+    memory: 8Gi
+
+ingress:
+  enabled: true
+  ingressClassName: "nginx"
+  hostname: s3.${DOMAIN}
+  annotations:
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
+  extraTls:
+    - hosts:
+        - s3.${DOMAIN}
+        - "*.s3.${DOMAIN}"
+      secretName: s3.${DOMAIN}-tls
+
+apiIngress:
+  enabled: true
+  ingressClassName: "nginx"
+  hostname: api.s3.${DOMAIN}
+  annotations:
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+  extraTls:
+    - hosts:
+        - s3.${DOMAIN}
+        - "*.s3.${DOMAIN}"
+      secretName: s3.${DOMAIN}-tls

@@ -1,0 +1,1 @@
+docker build . -t test:1 --build-arg INSTALL_ID=xxx

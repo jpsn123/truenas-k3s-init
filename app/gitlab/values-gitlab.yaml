@@ -1,0 +1,307 @@
+global:
+  edition: ee
+  image:
+    pullPolicy: IfNotPresent
+  hosts:
+    domain: ${DOMAIN}
+    https: true
+    gitlab:
+      name: git.${DOMAIN}
+      https: true
+    registry: {}
+    kas: {}
+    pages:
+      name: pages.${DOMAIN}
+      https: true
+  gatewayApi:
+    enabled: false
+    installEnvoy: false
+    configureCertmanager: false
+  ingress:
+    class: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-body-size: 512m
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    tls:
+      enabled: true
+      secretName: gitlab-wildcard-tls
+    configureCertmanager: false
+    enabled: true
+  gitlab:
+    license: {}
+  psql:
+    password:
+      useSecret: true
+      secret: postgresql
+      key: password
+    host: postgresql-hl
+    username: admin
+  redis:
+    host: redis-headless
+    serviceName: redis-headless
+    port: 6379
+    auth:
+      enabled: true
+      secret: redis
+      key: redis-password
+  gitaly:
+    enabled: true
+    internal:
+      names:
+        - default
+        - default-2
+  minio:
+    enabled: false
+  grafana:
+    enabled: false
+  appConfig:
+    defaultTheme: 5
+    defaultSyntaxHighlightingTheme: 3
+    defaultProjectsFeatures:
+      issues: true
+      mergeRequests: true
+      wiki: true
+      snippets: true
+      builds: true
+      containerRegistry: false
+    object_store:
+      enabled: true
+      proxy_download: false
+      storage_options: {}
+      connection:
+        secret: gitlab-rails-storage
+        key: connection
+    lfs:
+      bucket: git-lfs
+      proxy_download: false
+    artifacts:
+      bucket: gitlab-artifacts
+      proxy_download: false
+    uploads:
+      bucket: gitlab-uploads
+      proxy_download: false
+    packages:
+      enabled: false
+      bucket: gitlab-packages
+      proxy_download: false
+    externalDiffs:
+      enabled: false
+      bucket: gitlab-mr-diffs
+      proxy_download: false
+    terraformState:
+      enabled: false
+      bucket: gitlab-terraform-state
+    dependencyProxy:
+      enabled: false
+      bucket: gitlab-dependency-proxy
+      proxy_download: false
+    cron_jobs:
+      issue_due_scheduler_worker:
+        cron: "50 8 * * *"
+    backups:
+      bucket: gitlab-backups
+      tmpBucket: gitlab-tmp
+    omniauth:
+      enabled: true
+      autoSignInWithProvider: openid_connect
+      allowSingleSignOn:
+        - openid_connect
+      blockAutoCreatedUsers: false
+      autoLinkUser:
+        - openid_connect
+      autoLinkLdapUser: false
+      allowBypassTwoFactor:
+        - openid_connect
+      syncProfileFromProvider:
+        - openid_connect
+      syncProfileAttributes:
+        - email
+        - name
+      providers:
+        - secret: gitlab-oidc
+          key: provider
+    gitlab_kas: {}
+    initialDefaults: {}
+  kas:
+    enabled: false
+  registry:
+    enabled: false
+    bucket: gitlab-registry
+  pages:
+    enabled: true
+    objectStore:
+      enabled: true
+      bucket: gitlab-pages
+      connection:
+        secret: gitlab-rails-storage
+        key: connection
+  smtp:
+    enabled: true
+    address: "${SMTP_ADDRESS}"
+    port: ${SMTP_PORT}
+    user_name: "${SMTP_USER_NAME}"
+    password:
+      secret: mail-password
+      key: password
+    authentication: "login"
+    starttls_auto: false
+    openssl_verify_mode: "peer"
+    tls: true
+  email:
+    from: "${EMAIL_FROM}"
+    display_name: GitLab
+    reply_to: "${EMAIL_REPLY_TO}"
+    subject_suffix: ""
+  time_zone: Asia/Shanghai
+  antiAffinity: soft
+  workhorse:
+    serviceName: webservice-default
+  extraEnv: {}
+  certificates:
+    image:
+      repository: registry.gitlab.com/gitlab-org/build/cng/alpine-certificates
+      tag: master
+      pullPolicy: IfNotPresent
+    customCAs: []
+  kubectl:
+    image:
+      repository: registry.gitlab.com/gitlab-org/build/cng/kubectl
+      pullPolicy: IfNotPresent
+  gitlabBase:
+    image:
+      repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-base
+      pullPolicy: IfNotPresent
+
+installCertmanager: false
+
+nginx-ingress:
+  enabled: false
+
+prometheus:
+  install: true
+  configmapReload:
+    prometheus:
+      livenessProbe:
+        periodSeconds: 60
+        initialDelaySeconds: 120
+      readinessProbe:
+        periodSeconds: 30
+  server:
+    persistentVolume:
+      enabled: false
+      size: 20Gi
+      storageClass: ${DEFAULT_STORAGE_CLASS}
+    readinessProbePeriodSeconds: 30
+    livenessProbeInitialDelay: 120
+    livenessProbePeriodSeconds: 60
+
+redis:
+  install: false
+
+postgresql:
+  install: false
+
+registry:
+  enabled: false
+#  storage:
+#    secret: gitlab-registry-storage
+#    key: config
+#  ingress:
+#    annotations:
+#      nginx.ingress.kubernetes.io/upstream-hash-by: $binary_remote_addr
+#  hpa:
+#    minReplicas: 1
+#    maxReplicas: 2
+
+gitlab-runner:
+  install: false
+gitlab:
+  toolbox:
+    backups:
+      objectStorage:
+        backend: s3
+        config:
+          secret: gitlab-toolbox-s3cmd
+          key: config
+    replicas: 1
+  webservice:
+    enabled: true
+    ingress:
+      serviceUpstream: "false"
+    trusted_proxies:
+      - ${CLUSTER_CIDR}
+    minReplicas: 2
+    maxReplicas: 2
+    deployment:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
+    workhorse:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
+  sidekiq:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 1
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 60
+    readinessProbe:
+      periodSeconds: 30
+    hpa:
+      cpu:
+        targetAverageValue: 1
+  gitaly:
+    persistence:
+      storageClass: ${DEFAULT_STORAGE_CLASS}
+      size: 200Gi
+      annotations: {}
+    statefulset:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
+  gitlab-shell:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 2
+    deployment:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
+    service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+      loadBalancerIP: ${GITLAB_SHELL_LOAD_BALANCER_IP}
+      externalIPs:
+        - 10.33.0.11 # 内网域名劫持到本地lb时和ingress共享ip，这样可以同时访问443和22端口
+  gitlab-pages:
+    deployment:
+      readinessProbe:
+        periodSeconds: 30
+    ingress:
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+        nginx.ingress.kubernetes.io/proxy-body-size: 512m
+        nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+      configureCertmanager: false
+      class: nginx
+      tls:
+        enabled: true
+        secretName: gitlab-pages-tls
+    hpa:
+      maxReplicas: 1
+      minReplicas: 1

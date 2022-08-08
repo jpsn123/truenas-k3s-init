@@ -1,0 +1,10 @@
+# 弃用
+s3:
+  v4auth: true
+  regionendpoint: "https://s3-api.git.${DOMAIN}"
+  region: default
+  accesskey:
+  secretkey:
+  bucket: gitlab-registry
+redirect:
+  disable: true

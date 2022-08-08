@@ -1,0 +1,20 @@
+name: openid_connect
+label: ${OIDC_LABEL}
+icon: "${OIDC_ICON}"
+args:
+  name: openid_connect
+  strategy_class: OmniAuth::Strategies::OpenIDConnect
+  scope:
+    - openid
+    - profile
+  response_type: code
+  issuer: https://auth.${DOMAIN}/application/o/git/
+  client_auth_method: query
+  discovery: true
+  uid_field: preferred_username
+  gitlab_username_claim: preferred_username
+  pkce: true
+  client_options:
+    identifier: "${OIDC_CLIENT_ID}"
+    secret: "${OIDC_CLIENT_SECRET}"
+    redirect_uri: https://git.${DOMAIN}/users/auth/openid_connect/callback

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="32 61 300 100" role="img" aria-labelledby="title desc">
+  <title id="title">Homelab</title>
+  <desc id="desc">Vector reconstruction of the supplied navy and cyan house-and-server icon. Transparent background and transparent status-light cutouts.</desc>
+  <path fill="#1A2563" d="M71 66H115.8V87.5L125.8 76.35H143.8L102.1 122.2V79H84.1V139.4L70 156H51.8L71 134.4Z"/>
+  <g fill="#00ABFD">
+    <path fill-rule="evenodd" d="M153.8 76.35H312V110.25H185.7Z
+      M296.3 93.4a5.9 5.9 0 1 0-11.8 0a5.9 5.9 0 1 0 11.8 0Z"/>
+    <path fill-rule="evenodd" d="M196.8 121.95H312V155.9H229Z
+      M296.3 138.85a5.9 5.9 0 1 0-11.8 0a5.9 5.9 0 1 0 11.8 0Z"/>
+    <path d="M130 125H143V137.3H130Z
+      M150.3 125H163.5V137.3H150.3Z
+      M130 144H143V156H130Z
+      M150.3 144H163.5V156H150.3Z"/>
+  </g>
+</svg>

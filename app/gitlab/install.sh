@@ -1,0 +1,279 @@
+#!/bin/bash
+
+set -e
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../../scripts/deploy/paths.sh"
+source "$DEPLOY_ROOT/scripts/deploy/install-mode.sh"
+source "$DEPLOY_ROOT/scripts/deploy/values.sh"
+source "$DEPLOY_LIB_DIR/liblog.sh"
+source "$DEPLOY_LIB_DIR/libprompt.sh"
+source "$DEPLOY_LIB_DIR/libpassword.sh"
+source "$DEPLOY_LIB_DIR/libkubernetes.sh"
+source "$DEPLOY_LIB_DIR/libhelm.sh"
+source "$DEPLOY_ROOT/parameter.sh"
+cd "$SCRIPT_DIR"
+NS=gitlab
+INSTALL_MODE="${1:-full}"
+deploy_validate_mode "$INSTALL_MODE" minio postgresql redis gitlab elasticsearch
+
+# initial
+#####################################
+log_header "initial"
+kubectl create namespace $NS 2>/dev/null || true
+kube_secret_load "$NS" "minio" root-password=MINIO_PW
+kube_secret_load "$NS" "redis" redis-password=REDIS_PW
+kube_secret_load "$NS" "postgresql" password=DB_PW
+kube_secret_load "$NS" "elasticsearch" elasticsearch-password=ELASTICSEARCH_PW
+kube_secret_load "$NS" "gitlab-gitlab-initial-root-password" password=GITLAB_PW
+kube_secret_load "$NS" "mail-password" password=SMTP_PW
+kube_secret_load "$NS" "gitlab-oidc" \
+    client-id=OIDC_CLIENT_ID \
+    client-secret=OIDC_CLIENT_SECRET \
+    icon=OIDC_ICON \
+    label=OIDC_LABEL
+kube_configmap_load "$NS" "mail-config" \
+    smtp-address=SMTP_ADDRESS \
+    smtp-port=SMTP_PORT \
+    smtp-user-name=SMTP_USER_NAME \
+    email-from=EMAIL_FROM \
+    email-reply-to=EMAIL_REPLY_TO
+kube_configmap_load "$NS" "gitlab-shell" \
+    load-balancer-ip=GITLAB_SHELL_LOAD_BALANCER_IP
+if (deploy_mode_enabled "$INSTALL_MODE" minio && [ -z "$MINIO_PW" ]) \
+    || (deploy_mode_enabled "$INSTALL_MODE" redis && [ -z "$REDIS_PW" ]) \
+    || (deploy_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
+    || (deploy_mode_enabled "$INSTALL_MODE" elasticsearch && [ -z "$ELASTICSEARCH_PW" ]) \
+    || (deploy_mode_enabled "$INSTALL_MODE" gitlab && [ -z "$GITLAB_PW" ]); then
+    PASSWORD_SEED=$(prompt_required "input password seed for setting gitlab." "password seed" "")
+fi
+if deploy_mode_enabled "$INSTALL_MODE" minio && [ -z "$MINIO_PW" ]; then
+    MINIO_PW=$(password_derive_sha1 "$PASSWORD_SEED@$NS@minio" 32)
+fi
+if deploy_mode_enabled "$INSTALL_MODE" redis && [ -z "$REDIS_PW" ]; then
+    REDIS_PW=$(password_derive_sha1 "$PASSWORD_SEED@$NS@redis" 32)
+fi
+if deploy_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]; then
+    DB_PW=$(password_derive_sha1 "$PASSWORD_SEED@$NS@pg" 32)
+fi
+if deploy_mode_enabled "$INSTALL_MODE" elasticsearch && [ -z "$ELASTICSEARCH_PW" ]; then
+    ELASTICSEARCH_PW=$(password_derive_sha1 "$PASSWORD_SEED@$NS@elasticsearch" 32)
+fi
+if deploy_mode_enabled "$INSTALL_MODE" gitlab && [ -z "$GITLAB_PW" ]; then
+    GITLAB_PW=$(password_derive_sha1 "$PASSWORD_SEED@$NS@gitlab" 32)
+fi
+if deploy_mode_enabled "$INSTALL_MODE" gitlab; then
+    if [ -z "$OIDC_CLIENT_ID" ]; then
+        OIDC_CLIENT_ID=$(prompt_required "please input gitlab oauth config, redirect URI: https://git.${DOMAIN}/users/auth/openid_connect/callback." "oidc client id" "")
+    fi
+    if [ -z "$OIDC_CLIENT_SECRET" ]; then
+        OIDC_CLIENT_SECRET=$(prompt_required "" "oidc client secret" -s)
+    fi
+    if [ -z "$OIDC_ICON" ]; then
+        OIDC_ICON=$(prompt_with_default "" "oidc icon" "")
+    fi
+    if [ -z "$OIDC_LABEL" ]; then
+        OIDC_LABEL=$(prompt_with_default "" "oidc label" "${BRAND_PREFIX^} Auth")
+    fi
+    if [ -z "$SMTP_PW" ]; then
+        SMTP_PW=$(prompt_required "please input smtp password." "password" "")
+    fi
+    if [ -z "$SMTP_ADDRESS" ]; then
+        SMTP_ADDRESS=$(prompt_with_default "" "smtp address" "smtp.qiye.163.com")
+    fi
+    if [ -z "$SMTP_PORT" ]; then
+        SMTP_PORT=$(prompt_with_default "" "smtp port" "994")
+    fi
+    if [ -z "$SMTP_USER_NAME" ]; then
+        SMTP_USER_NAME=$(prompt_with_default "" "smtp user name" "$EMAIL")
+    fi
+    if [ -z "$EMAIL_FROM" ]; then
+        EMAIL_FROM=$(prompt_with_default "" "email from" "$SMTP_USER_NAME")
+    fi
+    if [ -z "$EMAIL_REPLY_TO" ]; then
+        EMAIL_REPLY_TO=$(prompt_with_default "" "email reply_to" "$EMAIL")
+    fi
+    GITLAB_SHELL_LOAD_BALANCER_IP_CONFIGURED=$(kubectl -n "$NS" get configmap "gitlab-shell" -o go-template='{{ range $key, $value := .data }}{{ if eq $key "load-balancer-ip" }}true{{ end }}{{ end }}' 2>/dev/null || true)
+    if [ "$GITLAB_SHELL_LOAD_BALANCER_IP_CONFIGURED" != "true" ]; then
+        GITLAB_SHELL_LOAD_BALANCER_IP=$(prompt_with_default "" "gitlab shell load balancer ip" "10.33.0.5")
+    fi
+fi
+
+deploy_render_values values-*.yaml
+deploy_render_values values-*.ini
+if deploy_mode_enabled "$INSTALL_MODE" gitlab; then
+    kube_secret_apply_vars "$NS" "mail-password" password=SMTP_PW
+    kube_configmap_apply_vars "$NS" "mail-config" \
+        smtp-address=SMTP_ADDRESS \
+        smtp-port=SMTP_PORT \
+        smtp-user-name=SMTP_USER_NAME \
+        email-from=EMAIL_FROM \
+        email-reply-to=EMAIL_REPLY_TO
+    kube_configmap_apply_vars "$NS" "gitlab-shell" \
+        load-balancer-ip=GITLAB_SHELL_LOAD_BALANCER_IP
+    kube_apply_secret "$NS" "gitlab-oidc" \
+        --from-literal=client-id="$OIDC_CLIENT_ID" \
+        --from-literal=client-secret="$OIDC_CLIENT_SECRET" \
+        --from-literal=icon="$OIDC_ICON" \
+        --from-literal=label="$OIDC_LABEL" \
+        --from-file=provider=temp/values-oidc.yaml
+    kube_secret_apply_vars "$NS" "gitlab-gitlab-initial-root-password" password=GITLAB_PW
+    # create certificates
+    kubectl apply -n $NS -f temp/values-wildcard-tls.yaml
+    kubectl apply -n $NS -f temp/values-pages-tls.yaml
+fi
+
+# install minio
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" minio; then
+    log_header "install minio"
+    helm_ensure_chart "bitnami" "oci://registry-1.docker.io/bitnamicharts" "minio" "temp" "16.0.10"
+    helm upgrade --install -n $NS minio temp/minio --wait --timeout 600s -f temp/values-minio.yaml \
+        --set auth.rootPassword=$MINIO_PW
+fi
+
+# input object storage settings
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" gitlab; then
+    log_header "input object storage settings"
+    RAILS_STORAGE_CONFIG=$(kube_secret_get "$NS" "gitlab-rails-storage" "connection")
+    if [ -n "$RAILS_STORAGE_CONFIG" ]; then
+        printf '%s' "$RAILS_STORAGE_CONFIG" >temp/values-s3-rails.yaml
+        log_info "reuse existing gitlab rails storage."
+    else
+        RAILS_S3_ACCESS_KEY=$(prompt_required "please initial minio keys by web ui: https://s3.git.${DOMAIN}." "rails s3 access key" "")
+        RAILS_S3_SECRET_KEY=$(prompt_required "" "rails s3 secret key" "")
+        deploy_render_values values-s3-rails.yaml
+    fi
+    TOOLBOX_S3CMD_CONFIG=$(kube_secret_get "$NS" "gitlab-toolbox-s3cmd" "config")
+    if [ -n "$TOOLBOX_S3CMD_CONFIG" ]; then
+        printf '%s' "$TOOLBOX_S3CMD_CONFIG" >temp/values-s3-backup.ini
+        log_info "reuse existing gitlab toolbox s3cmd."
+    else
+        BACKUP_S3_ACCESS_KEY=$(prompt_required "please initial backup minio keys by web ui: https://s3.git.${DOMAIN}." "backup s3 access key" "")
+        BACKUP_S3_SECRET_KEY=$(prompt_required "" "backup s3 secret key" "")
+        deploy_render_values values-s3-backup.ini
+    fi
+    kube_apply_secret "$NS" "gitlab-rails-storage" --from-file=connection='temp/values-s3-rails.yaml'
+    kube_apply_secret "$NS" "gitlab-toolbox-s3cmd" --from-file=config='temp/values-s3-backup.ini'
+    #kube_apply_secret "$NS" "gitlab-registry-storage" --from-file=config=temp/values-s3-registry.yaml
+fi
+
+# install postgresql
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" postgresql; then
+    log_header "install postgresql"
+    helm_ensure_chart "bitnami" "oci://registry-1.docker.io/bitnamicharts" "postgresql" "temp" "16.7.27"
+    helm upgrade --install -n $NS postgresql temp/postgresql --wait --timeout 600s -f temp/values-postgresql.yaml \
+        --set global.postgresql.auth.postgresPassword=$DB_PW \
+        --set global.postgresql.auth.password=$DB_PW \
+        --set auth.replicationPassword=$DB_PW
+    kubectl -n $NS exec postgresql-0 -- bash -c \
+        'PGPASSWORD=$(cat ${POSTGRES_POSTGRES_PASSWORD_FILE}) psql --dbname=gitlabhq_production --username=admin -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS btree_gist; CREATE EXTENSION IF NOT EXISTS plpgsql;"'
+    kubectl -n $NS patch secret postgresql --type merge --patch \
+        "{\"data\":{\"username\":\"$(echo -n admin | base64)\"}}"
+fi
+
+# install redis
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" redis; then
+    log_header "install redis"
+    helm_ensure_chart "bitnami" "oci://registry-1.docker.io/bitnamicharts" "redis" "temp" "22.0.7"
+    helm upgrade --install -n $NS redis temp/redis --wait --timeout 600s -f temp/values-redis.yaml \
+        --set global.redis.password=$REDIS_PW
+fi
+
+# install elasticsearch
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" elasticsearch; then
+    log_header "install elasticsearch"
+    helm_ensure_chart "bitnami" "oci://registry-1.docker.io/bitnamicharts" "elasticsearch" "temp" "22.1.6"
+    helm upgrade --install -n $NS elasticsearch temp/elasticsearch --wait --timeout 600s -f temp/values-elasticsearch.yaml \
+        --set security.elasticPassword=$ELASTICSEARCH_PW \
+        --set kibana.elasticsearch.security.auth.kibanaPassword=$ELASTICSEARCH_PW
+fi
+
+# install gitlab
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" gitlab; then
+    log_header "install gitlab"
+    if [ "$INSTALL_MODE" == "reinstall" ]; then
+        helm_ensure_chart "gitlab" "https://charts.gitlab.io" "gitlab" "temp"
+    else
+        VERSION_PAIR=$(helm_chart_versions "gitlab" "https://charts.gitlab.io" "gitlab")
+        read -r GITLAB_CHART_VERSION DEFAULT_GITLAB_APP_VERSION <<<"$VERSION_PAIR"
+        GITLAB_APP_VERSION=$(prompt_with_default "" "gitlab app version" "$DEFAULT_GITLAB_APP_VERSION")
+        if [ "$GITLAB_APP_VERSION" != "$DEFAULT_GITLAB_APP_VERSION" ]; then
+            VERSION_PAIR=$(helm_chart_versions "gitlab" "https://charts.gitlab.io" "gitlab" "$GITLAB_APP_VERSION")
+            read -r GITLAB_CHART_VERSION GITLAB_APP_VERSION <<<"$VERSION_PAIR"
+        fi
+        helm_ensure_chart "gitlab" "https://charts.gitlab.io" "gitlab" "temp" "$GITLAB_CHART_VERSION"
+    fi
+    helm upgrade --install -n $NS gitlab temp/gitlab -f temp/values-gitlab.yaml
+fi
+
+# self configuration and license
+#####################################
+if deploy_mode_enabled "$INSTALL_MODE" gitlab; then
+    log_header "self configuration"
+    kube_apply_configmap "$NS" "self-configuration" \
+        --from-file='license_key.pub'
+    WEBSERVICE_PATCH=$(
+        cat <<EOF
+spec:
+  template:
+    spec:
+      containers:
+      - name: webservice
+        volumeMounts:
+        - mountPath: /srv/gitlab/.license_encryption_key.pub
+          subPath: license_key.pub
+          name: self-configuration-files
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: self-configuration
+        name: self-configuration-files
+EOF
+    )
+    kubectl patch -n $NS deployment gitlab-webservice-default --patch "$WEBSERVICE_PATCH"
+
+    TOOLBOX_PATCH=$(
+        cat <<EOF
+spec:
+  template:
+    spec:
+      containers:
+      - name: toolbox
+        volumeMounts:
+        - mountPath: /srv/gitlab/.license_encryption_key.pub
+          subPath: license_key.pub
+          name: self-configuration-files
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: self-configuration
+        name: self-configuration-files
+EOF
+    )
+    kubectl patch -n $NS deployment gitlab-toolbox --patch "$TOOLBOX_PATCH"
+
+    SIDEKIQ_PATCH=$(
+        cat <<EOF
+spec:
+  template:
+    spec:
+      containers:
+      - name: sidekiq
+        volumeMounts:
+        - mountPath: /srv/gitlab/.license_encryption_key.pub
+          subPath: license_key.pub
+          name: self-configuration-files
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: self-configuration
+        name: self-configuration-files
+EOF
+    )
+    kubectl patch -n $NS deployment gitlab-sidekiq-all-in-1-v2 --patch "$SIDEKIQ_PATCH"
+fi

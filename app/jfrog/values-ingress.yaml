@@ -1,0 +1,134 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    field.cattle.io/description: "UI界面管理，只供内网使用"
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    meta.helm.sh/release-name: jfrog-platform
+    nginx.ingress.kubernetes.io/proxy-body-size: 16G
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/whitelist-source-range: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12
+  labels:
+    app: artifactory
+    release: jfrog-platform
+  name: jfrog-platform
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bin.${DOMAIN}
+      http:
+        paths:
+          - backend:
+              service:
+                name: jfrog-platform-artifactory
+                port:
+                  number: 8082
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - bin.${DOMAIN}
+        - "*.bin.${DOMAIN}"
+      secretName: artifactory-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    field.cattle.io/description: "通用资源，可外网下载"
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    meta.helm.sh/release-name: jfrog-platform
+    nginx.ingress.kubernetes.io/proxy-body-size: 16G
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # 直链目录页已使用 UTF-8，但未声明 charset；只为 HTML 补充响应头。
+      charset utf-8;
+      charset_types text/html;
+      # 仅对以 / 结尾的目录页插入时区提示，普通文件下载不做正文替换。
+      # 空匹配让非目录请求跳过 sub_filter，保留文件正文及缓存响应头。
+      set $artifactory_listing_marker "";
+      set $artifactory_accept_encoding $http_accept_encoding;
+      if ($uri ~ "/$") {
+        set $artifactory_listing_marker "<pre>Name";
+        set $artifactory_accept_encoding "";
+      }
+      proxy_set_header Accept-Encoding $artifactory_accept_encoding;
+      # 提示文案须与 values-jfrog.yaml 的 Java/TZ 时区保持一致。
+      sub_filter $artifactory_listing_marker '<p>时间显示时区：Asia/Shanghai（UTC+08:00，东八区）</p><pre>Name';
+      sub_filter_once on;
+      set $ua_override $http_user_agent;
+      if ($http_user_agent ~* "(Mozilla|Chrome|Safari|Firefox|Edge)") {
+        set $ua_override "curl/7.88.1";
+      }
+      proxy_set_header User-Agent $ua_override;
+  labels:
+    app: artifactory
+    release: jfrog-platform
+  name: jfrog-platform-artifactory
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bin.${DOMAIN}
+      http:
+        paths:
+          - backend:
+              service:
+                name: jfrog-platform-artifactory
+                port:
+                  number: 8081
+            path: /artifactory/
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - bin.${DOMAIN}
+        - "*.bin.${DOMAIN}"
+      secretName: artifactory-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    field.cattle.io/description: "Docker资源，可外网下载"
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    meta.helm.sh/release-name: jfrog-platform
+    nginx.ingress.kubernetes.io/proxy-body-size: 16G
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/rewrite-target: /artifactory/api/docker/$subdomain/$1/$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  labels:
+    app: artifactory
+    release: jfrog-platform
+  name: jfrog-platform-docker
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: "*.bin.${DOMAIN}"
+      http:
+        paths:
+          - backend:
+              service:
+                name: jfrog-platform-artifactory
+                port:
+                  number: 8082
+            path: /(v1|v2)/(.*)
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - bin.${DOMAIN}
+        - "*.bin.${DOMAIN}"
+      secretName: artifactory-tls

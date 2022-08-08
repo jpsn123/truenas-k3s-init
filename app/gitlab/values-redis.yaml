@@ -1,0 +1,28 @@
+global:
+  defaultStorageClass: ${DEFAULT_STORAGE_CLASS}
+  security:
+    allowInsecureImages: true
+
+clusterDomain: cluster.local
+architecture: standalone
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/redis
+  tag: 8.2.1-debian-12-r0
+
+master:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 1
+      memory: 2Gi

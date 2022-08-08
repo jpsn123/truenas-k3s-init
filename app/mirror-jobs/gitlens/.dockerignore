@@ -1,0 +1,6 @@
+temp/
+.git/
+__pycache__/
+*.pyc
+values-*.yaml
+dist/
