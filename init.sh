@@ -58,7 +58,7 @@ echo -e "\033[32m   making commands auto completion  \033[0m"
 sed -i '/##K8S_PATCH/d' $HOME/.profile
 K8S_PATCH=`cat<<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K8S_PATCH
-alias k3s kubectl='k3s kubectl' ##K8S_PATCH
+alias kubectl='k3s kubectl' ##K8S_PATCH
 source <(helm completion bash) ##K8S_PATCH
 source <(k3s kubectl completion bash) ##K8S_PATCH
 EOF
@@ -68,7 +68,7 @@ echo "$K8S_PATCH" >> $HOME/.profile
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
 echo -e "\033[32m   making apt usable  \033[0m"
-chmod +x /usr/bin/apt-*
+chmod +x /usr/bin/apt*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
 
 ## .bashrc shell start config file, copy for ubuntu. 

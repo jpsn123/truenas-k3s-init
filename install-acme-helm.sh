@@ -36,7 +36,7 @@ spec:
   acme:
     email: $EMAIL
     server: $ACME_PRODUCT_SERVER
-    disableAccountKeyGeneration: true
+    #disableAccountKeyGeneration: true
     privateKeySecretRef:
       name: ${DNS_DOMAIN}-letsencrypt-key
     solvers:
@@ -91,5 +91,3 @@ EOF
 echo "$ALIDNS_ISSUE_YAML">./temp/alidns-test-issuer.yaml
 k3s kubectl apply -f ./temp/alidns-issuer.yaml
 k3s kubectl apply -f ./temp/alidns-test-issuer.yaml
-
-sed -i "s/example.com/${DNS_DOMAIN}/g" ./rancher-values.yaml
