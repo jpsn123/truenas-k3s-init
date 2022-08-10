@@ -31,7 +31,7 @@ if [ -n "$IX" ]; then
     sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
     sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
     sed -i -e "s/.*'data-root'/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    sed -i -e "s/.*'bridge'/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
+    #sed -i -e "s/.*'bridge'/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
     sed -i -e "/'data-root'/a 'registry-mirrors': [\'${REGISTRY_MIRRORS}\'], ##PATCH" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
     sed -i -e "/'data-root'/a 'log-opts': {'max-size':'100m','max-file':'3'}, ##PATCH" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
     rm -rf /usr/lib/python3/dist-packages/middlewared/etc_files/__pycache__/

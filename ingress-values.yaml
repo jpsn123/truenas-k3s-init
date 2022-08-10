@@ -33,32 +33,21 @@ controller:
     Referrer-Policy: strict-origin-when-cross-origin
   
   service:
-    type: NodePort
+    type: LoadBalancer
     loadBalancerIP:
-#     10.33.0.1
+#      10.0.0.1
     externalTrafficPolicy: Local 
   
   kind: DaemonSet
-  hostNetwork: true
-  extraArgs:
-    http-port: 1080
-    https-port: 8443
-  containerPort:
-    http: 1080
-    https: 8443
+  hostNetwork: false
   hostPort:
-    enabled: true
-    ports:
-      http: 1080
-      https: 8443
-  admissionWebhooks:
-    port: 8444
+    enabled: false
 defaultBackend:
   enabled: "true"
 tcp:
-  53: "dns/dns:53"
-  20000: "not-exist-ns/should-be-modified:20000"
+#  53: "dns/dns:53"
+#  20000: "not-exist-ns/should-be-modified:20000"
 
 udp:
-  53: "dns/dns:53"
-# 30000: "not-exist-ns/should-be-modified:30000"
+#  53: "dns/dns:53"
+#  30000: "not-exist-ns/should-be-modified:30000"

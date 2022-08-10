@@ -12,13 +12,13 @@ helm repo add cert-manager-alidns-webhook https://devmachine-fr.github.io/cert-m
 [ -d temp/alidns-webhook ] || helm pull cert-manager-alidns-webhook/alidns-webhook --untar --untardir temp 2>/dev/null || true
 METHOD=install
 [ `app_is_exist cert-manager alidns-webhook` == true ] && METHOD=upgrade
-helm $METHOD alidns-webhook temp/alidns-webhook -n cert-manager --set groupName="acme.${DNS_DOMAIN}"
+helm $METHOD alidns-webhook temp/alidns-webhook -n cert-manager --set groupName="acme.${DOMAIN}"
 k8s_wait cert-manager deployment alidns-webhook 50
 ALIDNS_SECRET_YAML=`cat<<EOF
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ${DNS_DOMAIN}-alidns-secret
+  name: ${DOMAIN}-alidns-secret
   namespace: cert-manager
 data:
   access-key: $(echo -n "$ALI_ACCESS_KEY" | base64)
@@ -31,30 +31,30 @@ ALIDNS_ISSUE_YAML=`cat<<EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: ${DNS_DOMAIN}-letsencrypt-issuer
+  name: ${DOMAIN}-letsencrypt-issuer
 spec:
   acme:
     email: $EMAIL
     server: $ACME_PRODUCT_SERVER
     #disableAccountKeyGeneration: true
     privateKeySecretRef:
-      name: ${DNS_DOMAIN}-letsencrypt-key
+      name: ${DOMAIN}-letsencrypt-key
     solvers:
     - dns01:
         webhook:
           config:
             accessTokenSecretRef:
-              name: ${DNS_DOMAIN}-alidns-secret
+              name: ${DOMAIN}-alidns-secret
               key: access-key
             regionId: cn-beijing
             secretKeySecretRef:
-              name: ${DNS_DOMAIN}-alidns-secret
+              name: ${DOMAIN}-alidns-secret
               key: secret-key
-          groupName: acme.${DNS_DOMAIN}
+          groupName: acme.${DOMAIN}
           solverName: alidns-solver
       selector:
         dnsZones:
-        - '${DNS_DOMAIN}'
+        - '${DOMAIN}'
 EOF
 `
 echo "$ALIDNS_ISSUE_YAML">./temp/alidns-issuer.yaml
@@ -62,30 +62,30 @@ ALIDNS_ISSUE_YAML=`cat<<EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: ${DNS_DOMAIN}-letsencrypt-test-issuer
+  name: ${DOMAIN}-letsencrypt-test-issuer
 spec:
   acme:
     email: $EMAIL
     server: $ACME_TEST_SERVER
     disableAccountKeyGeneration: true
     privateKeySecretRef:
-      name: ${DNS_DOMAIN}-letsencrypt-key
+      name: ${DOMAIN}-letsencrypt-key
     solvers:
     - dns01:
         webhook:
           config:
             accessTokenSecretRef:
-              name: ${DNS_DOMAIN}-alidns-secret
+              name: ${DOMAIN}-alidns-secret
               key: access-key
             regionId: cn-beijing
             secretKeySecretRef:
-              name: ${DNS_DOMAIN}-alidns-secret
+              name: ${DOMAIN}-alidns-secret
               key: secret-key
-          groupName: acme.${DNS_DOMAIN}
+          groupName: acme.${DOMAIN}
           solverName: alidns-solver
       selector:
         dnsZones:
-        - '${DNS_DOMAIN}'
+        - '${DOMAIN}'
 EOF
 `
 echo "$ALIDNS_ISSUE_YAML">./temp/alidns-test-issuer.yaml

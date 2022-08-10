@@ -12,7 +12,7 @@ helm repo add metallb https://metallb.github.io/metallb
 [ -d temp/metallb ] || helm pull metallb/metallb --untar --untardir temp 2>/dev/null || true
 METHOD=install
 [ `app_is_exist kube-system metallb` == true ] && METHOD=upgrade
-helm $METHOD metallb temp/metallb -n kube-system --set loadBalancerClass="metallb-lbc"
+helm $METHOD metallb temp/metallb -n kube-system #--set loadBalancerClass="metallb-lbc"
 
 YAML=`cat<<EOF
 apiVersion: metallb.io/v1beta1
@@ -22,7 +22,7 @@ metadata:
   namespace: kube-system
 spec:
   addresses:
-  - "$LAN_RANGE"
+  - "$LB_IP_RANGE"
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
