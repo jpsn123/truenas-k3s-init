@@ -62,6 +62,7 @@ alias kubectl='k3s kubectl' ##K8S_PATCH
 source <(helm completion bash) ##K8S_PATCH
 source <(k3s kubectl completion bash) ##K8S_PATCH
 ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##K8s_PATCH
+chmod +x /usr/bin/apt* ##K8s_PATCH
 EOF
 `
 echo "$K8S_PATCH" >> $HOME/.profile

@@ -34,19 +34,18 @@ controller:
   
   service:
     type: LoadBalancer
-    loadBalancerIP:
-#      10.0.0.1
+    loadBalancerIP: 10.0.0.1
     externalTrafficPolicy: Local 
   
   kind: DaemonSet
-  hostNetwork: false
+  hostNetwork: true
   hostPort:
     enabled: false
 defaultBackend:
   enabled: "true"
 tcp:
 #  53: "dns/dns:53"
-#  20000: "not-exist-ns/should-be-modified:20000"
+  20000: "not-exist-ns/should-be-modified:20000"
 
 udp:
 #  53: "dns/dns:53"

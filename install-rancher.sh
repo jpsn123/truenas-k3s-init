@@ -8,7 +8,6 @@ source parameter.sh
 # install rancher
 #####################################
 echo -e "\033[42;30m install rancher\n\033[0m"
-
 sed -i "s/example.com/${DOMAIN}/g" rancher-values.yaml
 
 k3s kubectl create namespace cattle-system 2>/dev/null || true

@@ -8,8 +8,7 @@ source parameter.sh
 # install ingress-nginx
 #####################################
 echo -e "\033[42;30m install ingress-nginx\n\033[0m"
-
-sed -i -e "s/^#\(.*\)10.0.0.1/\1${INGRESS_IP}/g" ingress-values.yaml
+sed -i -e "s/^\(.*\)10.0.0.1/\1${INGRESS_IP}/g" ingress-values.yaml
 
 helm repo add ingress-nginx "https://kubernetes.github.io/ingress-nginx"
 [ -d temp/ingress-nginx ] || helm pull ingress-nginx/ingress-nginx --untar --untardir temp 2>/dev/null || true
