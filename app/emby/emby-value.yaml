@@ -1,0 +1,62 @@
+image:
+  repository: jutze/embyserver
+  pullPolicy: IfNotPresent
+  tag: 4.7.6.0-self
+
+env:
+  TZ: Asia/Shanghai
+  UID: 1000
+  GID: 1000
+  GIDLIST: 1000
+
+service:
+  emby:
+    ports:
+      http:
+        port: 8096
+
+ingress:
+  emby:
+    enabled: true
+    primary: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    ingressClassName: "nginx"
+    hosts:
+      - host: mov.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: emby
+            port: 8096
+    tls:
+    - hosts:
+      - mov.example.com
+      secretName: mov.example.com-tls      
+
+persistence:
+  jpsn-single:
+    enabled: true
+    type: hostPath
+    hostPath: /mnt/SinglePool/jpsn-single
+    mountPath: /mnt/jpsn-single
+  public-single:
+    enabled: true
+    type: hostPath
+    hostPath: /mnt/SinglePool/public-single
+    mountPath: /mnt/public-single
+  jpsn-photo:
+    enabled: true
+    type: hostPath
+    hostPath: /mnt/MirrorPool/jpsn-ssd
+    mountPath: /mnt/jpsn-ssd
+  config:
+    enabled: true
+    type: pvc
+    mountPath: /config
+    storageClass: local-mirror-ssd
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
