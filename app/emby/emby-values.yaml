@@ -10,9 +10,13 @@ env:
   GIDLIST: 1000
 
 service:
+  main:
+    enabled: false
   emby:
+    enabled: true
     ports:
       http:
+        enabled: true
         port: 8096
 
 ingress:
@@ -20,6 +24,7 @@ ingress:
     enabled: true
     primary: true
     annotations:
+      helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
     ingressClassName: "nginx"
@@ -37,26 +42,17 @@ ingress:
       secretName: mov.example.com-tls      
 
 persistence:
-  jpsn-single:
-    enabled: true
-    type: hostPath
-    hostPath: /mnt/SinglePool/jpsn-single
-    mountPath: /mnt/jpsn-single
-  public-single:
-    enabled: true
-    type: hostPath
-    hostPath: /mnt/SinglePool/public-single
-    mountPath: /mnt/public-single
-  jpsn-photo:
-    enabled: true
-    type: hostPath
-    hostPath: /mnt/MirrorPool/jpsn-ssd
-    mountPath: /mnt/jpsn-ssd
   config:
     enabled: true
     type: pvc
     mountPath: /config
-    storageClass: local-mirror-ssd
+    storageClass: local-zfs-sc
     accessMode: ReadWriteOnce
     size: 10Gi
     retain: true
+
+#  photo:
+#    enabled: true
+#    type: hostPath
+#    hostPath: /mnt/some-disk/photo
+#    mountPath: /mnt/photo

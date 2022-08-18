@@ -1,6 +1,6 @@
 image:
   repository: nextcloud
-  tag: 24.0.2-fpm
+  tag: 24.0.4-fpm
   
 replicaCount: 1
 
@@ -125,10 +125,14 @@ nextcloud:
       name: nextcloud-data
       subPath: data
 
-#  extraVolumeMounts:
-#  - name: nextcloud-data
-#    mountPath: /public
-#    subPath: public
+  extraVolumes:
+#  - hostPath:
+#      path: /mnt/MirrorPool/photo
+#    name: photo
+
+  extraVolumeMounts:
+#  - name: photo
+#    mountPath: /mnt/photo
 
 nginx:
   enabled: true
@@ -154,7 +158,7 @@ mariadb:
   primary:
     persistence:
       enabled: true
-      storageClass: "local-mirror-ssd"
+      storageClass: "local-zfs-sc"
       accessMode: ReadWriteOnce
       size: 10Gi
 
@@ -167,12 +171,12 @@ redis:
   master:
     persistence:
       enabled: true
-      storageClass: "local-mirror-ssd"
+      storageClass: "local-zfs-sc"
       size: 10Gi
 
 cronjob:
   enabled: true
-  schedule: "30 */3 * * *"
+  schedule: "*/10 * * * *"
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
   curlInsecure: true
@@ -185,7 +189,7 @@ persistence:
   enabled: true
   annotations:
     helm.sh/resource-policy: keep
-  storageClass: "local-mirror-ssd"
+  storageClass: "local-zfs-sc"
   accessMode: ReadWriteOnce
   size: 10Gi
 
@@ -194,6 +198,6 @@ persistence:
     subPath:
     annotations:
       helm.sh/resource-policy: keep
-    storageClass: "local-mirror-ssd"
+    storageClass: "local-zfs-sc"
     accessMode: ReadWriteOnce
     size: 2000Gi

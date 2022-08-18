@@ -19,4 +19,4 @@ helm repo add k8s-at-home https://k8s-at-home.com/charts/
 [ -d temp/emby ] || helm pull k8s-at-home/emby --untar --untardir temp
 METHOD=install
 [ `app_is_exist $NS emby` == true ] && METHOD=upgrade
-helm $METHOD -n $NS emby temp/emby -f emby-value.yaml
+helm $METHOD -n $NS emby temp/emby -f emby-values.yaml
