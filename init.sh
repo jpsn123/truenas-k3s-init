@@ -48,10 +48,68 @@ echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $K3S_PATH && system
 
 ## zfs csi patchs
 echo -e "\033[32m   patching zfs csi workload...  \033[0m"
-sed -i -e "s/image: openebs\/zfs-driver:.*/image: jutze\/zfs-driver:2.1.0-self/g" ${K3S_PATH}/server/manifests/zfs-operator.yaml
-cp ${K3S_PATH}/server/manifests/zfs-operator.yaml ${K3S_PATH}/server/manifests/zfs-operator2-patch.yaml
-k3s kubectl apply -f ${K3S_PATH}/server/manifests/zfs-operator2-patch.yaml
-midclt call service.restart kubernetes
+PATCH=`cat<<EOF
+spec:
+  template:
+    spec:
+      containers:
+      - name: openebs-zfs-plugin
+        image: jutze/zfs-driver:2.1.0-self
+        volumeMounts:
+        - mountPath: /mnt
+          mountPropagation: Bidirectional
+          name: pools-mount-dir
+      volumes:
+      - hostPath:
+          path: /mnt
+          type: Directory
+        name: pools-mount-dir
+EOF
+`
+k3s kubectl patch -n kube-system daemonsets openebs-zfs-node --patch "$PATCH"
+PATCH=`cat<<EOF
+spec:
+  template:
+    spec:
+      containers:
+      - name: openebs-zfs-plugin
+        image: jutze/zfs-driver:2.1.0-self
+EOF
+`
+k3s kubectl patch -n kube-system statefulsets openebs-zfs-controller --patch "$PATCH"
+k3s kubectl get -n kube-system daemonsets openebs-zfs-node -o json | \
+    jq 'del(.metadata.resourceVersion)' | \
+    jq 'del(.metadata.annotations."kubectl.kubernetes.io/last-applied-configuration")' | \
+    jq 'del(.metadata.annotations."objectset.rio.cattle.io/applied")' | \
+    jq 'del(.status)' \
+    > ${K3S_PATH}/server/manifests/zfs-operator2-patch.yaml
+k3s kubectl get -n kube-system statefulsets openebs-zfs-controller -o json | \
+    jq 'del(.metadata.resourceVersion)' | \
+    jq 'del(.metadata.annotations."kubectl.kubernetes.io/last-applied-configuration")' | \
+    jq 'del(.metadata.annotations."objectset.rio.cattle.io/applied")' | \
+    jq 'del(.status)' \
+    > ${K3S_PATH}/server/manifests/zfs-operator3-patch.yaml
+
+zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
+ZFS_SC=`cat<<EOF
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  name: local-zfs-sc
+parameters:
+  fstype: zfs
+  poolname: ${ZFS_POOL_FOR_STORAGE}
+  shared: "yes"
+provisioner: zfs.csi.openebs.io
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+EOF
+`
+echo "$ZFS_SC">./temp/local-zfs-sc.yaml
+k3s kubectl apply -f ./temp/local-zfs-sc.yaml
 
 ## command auto completion
 echo -e "\033[32m   making commands auto completion  \033[0m"
