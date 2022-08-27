@@ -71,7 +71,7 @@ nextcloud:
       pm.max_children = 240
       pm.start_servers = 24
       pm.min_spare_servers = 12
-      pm.max_spare_servers = 48
+      pm.max_spare_servers = 128
   defaultConfigs:
     .htaccess: true
     redis.config.php: false
