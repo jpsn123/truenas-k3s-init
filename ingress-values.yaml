@@ -38,7 +38,7 @@ controller:
     externalTrafficPolicy: Local 
   
   kind: DaemonSet
-  hostNetwork: true
+  hostNetwork: false
   hostPort:
     enabled: false
 defaultBackend:
