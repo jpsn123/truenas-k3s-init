@@ -54,7 +54,7 @@ spec:
     spec:
       containers:
       - name: openebs-zfs-plugin
-        image: jutze/zfs-driver:2.1.0-self
+        image: jutze/zfs-driver:2.1.1-self
         volumeMounts:
         - mountPath: /mnt
           mountPropagation: Bidirectional
@@ -73,7 +73,7 @@ spec:
     spec:
       containers:
       - name: openebs-zfs-plugin
-        image: jutze/zfs-driver:2.1.0-self
+        image: jutze/zfs-driver:2.1.1-self
 EOF
 `
 k3s kubectl patch -n kube-system statefulsets openebs-zfs-controller --patch "$PATCH"
@@ -101,7 +101,7 @@ metadata:
   name: local-zfs-sc
 parameters:
   fstype: zfs
-  poolname: ${ZFS_POOL_FOR_STORAGE}
+  poolname: ${ZFS_DATASET_FOR_STORAGE}
   shared: "yes"
 provisioner: zfs.csi.openebs.io
 reclaimPolicy: Delete
