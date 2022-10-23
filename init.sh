@@ -12,84 +12,84 @@ source parameter.sh
 echo -e "\033[42;30m init \n\033[0m"
 [ -d temp ] || mkdir temp
 
-## By default, truenas make docker images saving to pools,
-## However, docker images is not important data, so i want
-## change image data to boot device.
-## if you want TrueNas default way, delete this section
-IX=`cat /etc/docker/daemon.json 2>/dev/null | jq '."data-root"' | grep ix-applications || true`
-if [ -n "$IX" ]; then
-    echo -e "\033[32m   patching docker daemon config...  \033[0m"
-    systemctl stop k3s.service
-    systemctl restart docker.service
-    while (( $(docker images -q | wc -l) > 0 ))
-    do
-        docker rm -f $(docker ps -aq) 2>/dev/null || true
-        docker rmi $(docker images -q) 2>/dev/null || true
-        sleep 3
-    done
-    systemctl stop docker.service
-    sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    sed -i -e "s/.*'data-root'/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    #sed -i -e "s/.*'bridge'/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    sed -i -e "/'data-root'/a 'registry-mirrors': [\'${REGISTRY_MIRRORS}\'], ##PATCH" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    sed -i -e "/'data-root'/a 'log-opts': {'max-size':'100m','max-file':'3'}, ##PATCH" /usr/lib/python3/dist-packages/middlewared/etc_files/docker.py
-    rm -rf /usr/lib/python3/dist-packages/middlewared/etc_files/__pycache__/
-    systemctl restart middlewared.service
-    systemctl restart truenas.target
-    midclt call service.restart docker
-    systemctl start k3s.service
-fi
+## make you can use apt command and self download package
+## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
+echo -e "\033[32m   making apt usable  \033[0m"
+chmod +x /usr/bin/apt*
+wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
+
+## disable truenas docker and k3s server
+#####################################
+sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
+sed -i -e "s/.*DockerService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
+sed -i -e "s/.*KubernetesService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
+sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
+
+## install docker
+#####################################
+docker version || curl -sSL https://get.docker.com|sh
+systemctl enable docker.server
+
+## install k3s
+#####################################
+K3S_CONF=`cat<<EOF
+cluster-cidr: $CLUSTER_CIDR
+service-cidr: $SERVICE_CIDR
+data-dir: $DATA_DIR
+disable:
+- servicelb
+- traefik
+kube-apiserver-arg:
+- service-node-port-range=9000-65535
+- enable-admission-plugins=NodeRestriction,NamespaceLifecycle,ServiceAccount
+- audit-log-path=/tmp/k3s_server_audit.log
+- audit-log-maxage=30
+- audit-log-maxbackup=10
+- audit-log-maxsize=50
+- service-account-lookup=true
+- feature-gates=MixedProtocolLBService=true
+kube-controller-manager-arg:
+- node-cidr-mask-size=16
+- terminated-pod-gc-threshold=5
+kubelet-arg:
+- max-pods=250
+protect-kernel-defaults: true
+EOF
+`
+mkdir -p /etc/rancher/k3s/
+echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
+
+## init default containerd
+mkdir -p /etc/containerd && containerd config default > /etc/containerd/config.toml
+sed -i "s/SystemdCgroup = false/SystemdCgroup = true/g" /etc/containerd/config.toml
+sed -i '/registry.mirrors]/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]' /etc/containerd/config.toml
+sed -i '/registry.mirrors."docker.io"]/a\ \ \ \ \ \ \ \ \ \ endpoint = ["http://hub-mirror.c.163.com/"]' /etc/containerd/config.toml
+sed -i '/hub-mirror.c.163.com"]/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]' /etc/containerd/config.toml
+#sed -i '/"k8s.gcr.io"]/a\ \ \ \ \ \ \ \ \ \ endpoint = ["http://registry.aliyuncs.com/google_containers"]' /etc/containerd/config.toml
+#sed -i "s#k8s.gcr.io/pause#registry.aliyuncs.com/google_containers/pause#g"  /etc/containerd/config.toml
+systemctl stop containerd
+systemctl disable containerd
+
+## install
+k3s -v || curl -sfL https://get.k3s.io | sh -
+sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml
+CONTAINERD_PATCH=`cat<<EOF
+##PATCH
+[plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+  endpoint = ["http://hub-mirror.c.163.com/"]
+[plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
+  endpoint = ["http://registry.aliyuncs.com/google_containers"]
+EOF
+`
+echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml
+systemctl restart k3s
 
 ## auto refresh k3s certificate
 echo -e "\033[32m   making k3s certification auto refresh  \033[0m"
-K3S_PATH=`k3s check-config -h 2>/dev/null | grep ix-applications | sed 's/.*\(\/mnt\/.*\/ix-applications\/k3s\).*/\1/g'`
-echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $K3S_PATH && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
+echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
 
-## zfs csi patchs
-echo -e "\033[32m   patching zfs csi workload...  \033[0m"
-PATCH=`cat<<EOF
-spec:
-  template:
-    spec:
-      containers:
-      - name: openebs-zfs-plugin
-        image: jutze/zfs-driver:2.1.1-self
-        volumeMounts:
-        - mountPath: /mnt
-          mountPropagation: Bidirectional
-          name: pools-mount-dir
-      volumes:
-      - hostPath:
-          path: /mnt
-          type: Directory
-        name: pools-mount-dir
-EOF
-`
-k3s kubectl patch -n kube-system daemonsets openebs-zfs-node --patch "$PATCH"
-PATCH=`cat<<EOF
-spec:
-  template:
-    spec:
-      containers:
-      - name: openebs-zfs-plugin
-        image: jutze/zfs-driver:2.1.1-self
-EOF
-`
-k3s kubectl patch -n kube-system statefulsets openebs-zfs-controller --patch "$PATCH"
-k3s kubectl get -n kube-system daemonsets openebs-zfs-node -o json | \
-    jq 'del(.metadata.resourceVersion)' | \
-    jq 'del(.metadata.annotations."kubectl.kubernetes.io/last-applied-configuration")' | \
-    jq 'del(.metadata.annotations."objectset.rio.cattle.io/applied")' | \
-    jq 'del(.status)' \
-    > ${K3S_PATH}/server/manifests/zfs-operator2-patch.yaml
-k3s kubectl get -n kube-system statefulsets openebs-zfs-controller -o json | \
-    jq 'del(.metadata.resourceVersion)' | \
-    jq 'del(.metadata.annotations."kubectl.kubernetes.io/last-applied-configuration")' | \
-    jq 'del(.metadata.annotations."objectset.rio.cattle.io/applied")' | \
-    jq 'del(.status)' \
-    > ${K3S_PATH}/server/manifests/zfs-operator3-patch.yaml
-
+## install zfs csi
+kubectl apply -f zfs-operator.yaml
 zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
 ZFS_SC=`cat<<EOF
 allowVolumeExpansion: true
@@ -125,14 +125,9 @@ EOF
 `
 echo "$K8S_PATCH" >> $HOME/.profile
 
-## make you can use apt command and self download package
-## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
-echo -e "\033[32m   making apt usable  \033[0m"
-chmod +x /usr/bin/apt*
-wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
-
 ## .bashrc shell start config file, copy for ubuntu. 
 ## you need configurate your shell to 'bash' by TrueNAS UI.
+#####################################
 echo -e "\033[32m   making bashrc  \033[0m"
 cat<<"EOF" > /root/.bashrc
 [ -z "$PS1" ] && return

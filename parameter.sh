@@ -1,6 +1,9 @@
 #!/bin/bash
 
 ## kube-system
+CLUSTER_CIDR='172.30.0.0/16'
+SERVICE_CIDR='172.31.0.0/16'
+DATA_DIR='/mnt/MirrorPool/k8s-data/k3s'
 BRAND_PREFIX='jpsn'
 REGISTRY_MIRRORS='https://docker.mirrors.ustc.edu.cn'  ## optional: 'https://iul02qsw.mirror.aliyuncs.com'
 DNS_MAIN='114.114.114.114'

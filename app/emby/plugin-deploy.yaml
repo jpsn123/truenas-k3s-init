@@ -28,7 +28,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 100Gi
+      storage: 10Gi
   storageClassName: local-zfs-sc
   volumeMode: Filesystem
 ---

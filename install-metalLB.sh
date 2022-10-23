@@ -14,6 +14,8 @@ METHOD=install
 [ `app_is_exist kube-system metallb` == true ] && METHOD=upgrade
 helm $METHOD metallb temp/metallb -n kube-system #--set loadBalancerClass="metallb-lbc"
 
+k8s_wait kube-system deployment metallb-controller 100
+
 YAML=`cat<<EOF
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -37,5 +39,4 @@ EOF
 echo "$YAML" > ./temp/metallb-config.yaml
 k3s kubectl apply -f ./temp/metallb-config.yaml 
 
-k8s_wait kube-system deployment metallb-controller 100
 k8s_wait kube-system daemonset metallb-speaker 100
