@@ -27,8 +27,8 @@ sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/
 
 ## install docker
 #####################################
-docker version || curl -sSL https://get.docker.com|sh
-systemctl enable docker.server
+#curl -sSL https://get.docker.com|sh
+#systemctl enable docker
 
 ## install k3s
 #####################################
@@ -36,9 +36,11 @@ K3S_CONF=`cat<<EOF
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
+snapshotter: native
 disable:
 - servicelb
 - traefik
+- local-storage
 kube-apiserver-arg:
 - service-node-port-range=9000-65535
 - enable-admission-plugins=NodeRestriction,NamespaceLifecycle,ServiceAccount
@@ -53,27 +55,19 @@ kube-controller-manager-arg:
 - terminated-pod-gc-threshold=5
 kubelet-arg:
 - max-pods=250
-protect-kernel-defaults: true
 EOF
 `
 mkdir -p /etc/rancher/k3s/
 echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
 
-## init default containerd
-mkdir -p /etc/containerd && containerd config default > /etc/containerd/config.toml
-sed -i "s/SystemdCgroup = false/SystemdCgroup = true/g" /etc/containerd/config.toml
-sed -i '/registry.mirrors]/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]' /etc/containerd/config.toml
-sed -i '/registry.mirrors."docker.io"]/a\ \ \ \ \ \ \ \ \ \ endpoint = ["http://hub-mirror.c.163.com/"]' /etc/containerd/config.toml
-sed -i '/hub-mirror.c.163.com"]/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]' /etc/containerd/config.toml
-#sed -i '/"k8s.gcr.io"]/a\ \ \ \ \ \ \ \ \ \ endpoint = ["http://registry.aliyuncs.com/google_containers"]' /etc/containerd/config.toml
-#sed -i "s#k8s.gcr.io/pause#registry.aliyuncs.com/google_containers/pause#g"  /etc/containerd/config.toml
-systemctl stop containerd
-systemctl disable containerd
-
 ## install
-k3s -v || curl -sfL https://get.k3s.io | sh -
-sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml
-CONTAINERD_PATCH=`cat<<EOF
+k3s -v | grep v1.24 || curl -sfL https://get.k3s.io | sh -
+
+for ((i=0;i<100;i++))
+do
+  if [ -e "$DATA_DIR/agent/etc/containerd/config.toml" ]; then
+    sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml
+    CONTAINERD_PATCH=`cat<<EOF
 ##PATCH
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
   endpoint = ["http://hub-mirror.c.163.com/"]
@@ -81,8 +75,12 @@ CONTAINERD_PATCH=`cat<<EOF
   endpoint = ["http://registry.aliyuncs.com/google_containers"]
 EOF
 `
-echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml
-systemctl restart k3s
+    echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml
+    systemctl restart k3s
+    break
+  fi
+  sleep 5
+done
 
 ## auto refresh k3s certificate
 echo -e "\033[32m   making k3s certification auto refresh  \033[0m"

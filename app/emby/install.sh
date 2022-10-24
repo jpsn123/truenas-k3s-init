@@ -14,7 +14,7 @@ sed -i "s/example.com/${DOMAIN}/g" emby-values.yaml
 
 # install emby
 #####################################
-echo -e "\033[42;30m install ldap \n\033[0m"
+echo -e "\033[42;30m install emby \n\033[0m"
 helm repo add k8s-at-home https://k8s-at-home.com/charts/
 [ -d temp/emby ] || helm pull k8s-at-home/emby --untar --untardir temp
 METHOD=install
