@@ -36,7 +36,7 @@ K3S_CONF=`cat<<EOF
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
-snapshotter: native
+snapshotter: fuse-overlayfs
 disable:
 - servicelb
 - traefik
