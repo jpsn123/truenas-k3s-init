@@ -1,6 +1,6 @@
 image:
   repository: nextcloud
-  tag: 24.0.4-fpm
+  tag: 24.0.6-fpm
   
 replicaCount: 1
 
