@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ## kube-system
-K3S_VERSION='V1.24'
+K3S_VERSION='v1.24'
 CLUSTER_CIDR='172.30.0.0/16'
 SERVICE_CIDR='172.31.0.0/16'
-DATA_DIR='/var/lib/rancher/k3s'
+DATA_DIR='/root/k3s'
 BRAND_PREFIX='jpsn'
 REGISTRY_MIRRORS='https://docker.mirrors.ustc.edu.cn'  ## optional: 'https://iul02qsw.mirror.aliyuncs.com'
 DNS_MAIN='114.114.114.114'

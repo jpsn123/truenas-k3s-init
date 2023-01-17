@@ -61,7 +61,10 @@ mkdir -p /etc/rancher/k3s/
 echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
 
 ## install
-k3s -v | grep $K3S_VERSION || curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=$K3S_VERSION sh -
+RES=`k3s -v | grep $K3S_VERSION || true`
+if [ -z "$RES" ]; then
+  curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=$K3S_VERSION sh -
+fi
 
 for ((i=0;i<100;i++))
 do
