@@ -17,3 +17,13 @@ METHOD=install
 [ `app_is_exist ingress-nginx ingress-nginx` == true ] && METHOD=upgrade
 helm $METHOD ingress-nginx temp/ingress-nginx -n ingress-nginx -f ingress-values.yaml
 k8s_wait ingress-nginx daemonset ingress-nginx-controller 50
+PATCH=`cat<<EOF
+spec:
+  ports:
+  - name: https2
+    port: 8443
+    protocol: TCP
+    targetPort: https
+EOF
+`
+kubectl patch -n ingress-nginx svc ingress-nginx-controller --patch "$PATCH"

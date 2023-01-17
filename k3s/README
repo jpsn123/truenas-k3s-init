@@ -1,0 +1,1 @@
+Here place k3s offline install files. must include "k3s" and "k3s-airgap-images-xxx.tar.gz". you can also place your docker images files whice named by "xxx-images-xxx.tar.gz"

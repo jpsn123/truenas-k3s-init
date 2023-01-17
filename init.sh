@@ -61,11 +61,24 @@ mkdir -p /etc/rancher/k3s/
 echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
 
 ## install
-RES=`k3s -v | grep $K3S_VERSION || true`
+RES=`k3s -v 2>/dev/null | grep $K3S_VERSION || true`
 if [ -z "$RES" ]; then
-  curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=$K3S_VERSION sh -
+  if [ $OFFLINE_INSTALL ]; then
+    echo -e "\033[36m Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images. \033[0m"
+    [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io > k3s/install.sh || (echo -e "\033[31m error: k3s/install.sh file not found! \033[0m" ; false)
+    [ -e k3s/k3s ] || (echo -e "\033[31m error: k3s/k3s file not found! \033[0m" ; false)
+    [ -e k3s/k3s-airgap-images*.tar* ] || (echo -e "\033[31m error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m" ; false)
+    mkdir -p $DATA_DIR/agent/images/
+    cp -f k3s/k3s /usr/local/bin/
+    chmod +x /usr/local/bin/k3s
+    cp -f k3s/*images*.tar* $DATA_DIR/agent/images/
+    cat k3s/install.sh | INSTALL_K3S_SKIP_DOWNLOAD=true sh -
+  else
+    curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=$K3S_VERSION sh -
+  fi
 fi
 
+systemctl restart k3s
 for ((i=0;i<100;i++))
 do
   if [ -e "$DATA_DIR/agent/etc/containerd/config.toml" ]; then
