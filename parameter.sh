@@ -29,3 +29,4 @@ ACME_PRODUCT_SERVER='https://acme-v02.api.letsencrypt.org/directory'
 ## ddns
 UPDATE_IPV4=true
 UPDATE_IPV6=true
+UPDATE_HOSTS="@.$DOMAIN,*.$DOMAIN"
