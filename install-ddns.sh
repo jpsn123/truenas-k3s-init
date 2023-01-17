@@ -65,7 +65,7 @@ spec:
               name: alidns-secret
               optional: false
         - name: DOMAIN
-          value: ${UPDATE_HOSTS}
+          value: "${UPDATE_HOSTS}"
         - name: REDO
           value: "300"
         - name: TTL
