@@ -2372,6 +2372,11 @@ spec:
               # needed so that any mounts setup inside this container are
               # propagated back to the host machine.
               mountPropagation: "Bidirectional"
+            - name: pods-mount-dir-extend
+              mountPath: /mnt
+              # needed so that any mounts setup inside this container are
+              # propagated back to the host machine.
+              mountPropagation: "Bidirectional"
       volumes:
         - name: device-dir
           hostPath:
@@ -2400,5 +2405,9 @@ spec:
         - name: pods-mount-dir
           hostPath:
             path: /var/lib/kubelet/
+            type: Directory
+        - name: pods-mount-dir-extend
+          hostPath:
+            path: /mnt/
             type: Directory
 ---
