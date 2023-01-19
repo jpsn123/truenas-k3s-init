@@ -17,6 +17,8 @@ echo -e "\033[42;30m init \n\033[0m"
 echo -e "\033[32m   making apt usable  \033[0m"
 chmod +x /usr/bin/apt*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
+swapoff -a
+sed -i '/^\/swap/s/^/# /' /etc/fstab
 
 ## disable truenas docker and k3s server
 #####################################
@@ -27,8 +29,19 @@ sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/
 
 ## install docker
 #####################################
-#curl -sSL https://get.docker.com|sh
+#docker version || curl -sSL https://get.docker.com|sh
+#DOCKER_CONF=`cat<<EOF
+#{
+#  "registry-mirrors": ["http://hub-mirror.c.163.com/"],
+#  "log-opts":{"max-size":"100m","max-file":"3"},
+#  "exec-opts":["native.cgroupdriver=systemd"]
+#}
+#EOF
+#`
+#mkdir -p /etc/docker/
+#echo "$DOCKER_CONF">/etc/docker/daemon.json
 #systemctl enable docker
+#systemctl restart docker
 
 ## install k3s
 #####################################
