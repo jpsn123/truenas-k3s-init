@@ -20,3 +20,12 @@ helm repo add k8s-at-home https://k8s-at-home.com/charts/
 METHOD=install
 [ `app_is_exist $NS emby` == true ] && METHOD=upgrade
 helm $METHOD -n $NS emby temp/emby -f emby-values.yaml
+k8s_wait $NS deployment emby 100
+
+# install MetaTube, copy MetaTube.dll to plugins dir
+#####################################
+echo -e "\033[42;30m install MetaTube, copy MetaTube.dll to plugins dir \n\033[0m"
+kubectl apply -n $NS -f ../emby/plugin-deploy.yaml
+POD_NAME=`kubectl get pod -n $NS -l app.kubernetes.io/name=emby -o jsonpath="{.items[0].metadata.name}"`
+kubectl cp ../emby/MetaTube.dll $NS/$POD_NAME:/config/plugins -c emby
+kubectl cp ../emby/MetaTube.xml $NS/$POD_NAME:/config/plugins/configurations -c emby

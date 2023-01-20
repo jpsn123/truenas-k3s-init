@@ -14,7 +14,7 @@ do
 #echo -e "-----------------------";
 printf "%-11s"  /dev/$i:;
 #echo -n -e "/dev/$i :\t" ;
-stats=`hdparm -C /dev/$i|grep "drive state is:" |awk '{print $4}'|awk -F "/" '{print $1}'`;
+stats=`smartctl -i -n standby /dev/$i|grep "mode"|awk '{print $4}'`;
 #echo $stats
 if [[ $stats == STANDBY ]]||[[ $stats == ACTIVE ]]||[[ $stats == IDLE_A ]]
 then

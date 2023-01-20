@@ -5,9 +5,9 @@ image:
 
 env:
   TZ: Asia/Shanghai
-  UID: 1000
-  GID: 1000
-  GIDLIST: "33,100"
+  UID: 0
+  GID: 0
+  GIDLIST: "33,1000"
 
 service:
   main:
