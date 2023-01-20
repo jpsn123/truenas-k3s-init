@@ -1,0 +1,11 @@
+install step:
+  1. modify 'parameter.sh' file, input your self configuration. if you want to use offline k3s package and docker images, place your files to k3s directory.
+  2. skip if you don't want to customize helm application installation params, modify files start with "values-xxx.yaml".
+  3. run "bash auto-install.sh" command to install k3s and components, you can step to run script files whice start with "install-xxx.sh" as "auto-install.sh" manually.
+  4. install apps. go to app directory, modify "values-xxx.yaml" file and run "install.sh" script. if you want update apps, you can run "install.sh" again or run "update.sh" if have.
+
+安装步骤：
+  1. 修改 ‘parameter.sh’文件里面的参数，如果没有外网，需要启用了离线安装，并将下载的k3s包和离线镜像放入k3s文件下。
+  2. 你可以通过修改对应Helm应用程序的“values-xxx.yaml”文件来自定义Helm程序的安装，不需要则跳过。
+  3. 运行“bash auto-install.sh”命令来安装k3s和其组件， 有可能遇到失败，你可以手动运行“install-xxx.sh”脚本文件继续安装。安装顺序参考“auto-install.sh”文件。
+  4. 安装app文件夹里面的程序，cd到对应程序目录，运行“bash install.sh”命令即可。如果你需自定义安装，修改“values-xxx.yaml”，然后重新运行“bash install.sh”, 如果有“update.sh”，可运行“bash update.sh”。
