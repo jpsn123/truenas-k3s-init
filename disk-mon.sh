@@ -29,7 +29,7 @@ do
         fi    
         echo $s
     done
-    sleep 2
+    sleep 10
 done
 exit
 
