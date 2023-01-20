@@ -29,3 +29,4 @@ kubectl apply -n $NS -f plugin-deploy.yaml
 POD_NAME=`kubectl get pod -n $NS -l app.kubernetes.io/name=emby -o jsonpath="{.items[0].metadata.name}"`
 kubectl cp MetaTube.dll $NS/$POD_NAME:/config/plugins -c emby
 kubectl cp MetaTube.xml $NS/$POD_NAME:/config/plugins/configurations -c emby
+kubectl delete -n $NS pod $POD_NAME

@@ -1,0 +1,15 @@
+{
+  "category": "Metadata",
+  "changelog": "Auto Released by Actions",
+  "description": "Metadata Tube Plugin for Jellyfin/Emby.",
+  "guid": "01cc53ec-c415-4108-bbd4-a684a9801a32",
+  "name": "MetaTube",
+  "overview": "Metadata Tube Plugin for Jellyfin/Emby.",
+  "owner": "MetaTube",
+  "targetAbi": "10.8.0.0",
+  "timestamp": "2022-12-18T22:00:36.0000000Z",
+  "version": "2022.1218.1400.0",
+  "status": "Active",
+  "autoUpdate": true,
+  "imagePath": "/config/plugins/MetaTube/thumb.png"
+}
