@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## This script should run after the Apps feature (k3s) is initialized
+## This script should run after disable truenas Apps feature (k3s, default is disabled)
 
 set -e
 cd `dirname $0`
@@ -9,42 +9,56 @@ source parameter.sh
 
 # init
 #####################################
-echo -e "\033[42;30m init \n\033[0m"
+echo -e "\033[42m Truenas init \n\033[0m"
 [ -d temp ] || mkdir temp
 
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
-echo -e "\033[32m   making apt usable  \033[0m"
+echo -e "\033[32m    making apt usable.  \033[0m"
 chmod +x /usr/bin/apt*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
 swapoff -a
 sed -i '/^\/swap/s/^/# /' /etc/fstab
 
-## disable truenas docker and k3s server
-#####################################
+# disable truenas docker and k3s server
+echo -e "\033[32m    disable truenas docker and k3s server  \033[0m"
 sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 sed -i -e "s/.*DockerService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 sed -i -e "s/.*KubernetesService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 
-## install docker
-#####################################
-#docker version || curl -sSL https://get.docker.com|sh
-#DOCKER_CONF=`cat<<EOF
-#{
-#  "registry-mirrors": ["http://hub-mirror.c.163.com/"],
-#  "log-opts":{"max-size":"100m","max-file":"3"},
-#  "exec-opts":["native.cgroupdriver=systemd"]
-#}
-#EOF
-#`
-#mkdir -p /etc/docker/
-#echo "$DOCKER_CONF">/etc/docker/daemon.json
-#systemctl enable docker
-#systemctl restart docker
+# enable docker
+echo -e "\033[32m    enable and config docker.  \033[0m"
+docker help &>/dev/null || curl -sSL https://get.docker.com|sh
+DOCKER_CONF=`cat<<EOF
+{
+  "registry-mirrors": ["http://hub-mirror.c.163.com/"],
+  "log-opts":{"max-size":"100m","max-file":"3"},
+  "exec-opts":["native.cgroupdriver=systemd"]
+}
+EOF
+`
+mkdir -p /etc/docker/
+echo "$DOCKER_CONF">/etc/docker/daemon.json
+systemctl enable docker
+systemctl restart docker
+
+# some patch on profile
+echo -e "\033[32m    some patch on profile \033[0m"
+sed -i '/##PROFILE_PATCH/d' $HOME/.profile
+PROFILE_PATCH=`cat<<EOF
+ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##PROFILE_PATCH
+chmod +x /usr/bin/apt* ##PROFILE_PATCH
+EOF
+`
+echo "$PROFILE_PATCH" >> $HOME/.profile
 
 ## install k3s
 #####################################
+echo -e "\033[42m install k3s  \n\033[0m"
+
+# init k3s config
+echo -e "\033[32m    init k3s config.  \033[0m"
 K3S_CONF=`cat<<EOF
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
@@ -73,14 +87,15 @@ EOF
 mkdir -p /etc/rancher/k3s/
 echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
 
-## install
+# enable k3s service
+echo -e "\033[32m    enable k3s service.  \033[0m"
 RES=`k3s -v 2>/dev/null | grep $K3S_VERSION || true`
 if [ -z "$RES" ]; then
   if [ $OFFLINE_INSTALL ]; then
-    echo -e "\033[36m Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images. \033[0m"
+    echo -e "\033[36m      Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images. \033[0m"
     [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io > k3s/install.sh || (echo -e "\033[31m error: k3s/install.sh file not found! \033[0m" ; false)
-    [ -e k3s/k3s ] || (echo -e "\033[31m error: k3s/k3s file not found! \033[0m" ; false)
-    [ -e k3s/k3s-airgap-images*.tar* ] || (echo -e "\033[31m error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m" ; false)
+    [ -e k3s/k3s ] || (echo -e "\033[31m      error: k3s/k3s file not found! \033[0m" ; false)
+    [ -e k3s/k3s-airgap-images*.tar* ] || (echo -e "\033[31m      error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m" ; false)
     mkdir -p $DATA_DIR/agent/images/
     cp -f k3s/k3s /usr/local/bin/
     chmod +x /usr/local/bin/k3s
@@ -91,6 +106,8 @@ if [ -z "$RES" ]; then
   fi
 fi
 
+# wait k3s wake up and patch cri config
+echo -e "\033[32m    wait k3s wake up and patch cri config.  \033[0m"
 systemctl restart k3s
 for ((i=0;i<100;i++))
 do
@@ -111,11 +128,12 @@ EOF
   sleep 5
 done
 
-## auto refresh k3s certificate
-echo -e "\033[32m   making k3s certification auto refresh  \033[0m"
+# auto refresh k3s certificate
+echo -e "\033[32m    making k3s certification auto refresh  \033[0m"
 echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
 
 ## install zfs csi
+echo -e "\033[32m    install local-zfs csi  \033[0m"
 kubectl apply -f zfs-operator.yaml
 zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
 ZFS_SC=`cat<<EOF
@@ -138,24 +156,24 @@ EOF
 echo "$ZFS_SC">./temp/local-zfs-sc.yaml
 k3s kubectl apply -f ./temp/local-zfs-sc.yaml
 
-## command auto completion
-echo -e "\033[32m   making commands auto completion  \033[0m"
+# command auto completion
+echo -e "\033[32m    making commands auto completion  \033[0m"
 sed -i '/##K8S_PATCH/d' $HOME/.profile
 K8S_PATCH=`cat<<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K8S_PATCH
 alias kubectl='k3s kubectl' ##K8S_PATCH
 source <(helm completion bash) ##K8S_PATCH
 source <(k3s kubectl completion bash) ##K8S_PATCH
-ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##K8s_PATCH
-chmod +x /usr/bin/apt* ##K8s_PATCH
+source <(crictl completion bash) ##K8S_PATCH
 EOF
 `
 echo "$K8S_PATCH" >> $HOME/.profile
 
-## .bashrc shell start config file, copy for ubuntu. 
-## you need configurate your shell to 'bash' by TrueNAS UI.
+## post installation
 #####################################
-echo -e "\033[32m   making bashrc  \033[0m"
+echo -e "\033[42m making bashrc  \n\033[0m"
+echo -e "\033[32m    cp .bashrc shell start config file, copy from ubuntu.  \033[0m"
+echo -e "\033[33m    you need configurate your shell to 'bash' by TrueNAS UI.  \033[0m"
 cat<<"EOF" > /root/.bashrc
 [ -z "$PS1" ] && return
 HISTCONTROL=ignoredups:ignorespace
@@ -207,4 +225,4 @@ EOF
 
 ## done
 #####################################
-echo -e "\033[32m   done!  \033[0m"
+echo -e "\033[42m init success!!!  \033[0m"
