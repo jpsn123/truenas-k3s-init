@@ -19,6 +19,7 @@ chmod +x /usr/bin/apt*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
 swapoff -a
 sed -i '/^\/swap/s/^/# /' /etc/fstab
+sed -i "s/^#net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/g" /etc/sysctl.conf #forward vm ipv4 package if configure network bridge
 
 # disable truenas docker and k3s server
 echo -e "\033[32m    disable truenas docker and k3s server  \033[0m"
