@@ -42,7 +42,7 @@ EOF
 mkdir -p /etc/docker/
 echo "$DOCKER_CONF">/etc/docker/daemon.json
 systemctl enable docker
-systemctl restart docker
+systemctl restart docker || true
 
 # some patch on profile
 echo -e "\033[32m    some patch on profile \033[0m"
@@ -113,7 +113,8 @@ systemctl restart k3s
 for ((i=0;i<100;i++))
 do
   if [ -e "$DATA_DIR/agent/etc/containerd/config.toml" ]; then
-    sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml
+    cp -f $DATA_DIR/agent/etc/containerd/config.toml $DATA_DIR/agent/etc/containerd/config.toml.tmpl
+    sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml.tmpl
     CONTAINERD_PATCH=`cat<<EOF
 ##PATCH
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -122,7 +123,7 @@ do
   endpoint = ["http://registry.aliyuncs.com/google_containers"]
 EOF
 `
-    echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml
+    echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml.tmpl
     systemctl restart k3s
     break
   fi
