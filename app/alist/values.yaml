@@ -1,0 +1,51 @@
+image:
+  repository: xhofe/alist
+  pullPolicy: IfNotPresent
+  tag: v3.15.1
+
+strategy:
+  type: Recreate
+
+env:
+  PUID: 0
+  PGID: 0
+  UMASK: 022
+
+service:
+  main:
+    enabled: false
+  alist:
+    ports:
+      http:
+        port: 5244
+
+ingress:
+  alist:
+    enabled: true
+    primary: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    ingressClassName: "nginx"
+    hosts:
+      - host: li.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: alist
+    tls:
+    - hosts:
+      - li.example.com
+      secretName: li.example.com-tls
+
+persistence:
+  data:
+    enabled: true
+    type: pvc
+    mountPath: /opt/alist/data
+    storageClass: local-zfs-sc
+    accessMode: ReadWriteOnce
+    size: 100Gi
+    retain: true
