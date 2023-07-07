@@ -1,0 +1,68 @@
+image:
+  repository: esphome/esphome
+  pullPolicy: IfNotPresent
+  tag: stable
+
+env: {}
+  # ESPHOME_DASHBOARD_USE_PING: true
+  # ESPHOME_DASHBOARD_RELATIVE_URL: "/"
+  # ESPHOME_QUICKWIZARD:
+  # ESPHOME_IS_HASSIO:
+  # DISABLE_HA_AUTHENTICATION:
+  # USERNAME:
+  # PASSWORD:
+
+service:
+  main:
+    enabled: false
+  esphome:
+    ports:
+      http:
+        port: 6052
+
+ingress:
+  main:
+    enabled: true
+    primary: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+      "nginx.ingress.kubernetes.io/server-snippet": |-
+        allow 10.0.0.0/8;
+        allow 172.16.0.0/12;
+        allow 192.168.0.0/16;
+        deny all;
+    ingressClassName: "nginx"
+    hosts:
+      - host: esp.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: esphome
+    tls:
+    - hosts:
+      - esp.example.com
+      secretName: esp.example.com-tls
+
+securityContext:
+  privileged: true
+
+persistence:
+  data:
+    enabled: true
+    type: pvc
+    mountPath: /config
+    storageClass: local-zfs-sc
+    accessMode: ReadWriteOnce
+    size: 100Gi
+    retain: true
+  localtime:
+    enabled: true
+    type: hostPath
+    hostPath: /etc/localtime
+  dev:
+    enabled: true
+    type: hostPath
+    hostPath: /dev
