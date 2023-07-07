@@ -46,8 +46,8 @@ ingress:
       - esp.example.com
       secretName: esp.example.com-tls
 
-securityContext:
-  privileged: true
+#securityContext:
+#  privileged: true
 
 persistence:
   data:
@@ -62,7 +62,7 @@ persistence:
     enabled: true
     type: hostPath
     hostPath: /etc/localtime
-  dev:
-    enabled: true
-    type: hostPath
-    hostPath: /dev
+#  dev:
+#    enabled: true
+#    type: hostPath
+#    hostPath: /dev
