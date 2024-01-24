@@ -92,7 +92,7 @@ echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
 echo -e "\033[32m    enable k3s service.  \033[0m"
 RES=`k3s -v 2>/dev/null | grep $K3S_VERSION || true`
 if [ -z "$RES" ]; then
-  if [ $OFFLINE_INSTALL ]; then
+  if [ $OFFLINE_INSTALL == true ]; then
     echo -e "\033[36m      Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images. \033[0m"
     [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io > k3s/install.sh || (echo -e "\033[31m error: k3s/install.sh file not found! \033[0m" ; false)
     [ -e k3s/k3s ] || (echo -e "\033[31m      error: k3s/k3s file not found! \033[0m" ; false)
@@ -113,14 +113,15 @@ systemctl restart k3s
 for ((i=0;i<100;i++))
 do
   if [ -e "$DATA_DIR/agent/etc/containerd/config.toml" ]; then
+	sleep 5
     cp -f $DATA_DIR/agent/etc/containerd/config.toml $DATA_DIR/agent/etc/containerd/config.toml.tmpl
     sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml.tmpl
     CONTAINERD_PATCH=`cat<<EOF
 ##PATCH
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
   endpoint = ["http://hub-mirror.c.163.com/"]
-[plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
-  endpoint = ["http://registry.aliyuncs.com/google_containers"]
+#[plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
+#  endpoint = ["http://registry.aliyuncs.com/google_containers"]
 EOF
 `
     echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml.tmpl
