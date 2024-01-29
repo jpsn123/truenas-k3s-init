@@ -1,5 +1,5 @@
 image:
-  repository: nextcloud
+  repository: jutze/nextcloud
   tag: 28.0.1-fpm
   
 replicaCount: 1
@@ -86,6 +86,27 @@ nextcloud:
     custom.config.php: |-
       <?php
       $CONFIG = array (
+        'enabledPreviewProviders' => [
+              'OC\Preview\PNG',
+              'OC\Preview\JPEG',
+              'OC\Preview\GIF',
+              'OC\Preview\BMP',
+              'OC\Preview\XBitmap',
+              'OC\Preview\MP3',
+              'OC\Preview\TXT',
+              'OC\Preview\MarkDown',
+              'OC\Preview\OpenDocument',
+              'OC\Preview\Krita',
+              'OC\Preview\HEIC',
+              'OC\Preview\Movie',
+              'OC\Preview\MKV',
+              'OC\Preview\MP4',
+              'OC\Preview\AVI',
+              'OC\Preview\SVG',
+              'OC\Preview\PDF',
+              'OC\Preview\Image',
+              'OC\Preview\Photoshop'
+          ],
         'default_language' => 'zh_CN',
         'default_locale' => 'zh',
         'default_phone_region' => 'CN',
@@ -100,6 +121,7 @@ nextcloud:
         'skeletondirectory' => '',
         'templatedirectory' => '',
         'trashbin_retention_obligation' => 'auto, 7',
+        'versions_retention_obligation' => 'auto, 7',
       );
     redis.config.php: |-
       <?php
@@ -175,15 +197,7 @@ redis:
       size: 10Gi
 
 cronjob:
-  enabled: true
-  schedule: "*/10 * * * *"
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
-  curlInsecure: true
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
+  enabled: false
 
 persistence:
   enabled: true

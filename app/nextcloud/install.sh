@@ -25,7 +25,7 @@ sed -i "s/example.com/${DOMAIN}/g" values-nextcloud.yaml
 # install nextcloud
 #####################################
 echo -e "\033[42;30m install nextcloud \n\033[0m"
-[ -d temp/nextcloud ] || (git clone https://github.com/jpsn123/helm.git ./temp && mv -f ./temp/charts/nextcloud ./temp && helm dependency build ./temp/nextcloud)
+[ -d temp/nextcloud ] || (git clone https://github.com/nextcloud/helm.git ./temp && mv -f ./temp/charts/nextcloud ./temp && helm dependency build ./temp/nextcloud)
 METHOD=install
 [ `app_is_exist $NS nextcloud` == true ] && METHOD=upgrade
 helm $METHOD -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
