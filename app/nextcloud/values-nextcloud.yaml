@@ -147,6 +147,9 @@ nextcloud:
       name: nextcloud-data
       subPath: data
 
+  podSecurityContext: 
+    fsGroup: 33
+
   extraVolumes:
 #  - hostPath:
 #      path: /mnt/MirrorPool/photo
