@@ -106,8 +106,8 @@ nextcloud:
               'OC\Preview\Image',
               'OC\Preview\Photoshop'
           ],
-        'preview_max_x' => 1920,
-        'preview_max_y' => 1920,
+        'preview_max_x' => 4096,
+        'preview_max_y' => 4096,
         'default_language' => 'zh_CN',
         'default_locale' => 'zh',
         'default_phone_region' => 'CN',
@@ -152,17 +152,12 @@ nextcloud:
     fsGroup: 33
 
   extraVolumes:
-#  - hostPath:
-#      path: /mnt/MirrorPool/photo
-#    name: photo
    - name: cron
      configMap:
        defaultMode: 420
        name: nextcloud-preview-cron
 
   extraVolumeMounts:
-#  - name: photo
-#    mountPath: /mnt/photo
    - name: cron
      mountPath: /var/spool/cron/crontabs/pre-generator
      subPath: pre-generate
