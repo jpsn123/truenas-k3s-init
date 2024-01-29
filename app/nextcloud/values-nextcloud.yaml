@@ -152,15 +152,15 @@ nextcloud:
     fsGroup: 33
 
   extraVolumes:
-   - name: cron
-     configMap:
-       defaultMode: 420
-       name: nextcloud-preview-cron
+  - name: cron
+    configMap:
+      defaultMode: 420
+      name: nextcloud-preview-cron
 
   extraVolumeMounts:
-   - name: cron
-     mountPath: /var/spool/cron/crontabs/pre-generator
-     subPath: pre-generate
+  - name: cron
+    mountPath: /var/spool/cron/crontabs/pre-generator
+    subPath: pre-generate
 
 nginx:
   enabled: true
