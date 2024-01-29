@@ -21,6 +21,7 @@ k3s kubectl -n $NS create secret generic nextcloud \
     --from-literal=nextcloud-username=admin \
     --from-literal=nextcloud-password=$NEXTCLOUD_PW
 sed -i "s/example.com/${DOMAIN}/g" values-nextcloud.yaml
+k3s kubectl -n $NS apply -f cron-cm.yaml
 
 # install nextcloud
 #####################################
