@@ -141,7 +141,7 @@ nextcloud:
   podSecurityContext:
     runAsUser: 0
     runAsGroup: 0
-    fsGroup: 101
+    fsGroup: 0
 
   extraVolumes:
   - name: cron
