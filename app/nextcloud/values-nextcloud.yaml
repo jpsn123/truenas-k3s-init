@@ -148,11 +148,18 @@ nextcloud:
     configMap:
       defaultMode: 420
       name: nextcloud-preview-cron
+  - name: nginx-root-config
+    configMap:
+      defaultMode: 420
+      name: nginx-root-config
 
   extraVolumeMounts:
   - name: cron
     mountPath: /var/spool/cron/crontabs/pre-generator
     subPath: pre-generate
+  - name: nginx-root-config
+    mountPath: /etc/nginx/nginx.conf
+    subPath: nginx.conf
 
 nginx:
   enabled: true

@@ -1,6 +1,0 @@
-apiVersion: v1
-data:
-  pre-generate: '*/3 * * * * php -f /var/www/html/occ preview:pre-generate'
-kind: ConfigMap
-metadata:
-  name: nextcloud-preview-cron
