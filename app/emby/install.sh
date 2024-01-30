@@ -4,10 +4,12 @@ cd `dirname $0`
 source ../../common.sh
 source ../../parameter.sh
 
+NS=emby
+APP_NAME=emby
+
 # initial
 #####################################
 echo -e "\033[42;30m initial \n\033[0m"
-NS=emby
 [ -d temp ] || mkdir temp
 k3s kubectl create namespace $NS 2>/dev/null
 sed -i "s/example.com/${DOMAIN}/g" values-emby.yaml
