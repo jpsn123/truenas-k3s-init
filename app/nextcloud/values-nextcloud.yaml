@@ -137,17 +137,6 @@ nextcloud:
         ),
       );
 
-  extraInitContainers:
-  - name: chmod
-    image: alpine:3
-    imagePullPolicy: IfNotPresent
-    command: ["/bin/sh"]
-    args: ["-c", "chmod 770 /data; chown 33:33 /data;"]
-    volumeMounts:
-    - mountPath: /data
-      name: nextcloud-data
-      subPath: data
-
   podSecurityContext:
     runAsUser: 0
     runAsGroup: 0
