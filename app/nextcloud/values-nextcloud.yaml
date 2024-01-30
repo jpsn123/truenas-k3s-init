@@ -6,6 +6,7 @@ replicaCount: 1
 
 ingress:
   enabled: true
+  className: nginx
   annotations:
     helm.sh/resource-policy: keep
     "nginx.ingress.kubernetes.io/proxy-redirect-from": 'http://$host'
@@ -214,23 +215,8 @@ persistence:
     size: 2000Gi
 
 livenessProbe:
-  enabled: true
-  initialDelaySeconds: 10
-  periodSeconds: 60
-  timeoutSeconds: 5
-  failureThreshold: 3
-  successThreshold: 1
+  enabled: false
 readinessProbe:
   enabled: false
-  initialDelaySeconds: 10
-  periodSeconds: 60
-  timeoutSeconds: 5
-  failureThreshold: 1
-  successThreshold: 1
 startupProbe:
-  enabled: true
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 600
-  successThreshold: 1
+  enabled: false
