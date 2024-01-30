@@ -3,6 +3,9 @@ image:
   pullPolicy: IfNotPresent
   tag: 4.7.6.0-self
 
+strategy:
+  type: Recreate
+
 env:
   TZ: Asia/Shanghai
   UID: 0
