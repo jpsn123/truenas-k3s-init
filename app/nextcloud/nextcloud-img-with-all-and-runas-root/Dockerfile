@@ -46,7 +46,8 @@ RUN set -ex; \
         | xargs -rt apt-mark manual; \
     \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* ; \
+    rm -rf /var/spool/cron/crontabs/www-data
 
 RUN mkdir -p \
     /var/log/supervisord \
