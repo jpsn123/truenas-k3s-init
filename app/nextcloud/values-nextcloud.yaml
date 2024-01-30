@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 28.0.1-fpm
+  tag: 28.0.1-fpm-no-root
   
 replicaCount: 1
 
@@ -64,8 +64,8 @@ nextcloud:
       post_max_size=16G
     www.conf: |-
       [www]
-      user = root
-      group = root
+      user = www-data
+      group = www-data
       listen = 127.0.0.1:9000
       pm = dynamic
       pm.max_children = 32
@@ -138,6 +138,17 @@ nextcloud:
         ),
       );
 
+  extraInitContainers:
+  - name: chmod
+    image: alpine:3
+    imagePullPolicy: IfNotPresent
+    command: ["/bin/sh"]
+    args: ["-c", "chmod 770 /data; chown 33:33 /data;"]
+    volumeMounts:
+    - mountPath: /data
+      name: nextcloud-data
+      subPath: data
+      
   podSecurityContext:
     runAsUser: 0
     runAsGroup: 0
@@ -155,8 +166,8 @@ nextcloud:
 
   extraVolumeMounts:
   - name: cron
-    mountPath: /var/spool/cron/crontabs/root
-    subPath: root
+    mountPath: /var/spool/cron/crontabs/www-data
+    subPath: www-data
   - name: nginx-root-config
     mountPath: /etc/nginx/nginx.conf
     subPath: nginx.conf
