@@ -147,7 +147,7 @@ nextcloud:
   - name: cron
     configMap:
       defaultMode: 420
-      name: nextcloud-preview-cron
+      name: busybox-cron
   - name: nginx-root-config
     configMap:
       defaultMode: 420
@@ -155,8 +155,8 @@ nextcloud:
 
   extraVolumeMounts:
   - name: cron
-    mountPath: /var/spool/cron/crontabs/pre-generator
-    subPath: pre-generate
+    mountPath: /var/spool/cron/crontabs/root
+    subPath: root
   - name: nginx-root-config
     mountPath: /etc/nginx/nginx.conf
     subPath: nginx.conf
