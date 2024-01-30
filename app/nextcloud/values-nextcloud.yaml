@@ -108,6 +108,7 @@ nextcloud:
           ],
         'preview_max_x' => 4096,
         'preview_max_y' => 4096,
+        'preview_max_filesize_image' => 100,
         'default_language' => 'zh_CN',
         'default_locale' => 'zh',
         'default_phone_region' => 'CN',
