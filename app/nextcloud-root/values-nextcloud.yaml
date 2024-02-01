@@ -1,0 +1,233 @@
+image:
+  repository: jutze/nextcloud
+  tag: 28.0.1-fpm-root
+  
+replicaCount: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    helm.sh/resource-policy: keep
+    "nginx.ingress.kubernetes.io/proxy-redirect-from": 'http://$host'
+    "nginx.ingress.kubernetes.io/proxy-redirect-to": 'https://$host'
+    "nginx.ingress.kubernetes.io/proxy-request-buffering": "off"
+    "nginx.ingress.kubernetes.io/proxy-body-size": 10G
+    "kubernetes.io/tls-acme": "true"
+    "kubernetes.io/ingress.class": nginx
+    "cert-manager.io/cluster-issuer": "example.com-letsencrypt-issuer"
+    nginx.ingress.kubernetes.io/server-snippet: |-
+      location ^~ /.well-known {
+        location = /.well-known/carddav { return 301 /remote.php/dav/; }
+        location = /.well-known/caldav  { return 301 /remote.php/dav/; }
+        location /.well-known/acme-challenge    { try_files $uri $uri/ =404; }
+        location /.well-known/pki-validation    { try_files $uri $uri/ =404; }
+        return 301 /index.php$request_uri;
+      }
+      location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+      }
+      location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/) {
+        return 404; 
+      }
+      location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console) {
+        return 404; 
+      }
+  tls:
+    - secretName: nextcloud-tls
+      hosts:
+        - pan.example.com
+
+nextcloud:
+  host: pan.example.com
+  existingSecret:
+    enabled: true
+    secretName: nextcloud
+    usernameKey: nextcloud-username
+    passwordKey: nextcloud-password
+  mail:
+    enabled: false
+  phpConfigs:
+    opcache-recommended.ini: |-
+      [opcache]
+      opcache.enable=1
+      opcache.interned_strings_buffer=16
+      opcache.max_accelerated_files=20000
+      opcache.memory_consumption=256
+      opcache.save_comments=1
+      opcache.revalidate_freq=1
+    nextcloud.ini: |-
+      memory_limit=1024M
+      upload_max_filesize=16G
+      post_max_size=16G
+    www.conf: |-
+      [www]
+      user = root
+      group = root
+      listen = 127.0.0.1:9000
+      pm = dynamic
+      pm.max_children = 32
+      pm.start_servers = 4
+      pm.min_spare_servers = 4
+      pm.max_spare_servers = 8
+  defaultConfigs:
+    .htaccess: true
+    redis.config.php: false
+    apache-pretty-urls.config.php: false
+    apcu.config.php: false
+    apps.config.php: true
+    autoconfig.php: false
+    smtp.config.php: true
+  update: 0
+  datadir: /data
+  configs:
+    custom.config.php: |-
+      <?php
+      $CONFIG = array (
+        'enabledPreviewProviders' => [
+              'OC\Preview\PNG',
+              'OC\Preview\JPEG',
+              'OC\Preview\GIF',
+              'OC\Preview\BMP',
+              'OC\Preview\XBitmap',
+              'OC\Preview\MP3',
+              'OC\Preview\TXT',
+              'OC\Preview\MarkDown',
+              'OC\Preview\OpenDocument',
+              'OC\Preview\Krita',
+              'OC\Preview\HEIC',
+              'OC\Preview\Movie',
+              'OC\Preview\MKV',
+              'OC\Preview\MP4',
+              'OC\Preview\AVI',
+              'OC\Preview\SVG',
+              'OC\Preview\Image',
+              'OC\Preview\Photoshop',
+              'OC\Preview\MSOffice2003',
+              'OC\Preview\MSOffice2007',
+              'OC\Preview\MSOfficeDoc',
+              'OC\Preview\PDF'
+          ],
+        'preview_max_x' => 4096,
+        'preview_max_y' => 4096,
+        'preview_max_filesize_image' => 100,
+        'default_language' => 'zh_CN',
+        'default_locale' => 'zh',
+        'default_phone_region' => 'CN',
+        'connectivity_check_domains' => array (
+          0 => 'www.baidu.com',
+        ),
+        'trusted_proxies'   => array (
+          0 => '10.0.0.0/8',
+          1 => '172.16.0.0/12',
+          2 => '192.168.0.0/16',
+        ),
+        'skeletondirectory' => '',
+        'templatedirectory' => '',
+        'trashbin_retention_obligation' => 'auto, 7',
+        'versions_retention_obligation' => 'auto, 7',
+      );
+    redis.config.php: |-
+      <?php
+      $CONFIG = array (
+        'memcache.local' => '\\OC\\Memcache\\APCu',
+        'memcache.distributed' => '\\OC\\Memcache\\Redis',
+        'memcache.locking' => '\\OC\\Memcache\\Redis',
+        'redis' => array(
+          'host' => getenv('REDIS_HOST'),
+          'port' => getenv('REDIS_HOST_PORT') ?: 6379,
+          'password' => getenv('REDIS_HOST_PASSWORD'),
+        ),
+      );
+
+  podSecurityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+
+  extraVolumes:
+  - name: cron
+    configMap:
+      defaultMode: 420
+      name: busybox-cron
+  - name: nginx-root-config
+    configMap:
+      defaultMode: 420
+      name: nginx-root-config
+
+  extraVolumeMounts:
+  - name: cron
+    mountPath: /var/spool/cron/crontabs/root
+    subPath: root
+  - name: nginx-root-config
+    mountPath: /etc/nginx/nginx.conf
+    subPath: nginx.conf
+
+nginx:
+  enabled: true
+  image:
+    repository: nginx
+    tag: alpine
+    pullPolicy: IfNotPresent
+
+internalDatabase:
+  enabled: false
+  
+externalDatabase:
+  enabled: false
+
+mariadb:
+  enabled: true
+  auth:
+    #rootPassword: 'changeme'
+    database: nextcloud
+    username: nextcloud
+    #password: 'changeme'
+  architecture: standalone
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "local-zfs-sc"
+      accessMode: ReadWriteOnce
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    #password: 'changeme'
+  architecture: standalone
+  master:
+    persistence:
+      enabled: true
+      storageClass: "local-zfs-sc"
+      size: 10Gi
+
+cronjob:
+  enabled: false
+
+persistence:
+  enabled: true
+  annotations:
+    helm.sh/resource-policy: keep
+  storageClass: "local-zfs-sc"
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+  nextcloudData:
+    enabled: true
+    subPath:
+    annotations:
+      helm.sh/resource-policy: keep
+    storageClass: "local-zfs-sc"
+    accessMode: ReadWriteOnce
+    size: 2000Gi
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+startupProbe:
+  enabled: false
