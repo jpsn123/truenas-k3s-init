@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 28.0.1-fpm
+  tag: 28.0.1-fpm-root
   
 replicaCount: 1
 
@@ -104,7 +104,11 @@ nextcloud:
               'OC\Preview\AVI',
               'OC\Preview\SVG',
               'OC\Preview\Image',
-              'OC\Preview\Photoshop'
+              'OC\Preview\Photoshop',
+              'OC\Preview\MSOffice2003',
+              'OC\Preview\MSOffice2007',
+              'OC\Preview\MSOfficeDoc',
+              'OC\Preview\PDF'
           ],
         'preview_max_x' => 4096,
         'preview_max_y' => 4096,

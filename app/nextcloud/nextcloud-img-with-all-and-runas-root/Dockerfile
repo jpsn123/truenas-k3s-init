@@ -9,8 +9,8 @@ RUN set -ex; \
         libmagickcore-6.q16-6-extra \
         procps \
         supervisor \
+        libreoffice \
 #       smbclient \
-#       libreoffice \
     ; \
     rm -rf /var/lib/apt/lists/*
 
@@ -46,15 +46,18 @@ RUN set -ex; \
         | xargs -rt apt-mark manual; \
     \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    rm -rf /var/lib/apt/lists/* ; \
-    rm -rf /var/spool/cron/crontabs/www-data
+    rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p \
     /var/log/supervisord \
     /var/run/supervisord \
+    ; \
+    sed -e '/stream_get_contents($pipes\[1\])/i\stream_set_blocking($pipes\[1\], 0);' -e '/stream_get_contents($pipes\[2\])/i\stream_set_blocking($pipes\[2\], 0);' -i /usr/src/nextcloud/lib/private/Preview/Movie.php ; \
+    sed -e "s/user='www-data'/user='root'/g" -e "s/group='www-data'/group='root'/g" -i /entrypoint.sh ; \
+    rm -rf /var/spool/cron/crontabs/www-data \
 ;
 
-COPY supervisord.conf entrypoint.sh  /
+COPY supervisord.conf /
 
 ENV NEXTCLOUD_UPDATE=1
 
