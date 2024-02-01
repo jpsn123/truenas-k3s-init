@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 28.0.1-fpm-no-root
+  tag: 28.0.1-fpm
   
 replicaCount: 1
 
@@ -152,7 +152,7 @@ nextcloud:
   podSecurityContext:
     runAsUser: 0
     runAsGroup: 0
-    fsGroup: 0
+    fsGroup: 101
 
   extraVolumes:
   - name: cron
