@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 28.0.1-fpm-root
+  tag: 28.0.2-fpm-root
   
 replicaCount: 1
 
