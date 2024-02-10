@@ -59,7 +59,7 @@ spec:
       - env:
         - name: DSN
           value: /config/metatube.db
-        image: metatube/metatube-server:1.2.1
+        image: metatube/metatube-server:1.2.2
         imagePullPolicy: IfNotPresent
         name: metatube
         ports:

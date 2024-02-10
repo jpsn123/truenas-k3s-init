@@ -12,8 +12,8 @@ controllers:
       main:
         nameOverride: emby
         image:
-          repository: jutze/embyserver
-          tag: 4.7.6.0-self
+          repository: amilys/embyserver
+          tag: 4.8.0.80
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
