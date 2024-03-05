@@ -159,18 +159,11 @@ nextcloud:
     configMap:
       defaultMode: 420
       name: busybox-cron
-  - name: nginx-root-config
-    configMap:
-      defaultMode: 420
-      name: nginx-root-config
 
   extraVolumeMounts:
   - name: cron
     mountPath: /var/spool/cron/crontabs/www-data
     subPath: www-data
-  - name: nginx-root-config
-    mountPath: /etc/nginx/nginx.conf
-    subPath: nginx.conf
 
 nginx:
   enabled: true
