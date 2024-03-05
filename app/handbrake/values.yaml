@@ -29,8 +29,10 @@ controllers:
           HANDBRAKE_DEBUG: 0
           HANDBRAKE_GUI: 1
           #AUTOMATED_CONVERSION_PRESET: 'custom/fast-1k-h265-qc20'
+          #AUTOMATED_CONVERSION_PRESET_2: 'custom/fast-4k-h265-qc23'
           #AUTOMATED_CONVERSION_KEEP_SOURCE: 1
           #AUTOMATED_CONVERSION_OVERWRITE_OUTPUT: 0
+          #AUTOMATED_CONVERSION_CHECK_INTERVAL: 30
         probes:
           liveness:
             enabled: false
@@ -85,4 +87,20 @@ persistence:
         main:  # the container with the "main"
         - path: /config
           readOnly: false
-          
+
+  # media:
+  #   enabled: true
+  #   type: hostPath
+  #   hostPath: /mnt/media
+  #   advancedMounts:
+  #     main:
+  #       main:
+  #       - path: /watch
+  #         readOnly: false
+  #         subPath: fast-1k-h265-qc20
+  #       - path: /watch2
+  #         readOnly: false
+  #         subPath: fast-4k-h265-qc23
+  #       - path: /output
+  #         readOnly: false
+  #         subPath: output
