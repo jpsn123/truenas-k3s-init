@@ -1,0 +1,96 @@
+global:
+  nameOverride: qbittorrent
+
+defaultPodOptions: {}
+  
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        order: 1
+        image:
+          repository: superng6/qbittorrentee
+          tag: latest
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          PUID: 0
+          PGID: 0
+          WEBUI_PORT: 8080
+          TORRENTING_PORT: 6881
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    ports:
+      http:
+        enabled: true
+        port: 8080
+      con:
+        enabled: true
+        port: 6881
+        protocol: TCP
+      con-udp:
+        enabled: true
+        port: 6881
+        protocol: UDP
+        
+
+ingress:
+  main:
+    enabled: true
+    primary: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    ingressClassName: "nginx"
+    hosts:
+      - host: hb.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: qbittorrent
+            port: 5800
+    tls:
+    - hosts:
+      - hb.example.com
+      secretName: hb.example.com-tls      
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-zfs-sc
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
+    globalMounts: []
+    advancedMounts:
+      main:  # the controller with the "main"
+        main:  # the container with the "main"
+        - path: /config
+          readOnly: false
+
+  # downloads:
+  #   enabled: true
+  #   type: hostPath
+  #   hostPath: /mnt/downloads
+  #   advancedMounts:
+  #     main:
+  #       main:
+  #       - path: /downloads
+  #         readOnly: false
