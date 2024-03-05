@@ -1,23 +1,45 @@
-image:
-  repository: esphome/esphome
-  pullPolicy: IfNotPresent
-  tag: stable
+global:
+  nameOverride: handbrake
 
-env: {}
-  # ESPHOME_DASHBOARD_USE_PING: true
-  # ESPHOME_DASHBOARD_RELATIVE_URL: "/"
-  # ESPHOME_QUICKWIZARD:
-  # ESPHOME_IS_HASSIO:
-  # DISABLE_HA_AUTHENTICATION:
-  # USERNAME:
-  # PASSWORD:
+defaultPodOptions: {}
+  
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        order: 1
+        image:
+          repository: esphome/esphome
+          tag: stable
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          # ESPHOME_DASHBOARD_USE_PING: true
+          # ESPHOME_DASHBOARD_RELATIVE_URL: "/"
+          # ESPHOME_QUICKWIZARD:
+          # ESPHOME_IS_HASSIO:
+          # DISABLE_HA_AUTHENTICATION:
+          # USERNAME:
+          # PASSWORD:
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
 
 service:
   main:
-    enabled: false
-  esphome:
+    enabled: true
+    primary: true
+    controller: main
     ports:
       http:
+        enabled: true
         port: 6052
 
 ingress:
@@ -28,7 +50,7 @@ ingress:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
-      "nginx.ingress.kubernetes.io/server-snippet": |-
+      nginx.ingress.kubernetes.io/server-snippet: |-
         allow 10.0.0.0/8;
         allow 172.16.0.0/12;
         allow 192.168.0.0/16;
@@ -41,28 +63,24 @@ ingress:
           pathType: Prefix
           service:
             name: esphome
+            port: 6052
     tls:
     - hosts:
       - esp.example.com
-      secretName: esp.example.com-tls
-
-#securityContext:
-#  privileged: true
+      secretName: esp.example.com-tls      
 
 persistence:
-  data:
+  config:
     enabled: true
-    type: pvc
-    mountPath: /config
+    type: persistentVolumeClaim
     storageClass: local-zfs-sc
     accessMode: ReadWriteOnce
-    size: 100Gi
+    size: 10Gi
     retain: true
-  localtime:
-    enabled: true
-    type: hostPath
-    hostPath: /etc/localtime
-#  dev:
-#    enabled: true
-#    type: hostPath
-#    hostPath: /dev
+    globalMounts: []
+    advancedMounts:
+      main:  # the controller with the "main"
+        main:  # the container with the "main"
+        - path: /config
+          readOnly: false
+          

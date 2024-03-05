@@ -1,5 +1,5 @@
 global:
-  nameOverride: alist
+  nameOverride: handbrake
 
 defaultPodOptions: {}
   
@@ -12,13 +12,11 @@ controllers:
       main:
         order: 1
         image:
-          repository: xhofe/alist
+          repository: jellyfin/jellyfin
           tag: latest
           pullPolicy: IfNotPresent
         env:
-          PUID: 0
-          PGID: 0
-          UMASK: 022
+          TZ: Asia/Shanghai
         probes:
           liveness:
             enabled: false
@@ -35,7 +33,7 @@ service:
     ports:
       http:
         enabled: true
-        port: 5244
+        port: 8096
 
 ingress:
   main:
@@ -47,17 +45,17 @@ ingress:
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
     ingressClassName: "nginx"
     hosts:
-      - host: li.example.com
+      - host: fun.example.com
         paths:
         - path: /
           pathType: Prefix
           service:
-            name: alist
-            port: 5800
+            name: handbrake
+            port: 8096
     tls:
     - hosts:
-      - li.example.com
-      secretName: li.example.com-tls      
+      - fun.example.com
+      secretName: fun.example.com-tls      
 
 persistence:
   config:
@@ -71,6 +69,5 @@ persistence:
     advancedMounts:
       main:  # the controller with the "main"
         main:  # the container with the "main"
-        - path: /opt/alist/data
+        - path: /config
           readOnly: false
-          

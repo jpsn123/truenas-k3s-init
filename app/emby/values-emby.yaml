@@ -1,7 +1,7 @@
 global:
   nameOverride: emby
 
-defaultPodOptions:
+defaultPodOptions: {}
   
 controllers:
   main:
@@ -10,7 +10,6 @@ controllers:
     replicas: 1
     containers:
       main:
-        nameOverride: emby
         image:
           repository: amilys/embyserver
           tag: 4.8.0.80
@@ -43,7 +42,6 @@ controllers:
 service:
   main:
     enabled: true
-    nameOverride: emby
     primary: true
     controller: main
     ports:
@@ -54,7 +52,6 @@ service:
 ingress:
   main:
     enabled: true
-    nameOverride: emby
     primary: true
     annotations:
       helm.sh/resource-policy: keep
@@ -78,7 +75,6 @@ persistence:
   config:
     enabled: true
     type: persistentVolumeClaim
-    mountPath: /config
     storageClass: local-zfs-sc
     accessMode: ReadWriteOnce
     size: 10Gi

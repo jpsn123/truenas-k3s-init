@@ -14,9 +14,9 @@ echo -e "\033[42;30m initial \n\033[0m"
 k3s kubectl create namespace $NS 2>/dev/null
 sed -i "s/example.com/${DOMAIN}/g" values.yaml
 
-# install
+# install app
 #####################################
-echo -e "\033[42;30m install \n\033[0m"
+echo -e "\033[42;30m install $APP_NAME \n\033[0m"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp
 METHOD=install

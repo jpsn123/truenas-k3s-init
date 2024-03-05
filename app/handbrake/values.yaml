@@ -1,7 +1,7 @@
 global:
   nameOverride: handbrake
 
-defaultPodOptions:
+defaultPodOptions: {}
   
 controllers:
   main:
@@ -10,7 +10,6 @@ controllers:
     replicas: 1
     containers:
       main:
-        nameOverride: handbrake
         order: 1
         image:
           repository: jlesage/handbrake
@@ -21,17 +20,17 @@ controllers:
           USER_ID: 0
           GROUP_ID: 0
           SUP_GROUP_IDS: "33,1000"
-          LANG: zh_CN.UTF-8
+          LANG: en_US.UTF-8
           CONTAINER_DEBUG: 0
           DISPLAY_WIDTH: 1920
           DISPLAY_HEIGHT: 1080
           DARK_MODE: 0
-          ENABLE_CJK_FONT: 1
+          ENABLE_CJK_FONT: 0
           HANDBRAKE_DEBUG: 0
-          HANDBRAKE_GUI: 0
-          AUTOMATED_CONVERSION_PRESET: 'custom/fast-1k-h265-qc20'
-          AUTOMATED_CONVERSION_KEEP_SOURCE: 1
-          AUTOMATED_CONVERSION_OVERWRITE_OUTPUT: 0
+          HANDBRAKE_GUI: 1
+          #AUTOMATED_CONVERSION_PRESET: 'custom/fast-1k-h265-qc20'
+          #AUTOMATED_CONVERSION_KEEP_SOURCE: 1
+          #AUTOMATED_CONVERSION_OVERWRITE_OUTPUT: 0
         probes:
           liveness:
             enabled: false
@@ -43,7 +42,6 @@ controllers:
 service:
   main:
     enabled: true
-    nameOverride: handbrake
     primary: true
     controller: main
     ports:
@@ -54,7 +52,6 @@ service:
 ingress:
   main:
     enabled: true
-    nameOverride: handbrake
     primary: true
     annotations:
       helm.sh/resource-policy: keep
@@ -68,7 +65,7 @@ ingress:
           pathType: Prefix
           service:
             name: handbrake
-            port: 8096
+            port: 5800
     tls:
     - hosts:
       - hb.example.com
@@ -78,7 +75,6 @@ persistence:
   config:
     enabled: true
     type: persistentVolumeClaim
-    mountPath: /config
     storageClass: local-zfs-sc
     accessMode: ReadWriteOnce
     size: 10Gi
