@@ -1,0 +1,92 @@
+global:
+  nameOverride: handbrake
+
+defaultPodOptions:
+  
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        nameOverride: handbrake
+        order: 1
+        image:
+          repository: jlesage/handbrake
+          tag: v24.03.1
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          USER_ID: 0
+          GROUP_ID: 0
+          SUP_GROUP_IDS: "33,1000"
+          LANG: zh_CN.UTF-8
+          CONTAINER_DEBUG: 0
+          DISPLAY_WIDTH: 1920
+          DISPLAY_HEIGHT: 1080
+          DARK_MODE: 0
+          ENABLE_CJK_FONT: 1
+          HANDBRAKE_DEBUG: 0
+          HANDBRAKE_GUI: 0
+          AUTOMATED_CONVERSION_PRESET: 'custom/fast-1k-h265-qc20'
+          AUTOMATED_CONVERSION_KEEP_SOURCE: 1
+          AUTOMATED_CONVERSION_OVERWRITE_OUTPUT: 0
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
+
+service:
+  main:
+    enabled: true
+    nameOverride: handbrake
+    primary: true
+    controller: main
+    ports:
+      http:
+        enabled: true
+        port: 5800
+
+ingress:
+  main:
+    enabled: true
+    nameOverride: handbrake
+    primary: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    ingressClassName: "nginx"
+    hosts:
+      - host: hb.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: handbrake
+            port: 8096
+    tls:
+    - hosts:
+      - hb.example.com
+      secretName: hb.example.com-tls      
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    mountPath: /config
+    storageClass: local-zfs-sc
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
+    globalMounts: []
+    advancedMounts:
+      main:  # the controller with the "main"
+        main:  # the container with the "main"
+        - path: /config
+          readOnly: false
+          
