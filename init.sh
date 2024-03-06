@@ -70,7 +70,7 @@ disable:
 - traefik
 - local-storage
 kube-apiserver-arg:
-- service-node-port-range=9000-65535
+- service-node-port-range=8200-40000
 - enable-admission-plugins=NodeRestriction,NamespaceLifecycle,ServiceAccount
 - audit-log-path=/tmp/k3s_server_audit.log
 - audit-log-maxage=30

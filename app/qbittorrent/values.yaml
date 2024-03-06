@@ -8,6 +8,8 @@ controllers:
     enabled: true
     type: deployment
     replicas: 1
+    pod:
+      hostNetwork: true
     containers:
       main:
         order: 1
@@ -19,8 +21,8 @@ controllers:
           TZ: Asia/Shanghai
           PUID: 0
           PGID: 0
-          WEBUI_PORT: 8080
-          TORRENTING_PORT: 6881
+          WEBUIPORT: 6780
+          TORRENTINGPORT: 6723
         probes:
           liveness:
             enabled: false
@@ -37,16 +39,15 @@ service:
     ports:
       http:
         enabled: true
-        port: 8080
+        port: 6780
       con:
         enabled: true
-        port: 6881
+        port: 6723
         protocol: TCP
       con-udp:
         enabled: true
-        port: 6881
+        port: 6723
         protocol: UDP
-        
 
 ingress:
   main:
@@ -58,17 +59,17 @@ ingress:
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
     ingressClassName: "nginx"
     hosts:
-      - host: hb.example.com
+      - host: qb.example.com
         paths:
         - path: /
           pathType: Prefix
           service:
             name: qbittorrent
-            port: 5800
+            port: 6780
     tls:
     - hosts:
-      - hb.example.com
-      secretName: hb.example.com-tls      
+      - qb.example.com
+      secretName: qb.example.com-tls      
 
 persistence:
   config:
