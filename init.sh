@@ -15,7 +15,7 @@ echo -e "\033[42m Truenas init \n\033[0m"
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
 echo -e "\033[32m    making apt usable.  \033[0m"
-chmod +x /usr/bin/apt*
+chmod +x /usr/bin/*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
 swapoff -a
 sed -i '/^\/swap/s/^/# /' /etc/fstab
@@ -27,6 +27,15 @@ sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/servi
 sed -i -e "s/.*DockerService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 sed -i -e "s/.*KubernetesService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
+
+# improve vm running performance
+echo -e "\033[32m    improve vm running performance  \033[0m"
+sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
+sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
+sed -i -e "s/create_element('tlbflush',/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
+sed -i -e "s/create_element('frequencies',/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
+sed -i -e "s/.*vm_data\['command_line_args'\]/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
+sed -i -e "/'commandline'/a 'children': [create_element('arg', value='-cpu'),create_element('arg', value='host,hv_ipi,hv_relaxed,hv_reset,hv_runtime,hv_spinlocks=0x1fff,hv_stimer,hv_synic,hv_time,hv_vapic,hv_vendor_id=proxmox,hv_vpindex,kvm=off,+kvm_pv_eoi,+kvm_pv_unhalt')] ##PATCH" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 
 # enable docker
 echo -e "\033[32m    enable and config docker.  \033[0m"
