@@ -31,11 +31,16 @@ controller:
   
   addHeaders:
     Referrer-Policy: strict-origin-when-cross-origin
-  
+
+  admissionWebhooks:
+    port: 18443
+
   service:
     type: LoadBalancer
     loadBalancerIP: 10.0.0.1
-    externalTrafficPolicy: Local 
+    externalTrafficPolicy: Local
+    nodePorts:
+      https: "8443"
   
   kind: DaemonSet
   hostNetwork: true
