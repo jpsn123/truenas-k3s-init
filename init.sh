@@ -36,6 +36,7 @@ sed -i -e "s/create_element('tlbflush',/##COMMENT\0/g" /usr/lib/python3/dist-pac
 sed -i -e "s/create_element('frequencies',/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 sed -i -e "s/.*vm_data\['command_line_args'\]/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 sed -i -e "/'commandline'/a 'children': [create_element('arg', value='-cpu'),create_element('arg', value='host,hv_ipi,hv_relaxed,hv_reset,hv_runtime,hv_spinlocks=0x1fff,hv_stimer,hv_synic,hv_time,hv_vapic,hv_vendor_id=proxmox,hv_vpindex,kvm=off,+kvm_pv_eoi,+kvm_pv_unhalt')] ##PATCH" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
+service middlewared restart
 
 # enable docker
 echo -e "\033[32m    enable and config docker.  \033[0m"
@@ -58,7 +59,7 @@ echo -e "\033[32m    some patch on profile \033[0m"
 sed -i '/##PROFILE_PATCH/d' $HOME/.profile
 PROFILE_PATCH=`cat<<EOF
 ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##PROFILE_PATCH
-chmod +x /usr/bin/apt* ##PROFILE_PATCH
+chmod +x /usr/bin/* ##PROFILE_PATCH
 EOF
 `
 echo "$PROFILE_PATCH" >> $HOME/.profile
