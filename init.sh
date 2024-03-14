@@ -64,6 +64,19 @@ EOF
 `
 echo "$PROFILE_PATCH" >> $HOME/.profile
 
+# install fail2ban
+echo -e "\033[32m    install fail2ban and configure \033[0m"
+apt install fail2ban
+SSHD_BAN_CONF=`cat<<EOF
+[sshd]
+bantime  = 365d
+findtime  = 1h
+maxretry = 3
+EOF
+`
+mkdir -p /etc/fail2ban/jail.d || true
+echo "$SSHD_BAN_CONF">/etc/fail2ban/jail.d/sshd.conf
+
 ## install k3s
 #####################################
 echo -e "\033[42m install k3s  \n\033[0m"
