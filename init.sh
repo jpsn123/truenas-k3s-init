@@ -15,6 +15,9 @@ echo -e "\033[42m Truenas init \n\033[0m"
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
 echo -e "\033[32m    making apt usable.  \033[0m"
+zfs set readonly=off `zfs list | grep '/usr' | awk '{print $1}'`
+rm /usr/local/bin/apt* /usr/local/bin/dpkg
+export PATH="/usr/bin:$PATH"
 chmod +x /usr/bin/*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
 swapoff -a
