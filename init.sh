@@ -133,39 +133,6 @@ if [ -z "$RES" ]; then
   fi
 fi
 
-# install asd service
-echo -e "\033[32m    install asd server.  \033[0m"
-apt install make -y
-git clone https://github.com/graysky2/anything-sync-daemon.git temp/asd
-make -C temp/asd install-systemd-all
-sed -i "s#WHATTOSYNC=()#WHATTOSYNC=('$DATA_DIR/server/db')#" /etc/asd.conf
-sed -i 's/#USE_OVERLAYFS="no"/USE_OVERLAYFS="yes"/' /etc/asd.conf
-systemctl restart asd
-
-# wait k3s wake up and patch cri config
-# echo -e "\033[32m    wait k3s wake up and patch cri config.  \033[0m"
-# systemctl restart k3s
-# for ((i=0;i<100;i++))
-# do
-#   if [ -e "$DATA_DIR/agent/etc/containerd/config.toml" ]; then
-# 	sleep 5
-#     cp -f $DATA_DIR/agent/etc/containerd/config.toml $DATA_DIR/agent/etc/containerd/config.toml.tmpl
-#     sed -i '/##PATCH/,$d' $DATA_DIR/agent/etc/containerd/config.toml.tmpl
-#     CONTAINERD_PATCH=`cat<<EOF
-# ##PATCH
-# [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-#   endpoint = ["http://hub-mirror.c.163.com/"]
-# #[plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
-# #  endpoint = ["http://registry.aliyuncs.com/google_containers"]
-# EOF
-# `
-#     echo "$CONTAINERD_PATCH" >> $DATA_DIR/agent/etc/containerd/config.toml.tmpl
-#     systemctl restart k3s
-#     break
-#   fi
-#   sleep 5
-# done
-
 # auto refresh k3s certificate
 echo -e "\033[32m    making k3s certification auto refresh  \033[0m"
 echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
