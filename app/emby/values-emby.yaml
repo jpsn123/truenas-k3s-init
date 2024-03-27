@@ -86,3 +86,12 @@ persistence:
         - path: /config
           readOnly: false
           
+#  media:
+#    enabled: true
+#    type: hostPath
+#    hostPath: /mnt/media
+#    advancedMounts:
+#      main:
+#        main:
+#        - path: /media
+#          readOnly: false
