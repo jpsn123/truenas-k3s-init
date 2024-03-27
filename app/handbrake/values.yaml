@@ -115,3 +115,5 @@ persistence:
   #       - path: /output
   #         readOnly: false
   #         subPath: output
+  #       - path: /storage
+  #         readOnly: false
