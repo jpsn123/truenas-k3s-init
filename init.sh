@@ -133,9 +133,10 @@ if [ -z "$RES" ]; then
   fi
 fi
 
-# auto refresh k3s certificate
+# auto refresh k3s certificate and cleanup
 echo -e "\033[32m    making k3s certification auto refresh  \033[0m"
 echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
+echo "0 2 1 1 * root crictl rmi --prune">/etc/cron.d/cleanup
 
 ## install zfs csi
 echo -e "\033[32m    install local-zfs csi  \033[0m"

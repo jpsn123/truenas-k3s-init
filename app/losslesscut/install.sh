@@ -4,8 +4,8 @@ cd `dirname $0`
 source ../../common.sh
 source ../../parameter.sh
 
-NS=handbrake
-APP_NAME=handbrake
+NS=losslesscut
+APP_NAME=losslesscut
 
 echo -e '\033[35mplease input password for vnc. \033[0m'
 read -p "password:"
