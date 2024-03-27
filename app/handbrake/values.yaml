@@ -49,6 +49,8 @@ controllers:
         resources:
           limits:
             cpu: '6'
+          requests:
+            cpu: '100m'
 
 service:
   main:

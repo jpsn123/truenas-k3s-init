@@ -38,9 +38,6 @@ controllers:
             enabled: false
           startup:
             enabled: false
-        resources:
-          limits:
-            cpu: '6'
 
 service:
   main:
