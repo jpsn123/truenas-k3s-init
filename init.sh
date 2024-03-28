@@ -9,6 +9,7 @@ source parameter.sh
 
 # init
 #####################################
+echo -e "\033[42m -------------------------------  \n\033[0m"
 echo -e "\033[42m Truenas init \n\033[0m"
 [ -d temp ] || mkdir temp
 
@@ -84,9 +85,11 @@ EOF
 `
 mkdir -p /etc/fail2ban/jail.d || true
 echo "$SSHD_BAN_CONF">/etc/fail2ban/jail.d/sshd.conf
+systemctl restart fail2ban.service
 
 ## install k3s
 #####################################
+echo -e "\033[42m -------------------------------  \n\033[0m"
 echo -e "\033[42m install k3s  \n\033[0m"
 
 # init k3s config
@@ -182,6 +185,7 @@ echo "$K8S_PATCH" >> $HOME/.profile
 
 ## post installation
 #####################################
+echo -e "\033[42m -------------------------------  \n\033[0m"
 echo -e "\033[42m making bashrc  \n\033[0m"
 echo -e "\033[32m    cp .bashrc shell start config file, copy from ubuntu.  \033[0m"
 echo -e "\033[33m    you need configurate your shell to 'bash' by TrueNAS UI.  \033[0m"
@@ -236,4 +240,5 @@ EOF
 
 ## done
 #####################################
+echo -e "\033[42m -------------------------------  \n\033[0m"
 echo -e "\033[42m init success!!!  \033[0m"
