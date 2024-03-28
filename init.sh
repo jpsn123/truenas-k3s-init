@@ -31,6 +31,11 @@ sed -i -e "s/.*DockerService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/midd
 sed -i -e "s/.*KubernetesService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
 
+# disable truenas swap
+echo -e "\033[32m    disable truenas swap  \033[0m"
+sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/plugins/disk_/swap_configure.py
+sed -i "/^\( *\)async def swaps_configure(self):/{p;s//\1    return [] ###PATCH/;}" /usr/lib/python3/dist-packages/middlewared/plugins/disk_/swap_configure.py
+
 # improve vm running performance
 echo -e "\033[32m    improve vm running performance  \033[0m"
 sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
