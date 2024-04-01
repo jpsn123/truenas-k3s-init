@@ -124,6 +124,7 @@ nextcloud:
           1 => '172.16.0.0/12',
           2 => '192.168.0.0/16',
         ),
+        "loglevel" => 2,
         'skeletondirectory' => '',
         'templatedirectory' => '',
         'trashbin_retention_obligation' => 'auto, 7',
