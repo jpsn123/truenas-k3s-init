@@ -26,6 +26,8 @@ controller:
     hsts-preload: "true"
     http-snippet: |-
       sendfile  on;
+
+  allowSnippetAnnotations: true
     
   proxySetHeaders: {}
   
