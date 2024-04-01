@@ -143,6 +143,8 @@ nextcloud:
           'password' => getenv('REDIS_HOST_PASSWORD'),
         ),
       );
+      
+  hooks: {}
 
   podSecurityContext:
     runAsUser: 0
