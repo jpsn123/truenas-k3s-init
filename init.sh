@@ -12,6 +12,11 @@ source parameter.sh
 echo -e "\033[42m -------------------------------  \n\033[0m"
 echo -e "\033[42m Truenas init \n\033[0m"
 [ -d temp ] || mkdir temp
+sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+sysctl -p
 
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
@@ -52,9 +57,10 @@ echo -e "\033[32m    enable and config docker.  \033[0m"
 docker help &>/dev/null || curl -sSL https://get.docker.com|sh
 DOCKER_CONF=`cat<<EOF
 {
-  "registry-mirrors": ["http://hub-mirror.c.163.com/"],
   "log-opts":{"max-size":"100m","max-file":"3"},
-  "exec-opts":["native.cgroupdriver=systemd"]
+  "exec-opts":["native.cgroupdriver=systemd"],
+  "max-concurrent-uploads": 1,
+  "features": {"push_with_retries": true}
 }
 EOF
 `
@@ -76,6 +82,9 @@ echo "$PROFILE_PATCH" >> $HOME/.profile
 # install fail2ban
 echo -e "\033[32m    install fail2ban and configure \033[0m"
 apt install fail2ban -y
+systemctl stop fail2ban.service
+sed -i "s/banaction = iptables.*/banaction = iptables-ipset-proto6/" /etc/fail2ban/jail.conf
+sed -i "s/banaction_allports = iptables.*/banaction_allports = iptables-ipset-proto6-allports/" /etc/fail2ban/jail.conf
 SSHD_BAN_CONF=`cat<<EOF
 [sshd]
 bantime  = 365d
@@ -99,12 +108,13 @@ cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
 snapshotter: fuse-overlayfs
+disable-network-policy: true
 disable:
 - servicelb
 - traefik
 - local-storage
 kube-apiserver-arg:
-- service-node-port-range=8200-40000
+- service-node-port-range=50000-65535
 - enable-admission-plugins=NodeRestriction,NamespaceLifecycle,ServiceAccount
 - audit-log-path=/tmp/k3s_server_audit.log
 - audit-log-maxage=30

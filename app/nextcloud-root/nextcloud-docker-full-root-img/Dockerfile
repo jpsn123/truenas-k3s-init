@@ -1,4 +1,4 @@
-FROM nextcloud:28.0.4-fpm
+FROM nextcloud:29.0.2-fpm
 
 RUN set -ex; \
     \
@@ -12,7 +12,7 @@ RUN set -ex; \
         libreoffice \
 #       smbclient \
     ; \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 RUN set -ex; \
     \
@@ -46,7 +46,8 @@ RUN set -ex; \
         | xargs -rt apt-mark manual; \
     \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    rm -rf /var/lib/apt/lists/*
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 RUN mkdir -p \
     /var/log/supervisord \
