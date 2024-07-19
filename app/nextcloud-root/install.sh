@@ -21,6 +21,7 @@ k3s kubectl -n $NS create secret generic nextcloud \
     --from-literal=nextcloud-username=admin \
     --from-literal=nextcloud-password=$NEXTCLOUD_PW
 sed -i "s/example.com/${DOMAIN}/g" values-nextcloud.yaml
+sed -i "s/example.com/${DOMAIN}/g" values-office.yaml
 k3s kubectl -n $NS delete -f configs.yaml || true
 k3s kubectl -n $NS apply -f configs.yaml
 
@@ -35,3 +36,14 @@ helm $METHOD -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
     --set mariadb.auth.rootPassword=$DB_PW \
     --set mariadb.auth.password=$DB_PW \
     --set redis.auth.password=$REDIS_PW
+
+# install office
+#####################################
+echo -e "\033[42;30m install office plugin \n\033[0m"
+helm repo add bjw-s https://bjw-s.github.io/helm-charts
+[ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp
+METHOD=install
+[ `app_is_exist $NS office` == true ] && METHOD=upgrade
+helm $METHOD -n $NS office temp/app-template -f values-office.yaml
+k8s_wait $NS deployment documentserver 100
+k8s_wait $NS deployment draw.io 100

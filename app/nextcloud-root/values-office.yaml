@@ -1,0 +1,126 @@
+global:
+  nameOverride: office
+
+defaultPodOptions: {}
+  
+controllers:
+  draw.io:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: jutze/draw.io
+          tag: 24.5.5
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+        probes:
+          liveness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 0
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
+          startup:
+            enabled: false
+  documentserver:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: 186184848/documentserver
+          tag: 8.1.0
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+        probes:
+          liveness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 0
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
+          startup:
+            enabled: false
+
+service:
+  draw.io:
+    enabled: true
+    controller: draw.io
+    ports:
+      http:
+        enabled: true
+        port: 8080
+  documentserver:
+    enabled: true
+    controller: documentserver
+    ports:
+      http:
+        enabled: true
+        port: 80
+
+ingress:
+  draw.io:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    ingressClassName: "nginx"
+    hosts:
+      - host: draw.pan.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: draw.io
+            port: 8080
+    tls:
+    - hosts:
+      - pan.example.com
+      - "*.pan.example.com"
+      secretName: nextcloud-tls   
+  documentserver:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    ingressClassName: "nginx"
+    hosts:
+      - host: doc.pan.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: documentserver
+            port: 80
+    tls:
+    - hosts:
+      - pan.example.com
+      - "*.pan.example.com"
+      secretName: nextcloud-tls

@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 28.0.4-fpm-root
+  tag: 29.0.3-fpm-root
   
 replicaCount: 1
 
@@ -20,6 +20,7 @@ ingress:
     - secretName: nextcloud-tls
       hosts:
         - pan.example.com
+        - "*.pan.example.com"
 
 nextcloud:
   host: pan.example.com
