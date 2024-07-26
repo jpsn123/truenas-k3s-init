@@ -32,7 +32,11 @@ controllers:
           LDAP_USER: cn=admin,dc=example,dc=com
           LDAP_USERS_DN: ou=users,dc=example,dc=com
           LAM_LANG: en_US
-          LAM_PASSWORD: lam
+          LAM_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: ldap-ltb-passwd
+                key: LDAP_ADMIN_PASSWORD
           LAM_CONFIGURATION_DATABASE: 'files'
           LAM_CONFIGURATION_HOST: ''
           LAM_CONFIGURATION_PORT: ''
