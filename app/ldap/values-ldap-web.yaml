@@ -191,10 +191,6 @@ configMaps:
         fi
 
 secrets:
-  smtp-passwd:
-    stringData:
-      SMTP_PASSWORD: Not@SecurePassw0rd
-      
   ssp-config:
     stringData:
       config.inc.local.php: |-
