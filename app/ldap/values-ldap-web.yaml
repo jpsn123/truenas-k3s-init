@@ -56,22 +56,6 @@ controllers:
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
-          LDAP_SERVER: ldap://ldap
-          LDAP_BINDDN: cn=admin,dc=example,dc=com
-          LDAP_BINDPASS:
-            valueFrom:
-              secretKeyRef:
-                name: ldap-ltb-passwd
-                key: LDAP_ADMIN_PASSWORD
-          SMTP_PASS:
-            valueFrom:
-              secretKeyRef:
-                name: ldap-web-smtp-passwd
-                key: SMTP_PASSWORD
-          LDAP_STARTTLS: "false"
-          LDAP_BASE_SEARCH: dc=example,dc=com
-          IS_BEHIND_PROXY: "true"
-          SITE_URL: https://ssp.example.com
 
 service:
   lam:
@@ -210,9 +194,9 @@ secrets:
         $ldap_starttls = false;
         $ldap_binddn = "cn=admin,dc=example,dc=com";
         $ldap_bindpw = "Not@SecurePassw0rd";
-        $ldap_base = "ou=users,dc=example,dc=com";
+        $ldap_base = "dc=example,dc=com";
         $ldap_login_attribute = "uid";
-        $ldap_fullname_attribute = "uid";
+        $ldap_fullname_attribute = "cn";
         $ldap_filter = "(&(objectClass=person)($ldap_login_attribute={login}))";
 
         # Hash mechanism for password:
