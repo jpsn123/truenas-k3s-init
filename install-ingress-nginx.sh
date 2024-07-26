@@ -20,8 +20,13 @@ k8s_wait ingress-nginx daemonset ingress-nginx-controller 50
 PATCH=`cat<<EOF
 spec:
   ports:
+  - name: http2
+    port: ${INGRESS_ADDITIONAL_HTTP_PORT}
+    protocol: TCP
+    targetPort: http
+  ports:
   - name: https2
-    port: 8443
+    port: ${INGRESS_ADDITIONAL_HTTPS_PORT}
     protocol: TCP
     targetPort: https
 EOF

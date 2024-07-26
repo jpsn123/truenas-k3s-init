@@ -41,9 +41,9 @@ helm $METHOD -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
 #####################################
 echo -e "\033[42;30m install office plugin \n\033[0m"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
-[ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp
+[ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
 METHOD=install
 [ `app_is_exist $NS office` == true ] && METHOD=upgrade
 helm $METHOD -n $NS office temp/app-template -f values-office.yaml
-k8s_wait $NS deployment documentserver 100
-k8s_wait $NS deployment draw.io 100
+k8s_wait $NS deployment office-documentserver 100
+k8s_wait $NS deployment office-draw 100

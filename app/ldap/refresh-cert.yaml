@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: delete-pod
+  namespace: ldap
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: delete-pod
+  namespace: ldap
+rules:
+- apiGroups:
+  - "*"
+  resources:
+  - '*'
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: delete-pod
+  namespace: ldap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: delete-pod
+subjects:
+- kind: ServiceAccount
+  name: delete-pod
+  namespace: ldap
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restart-openladp
+  namespace: ldap
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      labels:
+        app: restarter
+    spec:
+      template:
+        metadata:
+          labels:
+            app: restarter
+        spec:
+          affinity: {}
+          containers:
+          - args:
+            - /tmp/restart-ldap.sh
+            command:
+            - bash
+            image: jutze/kubectl:v1.0.1
+            imagePullPolicy: IfNotPresent
+            name: controller
+            volumeMounts:
+              - name: script
+                mountPath: /tmp
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          securityContext: {}
+          serviceAccount: delete-pod
+          serviceAccountName: delete-pod
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - configMap:
+                name: restart-ldap
+              name: script
+  schedule: 0 1 1 */2 *
+  successfulJobsHistoryLimit: 1
+  suspend: false

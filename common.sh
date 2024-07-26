@@ -79,7 +79,7 @@ function k8s_job_wait() {
     for ((i=0;i<$3;i++))
     do
         RES=`k3s kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true`
-        if [ "$RES" = '1'  ]; then
+        if [ "$RES" == '1'  ]; then
             echo -e "\033[34m   resource $2 is ready!  \033[0m"
             return 0
         fi

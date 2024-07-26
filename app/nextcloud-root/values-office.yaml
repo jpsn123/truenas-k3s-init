@@ -4,7 +4,7 @@ global:
 defaultPodOptions: {}
   
 controllers:
-  draw.io:
+  draw:
     enabled: true
     type: deployment
     replicas: 1
@@ -47,6 +47,7 @@ controllers:
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
+          JWT_SECRET: my_jwt_secret
         probes:
           liveness:
             enabled: true
@@ -68,9 +69,9 @@ controllers:
             enabled: false
 
 service:
-  draw.io:
+  draw:
     enabled: true
-    controller: draw.io
+    controller: draw
     ports:
       http:
         enabled: true
@@ -84,20 +85,20 @@ service:
         port: 80
 
 ingress:
-  draw.io:
+  draw:
     enabled: true
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
-    ingressClassName: "nginx"
+    className: "nginx"
     hosts:
       - host: draw.pan.example.com
         paths:
         - path: /
           pathType: Prefix
           service:
-            name: draw.io
+            name: office-draw
             port: 8080
     tls:
     - hosts:
@@ -110,14 +111,14 @@ ingress:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
-    ingressClassName: "nginx"
+    className: "nginx"
     hosts:
       - host: doc.pan.example.com
         paths:
         - path: /
           pathType: Prefix
           service:
-            name: documentserver
+            name: office-documentserver	
             port: 80
     tls:
     - hosts:

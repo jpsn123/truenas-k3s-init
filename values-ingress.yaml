@@ -41,11 +41,9 @@ controller:
     type: LoadBalancer
     loadBalancerIP: 10.0.0.1
     externalTrafficPolicy: Local
-    nodePorts:
-      https: "8443"
   
   kind: DaemonSet
-  hostNetwork: true
+  hostNetwork: false
   hostPort:
     enabled: false
 defaultBackend:

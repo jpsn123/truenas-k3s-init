@@ -81,7 +81,7 @@ echo "$PROFILE_PATCH" >> $HOME/.profile
 
 # install fail2ban
 echo -e "\033[32m    install fail2ban and configure \033[0m"
-apt install fail2ban -y
+fail2ban-client status &>/dev/null || apt install fail2ban -y
 systemctl stop fail2ban.service
 sed -i "s/banaction = iptables.*/banaction = iptables-ipset-proto6/" /etc/fail2ban/jail.conf
 sed -i "s/banaction_allports = iptables.*/banaction_allports = iptables-ipset-proto6-allports/" /etc/fail2ban/jail.conf
@@ -114,14 +114,13 @@ disable:
 - traefik
 - local-storage
 kube-apiserver-arg:
-- service-node-port-range=50000-65535
+- service-node-port-range=8000-65535
 - enable-admission-plugins=NodeRestriction,NamespaceLifecycle,ServiceAccount
 - audit-log-path=/tmp/k3s_server_audit.log
 - audit-log-maxage=30
 - audit-log-maxbackup=10
 - audit-log-maxsize=50
 - service-account-lookup=true
-- feature-gates=MixedProtocolLBService=true
 kube-controller-manager-arg:
 - node-cidr-mask-size=16
 - terminated-pod-gc-threshold=5

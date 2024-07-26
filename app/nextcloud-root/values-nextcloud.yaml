@@ -138,11 +138,18 @@ nextcloud:
     configMap:
       defaultMode: 420
       name: busybox-cron
+  - name: nginx-root-config
+    configMap:
+      defaultMode: 420
+      name: nginx-root-config
 
   extraVolumeMounts:
   - name: cron
     mountPath: /var/spool/cron/crontabs/root
     subPath: root
+  - name: nginx-root-config
+    mountPath: /etc/nginx/nginx.conf
+    subPath: nginx.conf
 
 nginx:
   enabled: true
@@ -153,8 +160,6 @@ nginx:
   config:
     default: false
     custom: |-
-      user  root;
-      worker_processes  8;
       upstream php-handler {
           server 127.0.0.1:9000;
       }
@@ -349,7 +354,7 @@ persistence:
     subPath:
     annotations:
       helm.sh/resource-policy: keep
-    storageClass: "local-zfs-sc"
+    storageClass: "local-zfs-hdd-sc"
     accessMode: ReadWriteOnce
     size: 2000Gi
 

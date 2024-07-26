@@ -57,7 +57,7 @@ ingress:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
-    ingressClassName: "nginx"
+    className: "nginx"
     hosts:
       - host: qb.example.com
         paths:
