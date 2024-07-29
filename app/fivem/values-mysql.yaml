@@ -1,0 +1,27 @@
+
+global:
+  storageClass: local-zfs-sc
+
+clusterDomain: cluster.local
+
+#image:
+#  registry: docker.io
+#  repository: bitnami/mysql
+#  tag: 8.0.30-debian-11-r28
+
+architecture: standalone
+
+auth:
+  database: "fivem"
+  username: "admin"
+  replicationUser: replicator
+
+primary:
+  extraEnvVars:
+   - name: TZ
+     value: "Asia/Shanghai"
+
+  persistence:
+    enabled: true
+    size: 20Gi
+

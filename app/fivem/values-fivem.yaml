@@ -1,0 +1,87 @@
+global:
+  nameOverride: fivem
+
+defaultPodOptions: {}
+  
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: spritsail/fivem
+          tag: latest
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          NO_DEFAULT_CONFIG: "true"
+          RCON_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: fivem-cfx
+                key: RCON_PASSWORD
+
+service:
+  main:
+    enabled: true
+    controller: main
+    type: LoadBalancer
+    ports:
+      txadmin:
+        enabled: true
+        port: 40120
+      game:
+        enabled: true
+        protocol: TCP
+        port: 30120
+      game2:
+        enabled: true
+        protocol: UDP
+        port: 30120
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    className: "nginx"
+    hosts:
+      - host: gta.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: fivem
+            port: 40120
+    tls:
+    - hosts:
+      - gta.example.com
+      secretName: gta.example.com-tls
+
+persistence:
+  data:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-zfs-sc
+    accessMode: ReadWriteOnce
+    size: 100Gi
+    retain: true
+    globalMounts: []
+    advancedMounts:
+      main:  # the controller with the "main"
+        main:
+        - path: /config
+          readOnly: false
+          subPath: config
+        - path: /txData
+          readOnly: false
+          subPath: txData
+          
+secrets:
+  cfx:
+    stringData:
+      RCON_PASSWORD: 
