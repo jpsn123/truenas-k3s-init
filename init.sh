@@ -12,10 +12,12 @@ source parameter.sh
 echo -e "\033[42m -------------------------------  \n\033[0m"
 echo -e "\033[42m Truenas init \n\033[0m"
 [ -d temp ] || mkdir temp
-sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+sed -i '/## PATCH/,$d' /etc/sysctl.conf
+echo -e "\n## PATCH" >> /etc/sysctl.conf
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
 echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+echo "fs.inotify.max_user_watches=1048576" >> /etc/sysctl.conf
+echo "fs.inotify.max_user_instances=8192" >> /etc/sysctl.conf
 sysctl -p
 
 ## make you can use apt command and self download package
