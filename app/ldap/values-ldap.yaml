@@ -185,7 +185,7 @@ persistence:
   accessModes:
     - ReadWriteOnce
   size: 5Gi
-  storageClass: "local-zfs-sc"
+  storageClass: "sc-example"
 
 initTLSSecret:
   tls_enabled: true

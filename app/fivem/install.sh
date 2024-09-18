@@ -17,6 +17,7 @@ echo -e "\033[42;30m initial \n\033[0m"
 [ -d temp ] || mkdir temp
 k3s kubectl create namespace $NS 2>/dev/null
 sed -i "s/example.com/${DOMAIN}/g" values-fivem.yaml
+sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values-fivem.yaml
 
 # install mysql for fivem
 #####################################

@@ -138,7 +138,7 @@ persistence:
   lam-config:
     enabled: true
     type: persistentVolumeClaim
-    storageClass: local-zfs-sc
+    storageClass: sc-example
     accessMode: ReadWriteOnce
     size: 1Gi
     retain: true

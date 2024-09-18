@@ -27,7 +27,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: local-zfs-sc
+  storageClassName: sc-example
   volumeMode: Filesystem
 ---
 apiVersion: apps/v1

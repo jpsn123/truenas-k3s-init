@@ -1,6 +1,6 @@
 
 global:
-  storageClass: local-zfs-sc
+  storageClass: sc-example
 
 clusterDomain: cluster.local
 

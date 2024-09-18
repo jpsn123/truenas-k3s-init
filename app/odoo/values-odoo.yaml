@@ -1,5 +1,5 @@
 global:
-  nameOverride: alist
+  nameOverride: odoo
 
 defaultPodOptions: {}
   
@@ -10,20 +10,32 @@ controllers:
     replicas: 1
     containers:
       main:
-        order: 1
         image:
-          repository: xhofe/alist
-          tag: latest
+          repository: amilys/embyserver
+          tag: 4.8.0.80
           pullPolicy: IfNotPresent
         env:
-          PUID: 0
-          PGID: 0
-          UMASK: 022
+          TZ: Asia/Shanghai
+          UID: 0
+          GID: 0
+          GIDLIST: "33,1000"
         probes:
           liveness:
-            enabled: false
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
           readiness:
-            enabled: false
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 0
+              periodSeconds: 60
+              timeoutSeconds: 1
+              failureThreshold: 3
           startup:
             enabled: false
 
@@ -35,7 +47,7 @@ service:
     ports:
       http:
         enabled: true
-        port: 5244
+        port: 8096
 
 ingress:
   main:
@@ -47,17 +59,17 @@ ingress:
       cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
     className: "nginx"
     hosts:
-      - host: li.example.com
+      - host: mov.example.com
         paths:
         - path: /
           pathType: Prefix
           service:
-            name: alist
-            port: 5800
+            name: odoo
+            port: 8096
     tls:
     - hosts:
-      - li.example.com
-      secretName: li.example.com-tls      
+      - mov.example.com
+      secretName: mov.example.com-tls      
 
 persistence:
   config:
@@ -71,6 +83,5 @@ persistence:
     advancedMounts:
       main:  # the controller with the "main"
         main:  # the container with the "main"
-        - path: /opt/alist/data
+        - path: /config
           readOnly: false
-          

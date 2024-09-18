@@ -168,7 +168,7 @@ kind: StorageClass
 metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
-  name: local-zfs-sc
+  name: ${STORAGE_CLASS_NAME}
 parameters:
   fstype: zfs
   poolname: ${ZFS_DATASET_FOR_STORAGE}

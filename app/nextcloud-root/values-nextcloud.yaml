@@ -322,7 +322,7 @@ mariadb:
   primary:
     persistence:
       enabled: true
-      storageClass: "local-zfs-sc"
+      storageClass: "sc-example"
       accessMode: ReadWriteOnce
       size: 10Gi
 
@@ -335,7 +335,7 @@ redis:
   master:
     persistence:
       enabled: true
-      storageClass: "local-zfs-sc"
+      storageClass: "sc-example"
       size: 10Gi
 
 cronjob:
@@ -345,7 +345,7 @@ persistence:
   enabled: true
   annotations:
     helm.sh/resource-policy: keep
-  storageClass: "local-zfs-sc"
+  storageClass: "sc-example"
   accessMode: ReadWriteOnce
   size: 10Gi
 
@@ -354,7 +354,7 @@ persistence:
     subPath:
     annotations:
       helm.sh/resource-policy: keep
-    storageClass: "local-zfs-hdd-sc"
+    storageClass: "sc-example"
     accessMode: ReadWriteOnce
     size: 2000Gi
 
