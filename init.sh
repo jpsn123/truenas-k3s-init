@@ -28,21 +28,11 @@ rm /usr/local/bin/apt* /usr/local/bin/dpkg || true
 export PATH="/usr/bin:$PATH"
 chmod +x /usr/bin/*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
+cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d || true
+apt update
 swapoff -a
 sed -i '/^\/swap/s/^/# /' /etc/fstab
 sed -i "s/^#net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/g" /etc/sysctl.conf #forward vm ipv4 package if configure network bridge
-
-# disable truenas docker and k3s server
-echo -e "\033[32m    disable truenas docker and k3s server  \033[0m"
-sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
-sed -i -e "s/.*DockerService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
-sed -i -e "s/.*KubernetesService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
-sed -i -e "s/.*KubeRouterService,/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/service_/services/all.py
-
-# disable truenas swap
-echo -e "\033[32m    disable truenas swap  \033[0m"
-sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/plugins/disk_/swap_configure.py
-sed -i "/^\( *\)async def swaps_configure(self):/{p;s//\1    return [] ###PATCH/;}" /usr/lib/python3/dist-packages/middlewared/plugins/disk_/swap_configure.py
 
 # improve vm running performance
 echo -e "\033[32m    improve vm running performance  \033[0m"
@@ -54,21 +44,14 @@ sed -i -e "s/.*vm_data\['command_line_args'\]/##COMMENT\0/g" /usr/lib/python3/di
 sed -i -e "/'commandline'/a 'children': [create_element('arg', value='-cpu'),create_element('arg', value='host,hv_ipi,hv_relaxed,hv_reset,hv_runtime,hv_spinlocks=0x1fff,hv_stimer,hv_synic,hv_time,hv_vapic,hv_vendor_id=proxmox,hv_vpindex,kvm=off,+kvm_pv_eoi,+kvm_pv_unhalt')] ##PATCH" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 service middlewared restart
 
-# enable docker
-echo -e "\033[32m    enable and config docker.  \033[0m"
-docker help &>/dev/null || curl -sSL https://get.docker.com|sh
-DOCKER_CONF=`cat<<EOF
-{
-  "log-opts":{"max-size":"100m","max-file":"3"},
-  "exec-opts":["native.cgroupdriver=systemd"],
-  "max-concurrent-uploads": 1,
-  "features": {"push_with_retries": true}
-}
-EOF
-`
-mkdir -p /etc/docker/
-echo "$DOCKER_CONF">/etc/docker/daemon.json
-systemctl enable docker
+# configure docker
+echo -e "\033[32m     config docker.  \033[0m"
+DOCKER_CONF=`cat /etc/docker/daemon.json | \
+  jq '."log-opts"."max-size" = "100m"' | \
+  jq '."log-opts"."max-file" = "3"' | \
+  jq '."max-concurrent-uploads" = 1' | \
+  jq '."features"."push_with_retries" = true' `
+echo -n "$DOCKER_CONF">/etc/docker/daemon.json
 systemctl restart docker || true
 
 # some patch on profile
@@ -83,6 +66,7 @@ echo "$PROFILE_PATCH" >> $HOME/.profile
 
 # install fail2ban
 echo -e "\033[32m    install fail2ban and configure \033[0m"
+ipset help &>/dev/null || apt install ipset -y
 fail2ban-client status &>/dev/null || apt install fail2ban -y
 systemctl stop fail2ban.service
 sed -i "s/banaction = iptables.*/banaction = iptables-ipset-proto6/" /etc/fail2ban/jail.conf
@@ -152,6 +136,11 @@ if [ -z "$RES" ]; then
   fi
 fi
 
+# install helm
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+
 # auto refresh k3s certificate and cleanup
 echo -e "\033[32m    making k3s certification auto refresh  \033[0m"
 echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
@@ -180,6 +169,17 @@ EOF
 `
 echo "$ZFS_SC">./temp/local-zfs-sc.yaml
 k3s kubectl apply -f ./temp/local-zfs-sc.yaml
+
+## install device plugin for intel gpu
+RES=`lspci | grep VGA | grep Intel`
+if [ -n "$RES" ]; then
+  RES=`kubectl get node -oyaml | grep gpu.intel.com/i915`
+  if [ -z "$RES" ]; then
+    kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=main'
+    kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=main'
+    kubectl apply -n node-feature-discovery -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/monitoring_shared-dev_nfd?ref=main'
+  fi
+fi
 
 # command auto completion
 echo -e "\033[32m    making commands auto completion  \033[0m"
