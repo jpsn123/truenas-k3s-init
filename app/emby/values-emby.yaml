@@ -12,7 +12,7 @@ controllers:
       main:
         image:
           repository: amilys/embyserver
-          tag: 4.8.0.80
+          tag: 4.9.0.30
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai

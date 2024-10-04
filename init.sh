@@ -137,9 +137,9 @@ if [ -z "$RES" ]; then
 fi
 
 # install helm
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
+curl -fsSL -o ./temp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 ./temp/get_helm.sh
+./temp/get_helm.sh
 
 # auto refresh k3s certificate and cleanup
 echo -e "\033[32m    making k3s certification auto refresh  \033[0m"
