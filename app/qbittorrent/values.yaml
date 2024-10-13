@@ -15,7 +15,7 @@ controllers:
         order: 1
         image:
           repository: superng6/qbittorrentee
-          tag: latest
+          tag: 4.6.7.10
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
@@ -23,6 +23,30 @@ controllers:
           PGID: 0
           WEBUIPORT: 6780
           TORRENTINGPORT: 6723
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
+  pbh:
+    enabled: true
+    type: deployment
+    replicas: 1
+    pod:
+      hostNetwork: true
+    containers:
+      main:
+        order: 1
+        image:
+          repository: ghostchu/peerbanhelper
+          tag: v6.4.5
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          PUID: 0
+          PGID: 0
         probes:
           liveness:
             enabled: false
@@ -48,6 +72,13 @@ service:
         enabled: true
         port: 6723
         protocol: UDP
+  pbh:
+    enabled: true
+    controller: pbh
+    ports:
+      http:
+        enabled: true
+        port: 9898
 
 ingress:
   main:
@@ -69,6 +100,25 @@ ingress:
     tls:
     - hosts:
       - qb.example.com
+      secretName: qb.example.com-tls
+  pbh:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    className: "nginx"
+    hosts:
+      - host: pbh.example.com
+        paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: pbh
+            port: 9898
+    tls:
+    - hosts:
+      - qb.example.com
       secretName: qb.example.com-tls      
 
 persistence:
@@ -84,6 +134,20 @@ persistence:
       main:  # the controller with the "main"
         main:  # the container with the "main"
         - path: /config
+          readOnly: false
+
+  pbh:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: sc-example
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
+    globalMounts: []
+    advancedMounts:
+      pbh:
+        main:
+        - path: /app/data
           readOnly: false
 
   # downloads:
