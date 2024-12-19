@@ -4,10 +4,13 @@ set -e
 
 EMBY_DATA_PATH='/mnt/fast/k8s/pvc-emby-emby-config'
 
+## delete search9
+sqlite3 $EMBY_DATA_PATH/data/library.db " \
+    drop table fts_search9; \
+    " || true
+
 ## delete unused actors
 sqlite3 $EMBY_DATA_PATH/data/library.db " \
-    delete from fts_search9_content where id in (select id from mediaitems where type=23 except select personid from itempeople2); \
-    delete from fts_search9_docsize where id in (select id from mediaitems where type=23 except select personid from itempeople2); \
     delete from itemlinks2 where linkedid in (select id from mediaitems where type=23 except select personid from itempeople2); \
     delete from itemlinks2 where itemid in (select id from mediaitems where type=23 except select personid from itempeople2); \
     delete from mediastreams2 where itemid in (select id from mediaitems where type=23 except select personid from itempeople2); \

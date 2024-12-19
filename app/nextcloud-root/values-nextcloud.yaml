@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 29.0.3-fpm-root
+  tag: 29.0.10-fpm-root
   
 replicaCount: 1
 
@@ -40,6 +40,7 @@ nextcloud:
       opcache.memory_consumption=256
       opcache.save_comments=1
       opcache.revalidate_freq=1
+      opcache.memory_conclusion=256
     nextcloud.ini: |-
       memory_limit=1024M
       upload_max_filesize=16G
