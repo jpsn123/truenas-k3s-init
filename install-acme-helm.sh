@@ -7,7 +7,7 @@ source parameter.sh
 
 # install alidns-webhook for geting certificate automatically
 #####################################
-echo -e "\033[42;30m install alidns-webhook for geting certificate automatically\n\033[0m"
+log_head "install alidns-webhook for geting certificate automatically"
 helm repo add cert-manager-alidns-webhook https://devmachine-fr.github.io/cert-manager-alidns-webhook
 [ -d temp/alidns-webhook ] || helm pull cert-manager-alidns-webhook/alidns-webhook --untar --untardir temp 2>/dev/null || true
 METHOD=install
@@ -34,8 +34,8 @@ metadata:
   name: ${DOMAIN}-letsencrypt-issuer
 spec:
   acme:
-    email: $EMAIL
-    server: $ACME_PRODUCT_SERVER
+    email: $ACME_EMAIL
+    server: 'https://acme-v02.api.letsencrypt.org/directory'
     #disableAccountKeyGeneration: true
     privateKeySecretRef:
       name: ${DOMAIN}-letsencrypt-key
@@ -65,8 +65,8 @@ metadata:
   name: ${DOMAIN}-letsencrypt-test-issuer
 spec:
   acme:
-    email: $EMAIL
-    server: $ACME_TEST_SERVER
+    email: $ACME_EMAIL
+    server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
     disableAccountKeyGeneration: true
     privateKeySecretRef:
       name: ${DOMAIN}-letsencrypt-key

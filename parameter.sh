@@ -21,7 +21,7 @@ STORAGE_CLASS_NAME="fast"
 SUB_DOMAIN='srv'  ## rancher servicer sub-domain, you can access https://srv.your-domain.com to manage your k8s
 
 ## acme
-EMAIL=''
+ACME_EMAIL=''
 ALI_ACCESS_KEY=''
 ALI_SECRET_KEY=''
 ACME_TEST_SERVER='https://acme-staging-v02.api.letsencrypt.org/directory'  #for test use

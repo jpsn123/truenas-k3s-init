@@ -1,3 +1,29 @@
+## functions for log
+## $1: text
+function log_error() {
+    echo -e "\033[31m$1\033[0m"
+}
+
+function log_warn() {
+    echo -e "\033[33m$1\033[0m"
+}
+
+function log_info() {
+    echo -e "\033[32m$1\033[0m"
+}
+
+function log_trace() {
+    echo -e "\033[34m$1\033[0m"
+}
+
+function log_header() {
+    echo -e "\033[42;30m $1\n\033[0m"
+}
+
+function log_reminder() {
+    echo -e "\033[35m $1\n\033[0m"
+}
+
 ## function run_command can execute command on every node.
 ## $1: node list
 ## $2: the command

@@ -9,7 +9,7 @@ APP_NAME=qbittorrent
 
 # initial
 #####################################
-echo -e "\033[42;30m initial \n\033[0m"
+log_info "initial"
 [ -d temp ] || mkdir temp
 k3s kubectl create namespace $NS 2>/dev/null
 sed -i "s/example.com/${DOMAIN}/g" values.yaml
@@ -17,7 +17,7 @@ sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values.yaml
 
 # install app
 #####################################
-echo -e "\033[42;30m install $APP_NAME \n\033[0m"
+log_info "install $APP_NAME"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
 METHOD=install

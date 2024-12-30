@@ -9,8 +9,7 @@ source parameter.sh
 
 # init
 #####################################
-echo -e "\033[42m -------------------------------  \n\033[0m"
-echo -e "\033[42m Truenas init \n\033[0m"
+log_head "Truenas init"
 [ -d temp ] || mkdir temp
 sed -i '/## PATCH/,$d' /etc/sysctl.conf
 echo -e "\n## PATCH" >> /etc/sysctl.conf
@@ -22,7 +21,7 @@ sysctl -p
 
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
-echo -e "\033[32m    making apt usable.  \033[0m"
+log_info "    making apt usable"
 zfs set readonly=off `zfs list | grep '/usr' | awk '{print $1}'`
 rm /usr/local/bin/apt* /usr/local/bin/dpkg || true
 export PATH="/usr/bin:$PATH"
@@ -35,7 +34,7 @@ sed -i '/^\/swap/s/^/# /' /etc/fstab
 sed -i "s/^#net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/g" /etc/sysctl.conf #forward vm ipv4 package if configure network bridge
 
 # improve vm running performance
-echo -e "\033[32m    improve vm running performance  \033[0m"
+log_info "    improve vm running performance"
 sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 sed -i -e "s/create_element('tlbflush',/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
@@ -45,7 +44,7 @@ sed -i -e "/'commandline'/a 'children': [create_element('arg', value='-cpu'),cre
 service middlewared restart
 
 # configure docker
-echo -e "\033[32m     config docker.  \033[0m"
+log_info "     config docker."
 DOCKER_CONF=`cat /etc/docker/daemon.json | \
   jq '."log-opts"."max-size" = "100m"' | \
   jq '."log-opts"."max-file" = "3"' | \
@@ -55,7 +54,7 @@ echo -n "$DOCKER_CONF">/etc/docker/daemon.json
 systemctl restart docker || true
 
 # some patch on profile
-echo -e "\033[32m    some patch on profile \033[0m"
+log_info "    some patch on profile"
 sed -i '/##PROFILE_PATCH/d' $HOME/.profile
 PROFILE_PATCH=`cat<<EOF
 ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##PROFILE_PATCH
@@ -65,8 +64,8 @@ EOF
 echo "$PROFILE_PATCH" >> $HOME/.profile
 
 # install fail2ban
-echo -e "\033[32m    install fail2ban and configure \033[0m"
-ipset help &>/dev/null || apt install ipset -y
+log_info "    install fail2ban and configure"
+ipset help &>/dev/null || apt install ipset ipvsadm  -y
 fail2ban-client status &>/dev/null || apt install fail2ban -y
 systemctl stop fail2ban.service
 sed -i "s/banaction = iptables.*/banaction = iptables-ipset-proto6/" /etc/fail2ban/jail.conf
@@ -80,49 +79,54 @@ EOF
 `
 mkdir -p /etc/fail2ban/jail.d || true
 echo "$SSHD_BAN_CONF">/etc/fail2ban/jail.d/sshd.conf
+log_info ""
 systemctl restart fail2ban.service
 
 ## install k3s
 #####################################
-echo -e "\033[42m -------------------------------  \n\033[0m"
-echo -e "\033[42m install k3s  \n\033[0m"
-
+log_head "install k3s"
 # init k3s config
-echo -e "\033[32m    init k3s config.  \033[0m"
+log_info "    init k3s config."
 K3S_CONF=`cat<<EOF
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
 snapshotter: fuse-overlayfs
 disable-network-policy: true
+flannel-backend: host-gw
 disable:
 - servicelb
 - traefik
 - local-storage
 kube-apiserver-arg:
 - service-node-port-range=8000-65535
-- enable-admission-plugins=NodeRestriction,NamespaceLifecycle,ServiceAccount
+# - enable-admission-plugins=NodeRestriction
 - audit-log-path=/tmp/k3s_server_audit.log
 - audit-log-maxage=30
 - audit-log-maxbackup=10
 - audit-log-maxsize=50
-- service-account-lookup=true
+# - feature-gates=''
 kube-controller-manager-arg:
 - node-cidr-mask-size=16
 - terminated-pod-gc-threshold=5
+# - feature-gates=''
 kubelet-arg:
 - max-pods=250
+# - feature-gates=''
+kube-proxy-arg:
+- proxy-mode=ipvs
+# - feature-gates=''
 EOF
 `
 mkdir -p /etc/rancher/k3s/
 echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
 
 # enable k3s service
-echo -e "\033[32m    enable k3s service.  \033[0m"
+log_info "    enable k3s service"
 RES=`k3s -v 2>/dev/null | grep $K3S_VERSION || true`
 if [ -z "$RES" ]; then
   if [ $OFFLINE_INSTALL == true ]; then
-    echo -e "\033[36m      Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images. \033[0m"
+    log_info "Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images"
     [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io > k3s/install.sh || (echo -e "\033[31m error: k3s/install.sh file not found! \033[0m" ; false)
     [ -e k3s/k3s ] || (echo -e "\033[31m      error: k3s/k3s file not found! \033[0m" ; false)
     [ -e k3s/k3s-airgap-images*.tar* ] || (echo -e "\033[31m      error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m" ; false)
@@ -132,6 +136,7 @@ if [ -z "$RES" ]; then
     cp -f k3s/*images*.tar* $DATA_DIR/agent/images/
     cat k3s/install.sh | INSTALL_K3S_SKIP_DOWNLOAD=true sh -
   else
+    log_info "install k3s online"
     curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=$K3S_VERSION sh -
   fi
 fi
@@ -142,12 +147,12 @@ chmod 700 ./temp/get_helm.sh
 ./temp/get_helm.sh
 
 # auto refresh k3s certificate and cleanup
-echo -e "\033[32m    making k3s certification auto refresh  \033[0m"
+log_info "    making k3s certification auto refresh"
 echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
 echo "0 2 1 1 * root crictl rmi --prune">/etc/cron.d/cleanup
 
 ## install zfs csi
-echo -e "\033[32m    install local-zfs csi  \033[0m"
+log_info "    install local-zfs csi"
 kubectl apply -f zfs-operator.yaml
 zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
 ZFS_SC=`cat<<EOF
@@ -182,7 +187,7 @@ if [ -n "$RES" ]; then
 fi
 
 # command auto completion
-echo -e "\033[32m    making commands auto completion  \033[0m"
+log_info "    making commands auto completion"
 sed -i '/##K8S_PATCH/d' $HOME/.profile
 K8S_PATCH=`cat<<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K8S_PATCH
@@ -196,24 +201,77 @@ echo "$K8S_PATCH" >> $HOME/.profile
 
 ## post installation
 #####################################
-echo -e "\033[42m -------------------------------  \n\033[0m"
-echo -e "\033[42m making bashrc  \n\033[0m"
-echo -e "\033[32m    cp .bashrc shell start config file, copy from ubuntu.  \033[0m"
-echo -e "\033[33m    you need configurate your shell to 'bash' by TrueNAS UI.  \033[0m"
+# bash_completion
+if [ ! -f /etc/profile.d/bash_completion.sh ]; then
+    log_info "    making /etc/profile.d/bash_completion.sh"
+    cat<<"EOF" > /etc/profile.d/bash_completion.sh
+# shellcheck shell=sh disable=SC1091,SC2039,SC2166
+# Check for interactive bash and that we haven't already been sourced.
+if [ "x${BASH_VERSION-}" != x -a "x${PS1-}" != x -a "x${BASH_COMPLETION_VERSINFO-}" = x ]; then
+
+    # Check for recent enough version of bash.
+    if [ "${BASH_VERSINFO[0]}" -gt 4 ] ||
+        [ "${BASH_VERSINFO[0]}" -eq 4 -a "${BASH_VERSINFO[1]}" -ge 2 ]; then
+        [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/bash_completion" ] &&
+            . "${XDG_CONFIG_HOME:-$HOME/.config}/bash_completion"
+        if shopt -q progcomp && [ -r /usr/share/bash-completion/bash_completion ]; then
+            # Source completion code.
+            . /usr/share/bash-completion/bash_completion
+        fi
+    fi
+
+fi
+EOF
+fi
+
+# bashrc
+log_info "    making bashrc, you need configurate your shell to 'bash' by TrueNAS UI."
 cat<<"EOF" > /root/.bashrc
-[ -z "$PS1" ] && return
-HISTCONTROL=ignoredups:ignorespace
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
 shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
 HISTSIZE=1000
 HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
 shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
-if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-    xterm-color) color_prompt=yes;;
+    xterm-color|*-256color) color_prompt=yes;;
 esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+force_color_prompt=yes
+
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
 	# We have color support; assume it's compliant with Ecma-48
@@ -224,12 +282,15 @@ if [ -n "$force_color_prompt" ]; then
 	color_prompt=
     fi
 fi
+
 if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+    PS1='${debian_chroot:+($debian_chroot)}\[\e[31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[m\]\[\e[32m\]\[\e[1;32m\]\A\[\e[36m\] \w\[\e[m\]\$\[\e[m\] '
 else
     PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
 unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
 case "$TERM" in
 xterm*|rxvt*)
     PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
@@ -237,19 +298,50 @@ xterm*|rxvt*)
 *)
     ;;
 esac
+
+# enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
+    alias dir='dir --color=auto'
+    alias vdir='vdir --color=auto'
+
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
-alias ll='ls -alF'
+
+# colored GCC warnings and errors
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# some more ls aliases
+alias ll='ls -l'
 alias la='ls -A'
 alias l='ls -CF'
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+#if ! shopt -oq posix; then
+#  if [ -f /usr/share/bash-completion/bash_completion ]; then
+#    . /usr/share/bash-completion/bash_completion
+#  elif [ -f /etc/bash_completion ]; then
+#    . /etc/bash_completion
+#  fi
+#fi
+
+export PATH="/usr/sbin:$PATH"
 EOF
 
 ## done
 #####################################
-echo -e "\033[42m -------------------------------  \n\033[0m"
-echo -e "\033[42m init success!!!  \033[0m"
+log_trace "init success!!!"

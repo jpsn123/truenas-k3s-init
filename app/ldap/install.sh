@@ -5,10 +5,11 @@ source ../../common.sh
 source ../../parameter.sh
 
 NS=ldap
+APP_NAME=ldap
 
 # initial
 #####################################
-echo -e "\033[42;30m initial \n\033[0m"
+log_info "initial"
 kubectl create namespace $NS 2>/dev/null || true
 kubectl delete -n $NS configmap ssp-images 2>/dev/null
 kubectl create -n $NS configmap ssp-images \
@@ -36,16 +37,16 @@ for ((i=0;i<100;i++))
 do
     RES=`kubectl get -n $NS certificate ldap-tls -o=jsonpath='{.status.conditions[0].status}' 2>/dev/null || true`
     if [ "$RES" == 'True'  ]; then
-        echo -e "\033[34m   certificate is ready!  \033[0m"
+        log_trace "   certificate is ready!"
         break
     fi
-    echo -e "\033[33m   waiting certificate be ready...  \033[0m"
+    log_warn "   waiting certificate be ready..."
     sleep 5
 done
 
 # install ldap
 #####################################
-echo -e "\033[42;30m install ldap \n\033[0m"
+log_info "install $APP_NAME"
 METHOD=install
 [ `app_is_exist $NS ldap` == true ] && METHOD=upgrade
 helm $METHOD -n $NS ldap openldap-ha-chart -f values-ldap.yaml
@@ -58,7 +59,7 @@ kubectl apply -n $NS -f refresh-cert.yaml
 
 # install ldap-web
 #####################################
-echo -e "\033[42;30m install ldap-web \n\033[0m"
+log_info "install ldap-web"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
 METHOD=install

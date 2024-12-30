@@ -7,7 +7,7 @@ source parameter.sh
 
 # install aliyun-ddns, update random public ipv4 or ipv6 whice assigned by ISP to globle dns server.
 #####################################
-echo -e "\033[42;30m install alidns-webhook for geting certificate automatically\n\033[0m"
+log_head "install alidns-webhook for geting certificate automatically"
 UPDATE_TYPE='A'
 if $UPDATE_IPV4 && $UPDATE_IPV6 ; then
   UPDATE_TYPE='A,AAAA'

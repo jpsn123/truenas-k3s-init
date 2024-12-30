@@ -4,8 +4,9 @@ cd `dirname $0`
 source ../../common.sh
 source ../../parameter.sh
 NS=nextcloud
+APP_NAME=nextcloud
 
-echo -e '\033[35mplease input password for setting nextcloud. \033[0m'
+log_reminder "please input password for setting nextcloud."
 read -p "password:"
 REDIS_PW=`echo -n $REPLY@redis | md5sum | head -c 16`
 DB_PW=`echo -n $REPLY@pg | md5sum | head -c 16`
@@ -13,7 +14,7 @@ NEXTCLOUD_PW=$REPLY
 
 # initial
 #####################################
-echo -e "\033[42;30m initial \n\033[0m"
+log_info "initial"
 [ -d temp ] || mkdir temp
 k3s kubectl create namespace $NS 2>/dev/null
 k3s kubectl -n $NS delete secret nextcloud 2>/dev/null
@@ -28,7 +29,7 @@ k3s kubectl -n $NS apply -f configs.yaml
 
 # install nextcloud
 #####################################
-echo -e "\033[42;30m install nextcloud \n\033[0m"
+log_info "install $APP_NAME"
 helm repo add bitnami https://charts.bitnami.com/bitnami 
 [ -d temp/nextcloud ] || (git clone https://github.com/nextcloud/helm.git ./temp && mv -f ./temp/charts/nextcloud ./temp && helm dependency build ./temp/nextcloud)
 METHOD=install
@@ -40,7 +41,7 @@ helm $METHOD -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
 
 # install office
 #####################################
-echo -e "\033[42;30m install office plugin \n\033[0m"
+log_info "install office plugin"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
 METHOD=install

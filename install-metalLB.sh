@@ -7,7 +7,7 @@ source parameter.sh
 
 # install metalLB   
 #####################################
-echo -e "\033[42;30m install metalLB\n\033[0m"
+log_head "install metalLB"
 helm repo add metallb https://metallb.github.io/metallb
 [ -d temp/metallb ] || helm pull metallb/metallb --untar --untardir temp 2>/dev/null || true
 METHOD=install

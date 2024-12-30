@@ -13,7 +13,6 @@ ingress:
   tls:
     # options: rancher, letsEncrypt, secret
     source: secret
-    secretName: tls-rancher-ingress
 
 replicas: 1
 tls: ingress
