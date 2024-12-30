@@ -186,19 +186,6 @@ if [ -n "$RES" ]; then
   fi
 fi
 
-# command auto completion
-log_info "    making commands auto completion"
-sed -i '/##K8S_PATCH/d' $HOME/.profile
-K8S_PATCH=`cat<<EOF
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K8S_PATCH
-alias kubectl='k3s kubectl' ##K8S_PATCH
-source <(helm completion bash) ##K8S_PATCH
-source <(k3s kubectl completion bash) ##K8S_PATCH
-source <(crictl completion bash) ##K8S_PATCH
-EOF
-`
-echo "$K8S_PATCH" >> $HOME/.profile
-
 ## post installation
 #####################################
 # bash_completion
@@ -341,6 +328,30 @@ fi
 
 export PATH="/usr/sbin:$PATH"
 EOF
+
+# command auto completion
+log_info "    making commands auto completion"
+sed -i '/##K3S_PATCH/d' $HOME/.profile
+K3S_PATCH=`cat<<EOF
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K3S_PATCH
+alias kubectl='k3s kubectl' ##K3S_PATCH
+alias k='k3s kubectl' ##K3S_PATCH
+EOF
+`
+echo "$K3S_PATCH" >> $HOME/.profile
+
+mkdir -p $HOME/.config/
+[ ! -f $HOME/.config/bash_completion ] && touch $HOME/.config/bash_completion
+sed -i '/##K3S_PATCH/d' $HOME/.config/bash_completion
+
+k3s kubectl completion bash > $HOME/.config/completion_k3s
+echo "source $HOME/.config/completion_k3s ##K3S_PATCH" >> $HOME/.config/bash_completion
+
+helm completion bash > $HOME/.config/completion_helm
+echo "source $HOME/.config/completion_helm ##K3S_PATCH" >> $HOME/.config/bash_completion
+
+crictl completion bash > $HOME/.config/completion_crictl
+echo "source $HOME/.config/completion_crictl ##K3S_PATCH" >> $HOME/.config/bash_completion
 
 ## done
 #####################################
