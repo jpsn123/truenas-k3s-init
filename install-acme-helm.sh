@@ -94,3 +94,6 @@ EOF
 echo "$ALIDNS_ISSUE_YAML" >./temp/alidns-test-issuer.yaml
 kubectl apply -f ./temp/alidns-issuer.yaml
 kubectl apply -f ./temp/alidns-test-issuer.yaml
+
+## done
+log_trace "init success!!!"

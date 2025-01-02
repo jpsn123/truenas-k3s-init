@@ -20,3 +20,6 @@ helm $METHOD -n cattle-system rancher temp/rancher -f values-rancher.yaml \
   --set ingress.tls.secretName=${SUB_DOMAIN}.${DOMAIN}-tls
 k8s_wait cattle-system deployment rancher 100
 k8s_wait cattle-system deployment rancher-webhook 50
+
+## done
+log_trace "init success!!!"

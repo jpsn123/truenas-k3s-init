@@ -17,4 +17,6 @@ METHOD=install
 [ $(app_is_exist ingress-nginx ingress-nginx) == true ] && METHOD=upgrade
 helm $METHOD ingress-nginx temp/ingress-nginx -n ingress-nginx -f values-ingress.yaml
 k8s_wait ingress-nginx daemonset ingress-nginx-controller 50
-kubectl patch -n ingress-nginx svc ingress-nginx-controller --patch "$PATCH"
+
+## done
+log_trace "init success!!!"

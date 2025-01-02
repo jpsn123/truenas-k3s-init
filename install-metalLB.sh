@@ -41,3 +41,6 @@ echo "$YAML" >./temp/metallb-config.yaml
 kubectl apply -f ./temp/metallb-config.yaml
 
 k8s_wait kube-system daemonset metallb-speaker 100
+
+## done
+log_trace "init success!!!"

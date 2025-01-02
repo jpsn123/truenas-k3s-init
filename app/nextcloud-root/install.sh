@@ -49,3 +49,6 @@ METHOD=install
 helm $METHOD -n $NS office temp/app-template -f values-office.yaml
 k8s_wait $NS deployment office-documentserver 100
 k8s_wait $NS deployment office-draw 100
+
+## done
+log_trace "init success!!!"

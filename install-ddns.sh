@@ -90,3 +90,6 @@ EOF
 )
 echo "$DDNS_YAML" >./temp/alidns-deployment.yaml
 kubectl apply -f ./temp/alidns-deployment.yaml
+
+## done
+log_trace "init success!!!"

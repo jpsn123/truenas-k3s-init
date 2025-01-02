@@ -19,3 +19,6 @@ helm $METHOD --namespace cert-manager cert-manager temp/cert-manager \
 k8s_wait cert-manager deployment cert-manager 50
 k8s_wait cert-manager deployment cert-manager-cainjector 50
 k8s_wait cert-manager deployment cert-manager-webhook 50
+
+## done
+log_trace "init success!!!"

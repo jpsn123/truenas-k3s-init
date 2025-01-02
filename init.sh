@@ -370,5 +370,4 @@ echo "source $HOME/.config/completion_helm ##K3S_PATCH" >>$HOME/.config/bash_com
 echo "source $HOME/.config/completion_crictl ##K3S_PATCH" >>$HOME/.config/bash_completion
 
 ## done
-#####################################
 log_trace "init success!!!"

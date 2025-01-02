@@ -64,3 +64,6 @@ helm repo add bjw-s https://bjw-s.github.io/helm-charts
 METHOD=install
 [ $(app_is_exist $NS ldap-web) == true ] && METHOD=upgrade
 helm $METHOD -n $NS ldap-web temp/app-template -f values-ldap-web.yaml
+
+## done
+log_trace "init success!!!"
