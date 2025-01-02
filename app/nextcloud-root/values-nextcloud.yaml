@@ -1,7 +1,7 @@
 image:
   repository: jutze/nextcloud
   tag: 29.0.10-fpm-root
-  
+
 replicaCount: 1
 
 ingress:
@@ -9,8 +9,8 @@ ingress:
   className: nginx
   annotations:
     helm.sh/resource-policy: keep
-    "nginx.ingress.kubernetes.io/proxy-redirect-from": 'http://$host'
-    "nginx.ingress.kubernetes.io/proxy-redirect-to": 'https://$host'
+    "nginx.ingress.kubernetes.io/proxy-redirect-from": "http://$host"
+    "nginx.ingress.kubernetes.io/proxy-redirect-to": "https://$host"
     "nginx.ingress.kubernetes.io/proxy-request-buffering": "off"
     "nginx.ingress.kubernetes.io/proxy-body-size": 10G
     "kubernetes.io/tls-acme": "true"
@@ -135,22 +135,22 @@ nextcloud:
     fsGroup: 0
 
   extraVolumes:
-  - name: cron
-    configMap:
-      defaultMode: 420
-      name: busybox-cron
-  - name: nginx-root-config
-    configMap:
-      defaultMode: 420
-      name: nginx-root-config
+    - name: cron
+      configMap:
+        defaultMode: 420
+        name: busybox-cron
+    - name: nginx-root-config
+      configMap:
+        defaultMode: 420
+        name: nginx-root-config
 
   extraVolumeMounts:
-  - name: cron
-    mountPath: /var/spool/cron/crontabs/root
-    subPath: root
-  - name: nginx-root-config
-    mountPath: /etc/nginx/nginx.conf
-    subPath: nginx.conf
+    - name: cron
+      mountPath: /var/spool/cron/crontabs/root
+      subPath: root
+    - name: nginx-root-config
+      mountPath: /etc/nginx/nginx.conf
+      subPath: nginx.conf
 
 nginx:
   enabled: true
@@ -308,7 +308,7 @@ nginx:
 
 internalDatabase:
   enabled: false
-  
+
 externalDatabase:
   enabled: false
 

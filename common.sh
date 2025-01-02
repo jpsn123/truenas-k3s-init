@@ -30,20 +30,18 @@ function log_reminder() {
 ## $3: execute command on main master? default is true.
 function run_command() {
     HOST_ARRAY=$1
-    for _common_index in ${HOST_ARRAY[*]}
-    do
-        RES=`ip addr | grep $_common_index 2>/dev/null || true`
+    for _common_index in ${HOST_ARRAY[*]}; do
+        RES=$(ip addr | grep $_common_index 2>/dev/null || true)
         if [ -n "$RES" ]; then
             LOCAL_IP=$_common_index
             break
         fi
     done
-    for _common_index in ${HOST_ARRAY[*]}
-    do
+    for _common_index in ${HOST_ARRAY[*]}; do
         if [ "$_common_index" == "$LOCAL_IP" ]; then
             if [ "$3" != false ]; then
                 log_info "   running command \"$2\" at local...  "
-                echo "$2"|sh
+                echo "$2" | sh
                 echo -e "\n"
             fi
         else
@@ -59,16 +57,14 @@ function run_command() {
 ## $2: the file
 function remote_copy() {
     HOST_ARRAY=$1
-    for _common_index in ${HOST_ARRAY[*]}
-    do
-        RES=`ip addr | grep $_common_index 2>/dev/null || true`
+    for _common_index in ${HOST_ARRAY[*]}; do
+        RES=$(ip addr | grep $_common_index 2>/dev/null || true)
         if [ -n "$RES" ]; then
             LOCAL_IP=$_common_index
             break
         fi
     done
-    for _common_index in ${HOST_ARRAY[*]}
-    do
+    for _common_index in ${HOST_ARRAY[*]}; do
         if [ "$_common_index" != "$LOCAL_IP" ]; then
             log_info "   copying file $2 remote node: $_common_index...  "
             scp "$2" "root@$_common_index:$2"
@@ -83,9 +79,8 @@ function remote_copy() {
 ## $3: resource
 ## $4: duration count
 function k8s_wait() {
-    for ((_common_index=0;_common_index<$4;_common_index++))
-    do
-        RES=`kubectl -n $1 rollout status $2 $3 -w=false 2>/dev/null|grep -E 'successfully|complete' || true`
+    for ((_common_index = 0; _common_index < $4; _common_index++)); do
+        RES=$(kubectl -n $1 rollout status $2 $3 -w=false 2>/dev/null | grep -E 'successfully|complete' || true)
         if [ -n "$RES" ]; then
             log_info "   resource $3 is ready!"
             return 0
@@ -102,10 +97,9 @@ function k8s_wait() {
 ## $2: resource
 ## $3: duration count
 function k8s_job_wait() {
-    for ((_common_index=0;_common_index<$3;_common_index++))
-    do
-        RES=`kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true`
-        if [ "$RES" = '1'  ]; then
+    for ((_common_index = 0; _common_index < $3; _common_index++)); do
+        RES=$(kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true)
+        if [ "$RES" = '1' ]; then
             log_info "   resource $2 is ready!"
             return 0
         fi
@@ -120,9 +114,8 @@ function k8s_job_wait() {
 ## $1: namespace
 ## $2: application name.
 function app_is_exist() {
-    APPS=`helm list -n $1 -a | sed -n '2,$p' | awk '{print $1}'`
-    for _common_index in ${APPS[*]}
-    do
+    APPS=$(helm list -n $1 -a | sed -n '2,$p' | awk '{print $1}')
+    for _common_index in ${APPS[*]}; do
         if [ "$_common_index" == "$2" ]; then
             echo true
             return

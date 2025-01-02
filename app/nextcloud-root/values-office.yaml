@@ -2,7 +2,7 @@ global:
   nameOverride: office
 
 defaultPodOptions: {}
-  
+
 controllers:
   draw:
     enabled: true
@@ -95,16 +95,16 @@ ingress:
     hosts:
       - host: draw.pan.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: office-draw
-            port: 8080
+          - path: /
+            pathType: Prefix
+            service:
+              name: office-draw
+              port: 8080
     tls:
-    - hosts:
-      - pan.example.com
-      - "*.pan.example.com"
-      secretName: nextcloud-tls   
+      - hosts:
+          - pan.example.com
+          - "*.pan.example.com"
+        secretName: nextcloud-tls
   documentserver:
     enabled: true
     annotations:
@@ -115,13 +115,13 @@ ingress:
     hosts:
       - host: doc.pan.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: office-documentserver	
-            port: 80
+          - path: /
+            pathType: Prefix
+            service:
+              name: office-documentserver
+              port: 80
     tls:
-    - hosts:
-      - pan.example.com
-      - "*.pan.example.com"
-      secretName: nextcloud-tls
+      - hosts:
+          - pan.example.com
+          - "*.pan.example.com"
+        secretName: nextcloud-tls

@@ -2,7 +2,7 @@ global:
   nameOverride: fivem
 
 defaultPodOptions: {}
-  
+
 controllers:
   main:
     enabled: true
@@ -52,15 +52,15 @@ ingress:
     hosts:
       - host: gta.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: fivem
-            port: 40120
+          - path: /
+            pathType: Prefix
+            service:
+              name: fivem
+              port: 40120
     tls:
-    - hosts:
-      - gta.example.com
-      secretName: gta.example.com-tls
+      - hosts:
+          - gta.example.com
+        secretName: gta.example.com-tls
 
 persistence:
   data:
@@ -72,16 +72,16 @@ persistence:
     retain: true
     globalMounts: []
     advancedMounts:
-      main:  # the controller with the "main"
+      main: # the controller with the "main"
         main:
-        - path: /config
-          readOnly: false
-          subPath: config
-        - path: /txData
-          readOnly: false
-          subPath: txData
-          
+          - path: /config
+            readOnly: false
+            subPath: config
+          - path: /txData
+            readOnly: false
+            subPath: txData
+
 secrets:
   cfx:
     stringData:
-      RCON_PASSWORD: 
+      RCON_PASSWORD:

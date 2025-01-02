@@ -10,15 +10,15 @@ metadata:
   name: delete-pod
   namespace: ldap
 rules:
-- apiGroups:
-  - "*"
-  resources:
-  - '*'
-  verbs:
-  - delete
-  - get
-  - list
-  - watch
+  - apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -30,9 +30,9 @@ roleRef:
   kind: Role
   name: delete-pod
 subjects:
-- kind: ServiceAccount
-  name: delete-pod
-  namespace: ldap
+  - kind: ServiceAccount
+    name: delete-pod
+    namespace: ldap
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -54,18 +54,18 @@ spec:
         spec:
           affinity: {}
           containers:
-          - args:
-            - /tmp/restart-ldap.sh
-            command:
-            - bash
-            image: jutze/kubectl:v1.0.1
-            imagePullPolicy: IfNotPresent
-            name: controller
-            volumeMounts:
-              - name: script
-                mountPath: /tmp
-            terminationMessagePath: /dev/termination-log
-            terminationMessagePolicy: File
+            - args:
+                - /tmp/restart-ldap.sh
+              command:
+                - bash
+              image: jutze/kubectl:v1.0.1
+              imagePullPolicy: IfNotPresent
+              name: controller
+              volumeMounts:
+                - name: script
+                  mountPath: /tmp
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
           dnsPolicy: ClusterFirst
           restartPolicy: Never
           schedulerName: default-scheduler

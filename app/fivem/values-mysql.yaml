@@ -1,4 +1,3 @@
-
 global:
   storageClass: sc-example
 
@@ -18,10 +17,9 @@ auth:
 
 primary:
   extraEnvVars:
-   - name: TZ
-     value: "Asia/Shanghai"
+    - name: TZ
+      value: "Asia/Shanghai"
 
   persistence:
     enabled: true
     size: 20Gi
-

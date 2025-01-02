@@ -2,7 +2,7 @@ global:
   nameOverride: emby
 
 defaultPodOptions: {}
-  
+
 controllers:
   main:
     enabled: true
@@ -61,15 +61,15 @@ ingress:
     hosts:
       - host: mov.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: emby
-            port: 8096
+          - path: /
+            pathType: Prefix
+            service:
+              name: emby
+              port: 8096
     tls:
-    - hosts:
-      - mov.example.com
-      secretName: mov.example.com-tls      
+      - hosts:
+          - mov.example.com
+        secretName: mov.example.com-tls
 
 persistence:
   config:
@@ -81,11 +81,10 @@ persistence:
     retain: true
     globalMounts: []
     advancedMounts:
-      main:  # the controller with the "main"
-        main:  # the container with the "main"
-        - path: /config
-          readOnly: false
-          
+      main: # the controller with the "main"
+        main: # the container with the "main"
+          - path: /config
+            readOnly: false
 #  media:
 #    enabled: true
 #    type: hostPath

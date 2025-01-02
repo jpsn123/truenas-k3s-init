@@ -28,9 +28,9 @@ controller:
       sendfile  on;
 
   allowSnippetAnnotations: true
-    
+
   proxySetHeaders: {}
-  
+
   addHeaders:
     Referrer-Policy: strict-origin-when-cross-origin
 
@@ -41,7 +41,7 @@ controller:
     type: LoadBalancer
     loadBalancerIP: 10.0.0.1
     externalTrafficPolicy: Local
-  
+
   kind: DaemonSet
   hostNetwork: false
   hostPort:
@@ -49,7 +49,7 @@ controller:
 defaultBackend:
   enabled: "true"
 tcp:
-#  53: "dns/dns:53"
+  #  53: "dns/dns:53"
   20000: "not-exist-ns/should-be-modified:20000"
 
 udp:

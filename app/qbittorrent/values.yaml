@@ -2,7 +2,7 @@ global:
   nameOverride: qbittorrent
 
 defaultPodOptions: {}
-  
+
 controllers:
   main:
     enabled: true
@@ -92,15 +92,15 @@ ingress:
     hosts:
       - host: qb.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: qbittorrent
-            port: 6780
+          - path: /
+            pathType: Prefix
+            service:
+              name: qbittorrent
+              port: 6780
     tls:
-    - hosts:
-      - qb.example.com
-      secretName: qb.example.com-tls
+      - hosts:
+          - qb.example.com
+        secretName: qb.example.com-tls
   pbh:
     enabled: true
     annotations:
@@ -111,15 +111,15 @@ ingress:
     hosts:
       - host: pbh.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: pbh
-            port: 9898
+          - path: /
+            pathType: Prefix
+            service:
+              name: pbh
+              port: 9898
     tls:
-    - hosts:
-      - qb.example.com
-      secretName: qb.example.com-tls      
+      - hosts:
+          - qb.example.com
+        secretName: qb.example.com-tls
 
 persistence:
   config:
@@ -131,10 +131,10 @@ persistence:
     retain: true
     globalMounts: []
     advancedMounts:
-      main:  # the controller with the "main"
-        main:  # the container with the "main"
-        - path: /config
-          readOnly: false
+      main: # the controller with the "main"
+        main: # the container with the "main"
+          - path: /config
+            readOnly: false
 
   pbh:
     enabled: true
@@ -147,8 +147,8 @@ persistence:
     advancedMounts:
       pbh:
         main:
-        - path: /app/data
-          readOnly: false
+          - path: /app/data
+            readOnly: false
 
   # downloads:
   #   enabled: true

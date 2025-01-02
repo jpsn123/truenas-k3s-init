@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-cd `dirname $0`
+cd $(dirname $0)
 source common.sh
 source parameter.sh
 
@@ -9,15 +9,16 @@ source parameter.sh
 #####################################
 log_head "install alidns-webhook for geting certificate automatically"
 UPDATE_TYPE='A'
-if $UPDATE_IPV4 && $UPDATE_IPV6 ; then
+if $UPDATE_IPV4 && $UPDATE_IPV6; then
   UPDATE_TYPE='A,AAAA'
-elif $UPDATE_IPV4 ; then
+elif $UPDATE_IPV4; then
   UPDATE_TYPE='A'
-elif $UPDATE_IPV6 ; then
+elif $UPDATE_IPV6; then
   UPDATE_TYPE='AAAA'
 fi
 kubectl create namespace ddns 2>/dev/null || true
-ALIDNS_SECRET_YAML=`cat<<EOF
+ALIDNS_SECRET_YAML=$(
+  cat <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
@@ -27,11 +28,12 @@ data:
   access-key: $(echo -n "$ALI_ACCESS_KEY" | base64)
   secret-key: $(echo -n "$ALI_SECRET_KEY" | base64)
 EOF
-`
-echo "$ALIDNS_SECRET_YAML">./temp/alidns-secret.yaml
+)
+echo "$ALIDNS_SECRET_YAML" >./temp/alidns-secret.yaml
 kubectl apply -f ./temp/alidns-secret.yaml
 
-DDNS_YAML=`cat<<EOF
+DDNS_YAML=$(
+  cat <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -85,6 +87,6 @@ spec:
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
 EOF
-`
-echo "$DDNS_YAML">./temp/alidns-deployment.yaml
+)
+echo "$DDNS_YAML" >./temp/alidns-deployment.yaml
 kubectl apply -f ./temp/alidns-deployment.yaml

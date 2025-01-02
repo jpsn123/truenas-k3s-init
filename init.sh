@@ -3,7 +3,7 @@
 ## This script should run after disable truenas Apps feature (k3s, default is disabled)
 
 set -e
-cd `dirname $0`
+cd $(dirname $0)
 source common.sh
 source parameter.sh
 
@@ -12,17 +12,17 @@ source parameter.sh
 log_head "Truenas init"
 [ -d temp ] || mkdir temp
 sed -i '/## PATCH/,$d' /etc/sysctl.conf
-echo -e "\n## PATCH" >> /etc/sysctl.conf
-echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-echo "fs.inotify.max_user_watches=1048576" >> /etc/sysctl.conf
-echo "fs.inotify.max_user_instances=8192" >> /etc/sysctl.conf
+echo -e "\n## PATCH" >>/etc/sysctl.conf
+echo "net.core.default_qdisc=fq" >>/etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" >>/etc/sysctl.conf
+echo "fs.inotify.max_user_watches=1048576" >>/etc/sysctl.conf
+echo "fs.inotify.max_user_instances=8192" >>/etc/sysctl.conf
 sysctl -p
 
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
 log_info "    making apt usable"
-zfs set readonly=off `zfs list | grep '/usr' | awk '{print $1}'`
+zfs set readonly=off $(zfs list | grep '/usr' | awk '{print $1}')
 rm /usr/local/bin/apt* /usr/local/bin/dpkg || true
 export PATH="/usr/bin:$PATH"
 chmod +x /usr/bin/*
@@ -45,40 +45,42 @@ service middlewared restart
 
 # configure docker
 log_info "     config docker."
-DOCKER_CONF=`cat /etc/docker/daemon.json | \
-  jq '."log-opts"."max-size" = "100m"' | \
-  jq '."log-opts"."max-file" = "3"' | \
-  jq '."max-concurrent-uploads" = 1' | \
-  jq '."features"."push_with_retries" = true' `
-echo -n "$DOCKER_CONF">/etc/docker/daemon.json
+DOCKER_CONF=$(cat /etc/docker/daemon.json |
+  jq '."log-opts"."max-size" = "100m"' |
+  jq '."log-opts"."max-file" = "3"' |
+  jq '."max-concurrent-uploads" = 1' |
+  jq '."features"."push_with_retries" = true')
+echo -n "$DOCKER_CONF" >/etc/docker/daemon.json
 systemctl restart docker || true
 
 # some patch on profile
 log_info "    some patch on profile"
 sed -i '/##PROFILE_PATCH/d' $HOME/.profile
-PROFILE_PATCH=`cat<<EOF
+PROFILE_PATCH=$(
+  cat <<EOF
 ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##PROFILE_PATCH
 chmod +x /usr/bin/* ##PROFILE_PATCH
 EOF
-`
-echo "$PROFILE_PATCH" >> $HOME/.profile
+)
+echo "$PROFILE_PATCH" >>$HOME/.profile
 
 # install fail2ban
 log_info "    install fail2ban and configure"
-ipset help &>/dev/null || apt install ipset ipvsadm  -y
+ipset help &>/dev/null || apt install ipset ipvsadm -y
 fail2ban-client status &>/dev/null || apt install fail2ban -y
 systemctl stop fail2ban.service
 sed -i "s/banaction = iptables.*/banaction = iptables-ipset-proto6/" /etc/fail2ban/jail.conf
 sed -i "s/banaction_allports = iptables.*/banaction_allports = iptables-ipset-proto6-allports/" /etc/fail2ban/jail.conf
-SSHD_BAN_CONF=`cat<<EOF
+SSHD_BAN_CONF=$(
+  cat <<EOF
 [sshd]
 bantime  = 365d
 findtime  = 1h
 maxretry = 3
 EOF
-`
+)
 mkdir -p /etc/fail2ban/jail.d || true
-echo "$SSHD_BAN_CONF">/etc/fail2ban/jail.d/sshd.conf
+echo "$SSHD_BAN_CONF" >/etc/fail2ban/jail.d/sshd.conf
 log_info ""
 systemctl restart fail2ban.service
 
@@ -87,7 +89,8 @@ systemctl restart fail2ban.service
 log_head "install k3s"
 # init k3s config
 log_info "    init k3s config."
-K3S_CONF=`cat<<EOF
+K3S_CONF=$(
+  cat <<EOF
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
@@ -117,19 +120,28 @@ kube-proxy-arg:
 - proxy-mode=ipvs
 # - feature-gates=''
 EOF
-`
+)
 mkdir -p /etc/rancher/k3s/
-echo "$K3S_CONF" > /etc/rancher/k3s/config.yaml
+echo "$K3S_CONF" >/etc/rancher/k3s/config.yaml
 
 # enable k3s service
 log_info "    enable k3s service"
-RES=`k3s -v 2>/dev/null | grep $K3S_VERSION || true`
+RES=$(k3s -v 2>/dev/null | grep $K3S_VERSION || true)
 if [ -z "$RES" ]; then
   if [ $OFFLINE_INSTALL == true ]; then
     log_info "Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images"
-    [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io > k3s/install.sh || (echo -e "\033[31m error: k3s/install.sh file not found! \033[0m" ; false)
-    [ -e k3s/k3s ] || (echo -e "\033[31m      error: k3s/k3s file not found! \033[0m" ; false)
-    [ -e k3s/k3s-airgap-images*.tar* ] || (echo -e "\033[31m      error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m" ; false)
+    [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io >k3s/install.sh || (
+      echo -e "\033[31m error: k3s/install.sh file not found! \033[0m"
+      false
+    )
+    [ -e k3s/k3s ] || (
+      echo -e "\033[31m      error: k3s/k3s file not found! \033[0m"
+      false
+    )
+    [ -e k3s/k3s-airgap-images*.tar* ] || (
+      echo -e "\033[31m      error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m"
+      false
+    )
     mkdir -p $DATA_DIR/agent/images/
     cp -f k3s/k3s /usr/local/bin/
     chmod +x /usr/local/bin/k3s
@@ -148,14 +160,15 @@ chmod 700 ./temp/get_helm.sh
 
 # auto refresh k3s certificate and cleanup
 log_info "    making k3s certification auto refresh"
-echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s">/etc/cron.d/renew_k3s_cert
-echo "0 2 1 1 * root crictl rmi --prune">/etc/cron.d/cleanup
+echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s" >/etc/cron.d/renew_k3s_cert
+echo "0 2 1 1 * root crictl rmi --prune" >/etc/cron.d/cleanup
 
 ## install zfs csi
 log_info "    install local-zfs csi"
 kubectl apply -f zfs-operator.yaml
 zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
-ZFS_SC=`cat<<EOF
+ZFS_SC=$(
+  cat <<EOF
 allowVolumeExpansion: true
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -171,14 +184,14 @@ provisioner: zfs.csi.openebs.io
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 EOF
-`
-echo "$ZFS_SC">./temp/local-zfs-sc.yaml
+)
+echo "$ZFS_SC" >./temp/local-zfs-sc.yaml
 kubectl apply -f ./temp/local-zfs-sc.yaml
 
 ## install device plugin for intel gpu
-RES=`lspci | grep VGA | grep Intel`
+RES=$(lspci | grep VGA | grep Intel)
 if [ -n "$RES" ]; then
-  RES=`kubectl get node -oyaml | grep gpu.intel.com/i915`
+  RES=$(kubectl get node -oyaml | grep gpu.intel.com/i915)
   if [ -z "$RES" ]; then
     kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=main'
     kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=main'
@@ -190,8 +203,8 @@ fi
 #####################################
 # bash_completion
 if [ ! -f /etc/profile.d/bash_completion.sh ]; then
-    log_info "    making /etc/profile.d/bash_completion.sh"
-    cat<<"EOF" > /etc/profile.d/bash_completion.sh
+  log_info "    making /etc/profile.d/bash_completion.sh"
+  cat <<"EOF" >/etc/profile.d/bash_completion.sh
 # shellcheck shell=sh disable=SC1091,SC2039,SC2166
 # Check for interactive bash and that we haven't already been sourced.
 if [ "x${BASH_VERSION-}" != x -a "x${PS1-}" != x -a "x${BASH_COMPLETION_VERSINFO-}" = x ]; then
@@ -213,7 +226,7 @@ fi
 
 # bashrc
 log_info "    making bashrc, you need configurate your shell to 'bash' by TrueNAS UI."
-cat<<"EOF" > /root/.bashrc
+cat <<"EOF" >/root/.bashrc
 # ~/.bashrc: executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
@@ -332,7 +345,8 @@ EOF
 # command auto completion
 log_info "    making commands auto completion"
 sed -i '/##K3S_PATCH/d' $HOME/.profile
-K3S_PATCH=`cat<<EOF
+K3S_PATCH=$(
+  cat <<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K3S_PATCH
 alias kk='kubectl get pod -A -o wide' ##K3S_PATCH
 alias kp='kubectl get pod -A -o wide' ##K3S_PATCH
@@ -340,20 +354,20 @@ alias kn='kubectl get node -o wide' ##K3S_PATCH
 alias ks='kubectl get svc -A -o wide' ##K3S_PATCH
 alias ki='kubectl get ingress -A -o wide' ##K3S_PATCH
 EOF
-`
-echo "$K3S_PATCH" >> $HOME/.profile
+)
+echo "$K3S_PATCH" >>$HOME/.profile
 
 mkdir -p $HOME/.config/
 [ ! -f $HOME/.config/bash_completion ] && touch $HOME/.config/bash_completion
 sed -i '/##K3S_PATCH/d' $HOME/.config/bash_completion
 
-kubectl completion bash > $HOME/.config/completion_k3s
-helm completion bash > $HOME/.config/completion_helm
-crictl completion bash > $HOME/.config/completion_crictl
+kubectl completion bash >$HOME/.config/completion_k3s
+helm completion bash >$HOME/.config/completion_helm
+crictl completion bash >$HOME/.config/completion_crictl
 
-echo "source $HOME/.config/completion_k3s ##K3S_PATCH" >> $HOME/.config/bash_completion
-echo "source $HOME/.config/completion_helm ##K3S_PATCH" >> $HOME/.config/bash_completion
-echo "source $HOME/.config/completion_crictl ##K3S_PATCH" >> $HOME/.config/bash_completion
+echo "source $HOME/.config/completion_k3s ##K3S_PATCH" >>$HOME/.config/bash_completion
+echo "source $HOME/.config/completion_helm ##K3S_PATCH" >>$HOME/.config/bash_completion
+echo "source $HOME/.config/completion_crictl ##K3S_PATCH" >>$HOME/.config/bash_completion
 
 ## done
 #####################################

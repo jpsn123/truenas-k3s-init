@@ -15,7 +15,7 @@ image:
   tag: 2.6.8
 
 initSchema:
-  image: 
+  image:
     repository: debian
     tag: latest
     pullPolicy: Always
@@ -24,16 +24,16 @@ initSchema:
 service:
   enableLdapPort: true
   enableSslLdapPort: true
-  loadBalancerIP: 
+  loadBalancerIP:
   type: LoadBalancer
 
 env:
- BITNAMI_DEBUG: "false"
- LDAP_LOGLEVEL: "256"
- LDAP_TLS_ENFORCE: "false"
- LDAPTLS_REQCERT: "never"
- LDAP_ENABLE_TLS: "yes"
- 
+  BITNAMI_DEBUG: "false"
+  LDAP_LOGLEVEL: "256"
+  LDAP_TLS_ENFORCE: "false"
+  LDAPTLS_REQCERT: "never"
+  LDAP_ENABLE_TLS: "yes"
+
 # Custom openldap schema files used to be used in addition to default schemas
 # Note that the supplied files are sorted by name and inserted into 'LDAP_EXTRA_SCHEMAS' env var
 # after chart default schemas, allowing you to control the loading sequence.
@@ -48,7 +48,7 @@ customSchemaFiles:
     olcObjectClasses: {0}( 1.3.6.1.4.1.5322.17.1.1 NAME 'authorizedServiceObject' DESC 'Auxiliary object class for adding authorizedService attribute' SUP top AUXILIARY MAY authorizedService )
     olcObjectClasses: {1}( 1.3.6.1.4.1.5322.17.1.2 NAME 'hostObject' DESC 'Auxiliary object class for adding host attribute' SUP top AUXILIARY MAY host )
     olcObjectClasses: {2}( 1.3.6.1.4.1.5322.17.1.3 NAME 'loginStatusObject' DESC 'Auxiliary object class for login status attribute' SUP top AUXILIARY MAY loginStatus )
-    
+
   02-load-module.ldif: |-
     # Load memberof module
     dn: cn=module,cn=config
@@ -99,11 +99,11 @@ customLdifFiles:
     objectClass: dcObject
     objectClass: organization
     o: example.com
-    
+
     dn: ou=groups,dc=example,dc=com
     objectclass: organizationalUnit
     ou: groups
-    
+
     dn: ou=users,dc=example,dc=com
     objectclass: organizationalUnit
     ou: users
@@ -114,14 +114,14 @@ customLdifFiles:
     objectclass: simpleSecurityObject
     objectclass: organizationalRole
     userPassword: admin
-    
+
     dn: cn=readonly,dc=example,dc=com
     cn: readonly
     description: LDAP readonly
     objectclass: simpleSecurityObject
     objectclass: organizationalRole
     userPassword: admin
-    
+
     dn: cn=Everyone,ou=groups,dc=example,dc=com
     cn: Everyone
     description: default
@@ -133,7 +133,7 @@ customLdifFiles:
     objectClass: top
     objectClass: organizationalUnit
     ou: policies
-    
+
     dn: cn=default,ou=policies,dc=example,dc=com
     cn: default
     objectClass: top

@@ -2,7 +2,7 @@ global:
   nameOverride: handbrake
 
 defaultPodOptions: {}
-  
+
 controllers:
   main:
     enabled: true
@@ -48,9 +48,9 @@ controllers:
             enabled: false
         resources:
           limits:
-            cpu: '6'
+            cpu: "6"
           requests:
-            cpu: '100m'
+            cpu: "100m"
 
 service:
   main:
@@ -74,15 +74,15 @@ ingress:
     hosts:
       - host: hb.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: handbrake
-            port: 5800
+          - path: /
+            pathType: Prefix
+            service:
+              name: handbrake
+              port: 5800
     tls:
-    - hosts:
-      - hb.example.com
-      secretName: hb.example.com-tls      
+      - hosts:
+          - hb.example.com
+        secretName: hb.example.com-tls
 
 persistence:
   config:
@@ -94,10 +94,10 @@ persistence:
     retain: true
     globalMounts: []
     advancedMounts:
-      main:  # the controller with the "main"
-        main:  # the container with the "main"
-        - path: /config
-          readOnly: false
+      main: # the controller with the "main"
+        main: # the container with the "main"
+          - path: /config
+            readOnly: false
 
   # media:
   #   enabled: true

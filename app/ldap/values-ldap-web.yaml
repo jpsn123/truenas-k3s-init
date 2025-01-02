@@ -2,7 +2,7 @@ global:
   nameOverride: ldap-web
 
 defaultPodOptions: {}
-  
+
 controllers:
   lam:
     enabled: true
@@ -37,13 +37,13 @@ controllers:
               secretKeyRef:
                 name: ldap-ltb-passwd
                 key: LDAP_ADMIN_PASSWORD
-          LAM_CONFIGURATION_DATABASE: 'files'
-          LAM_CONFIGURATION_HOST: ''
-          LAM_CONFIGURATION_PORT: ''
-          LAM_CONFIGURATION_USER: ''
-          LAM_CONFIGURATION_PASSWORD: ''
-          LAM_CONFIGURATION_DATABASE_NAME: ''
-          LAM_LICENSE: ''
+          LAM_CONFIGURATION_DATABASE: "files"
+          LAM_CONFIGURATION_HOST: ""
+          LAM_CONFIGURATION_PORT: ""
+          LAM_CONFIGURATION_USER: ""
+          LAM_CONFIGURATION_PASSWORD: ""
+          LAM_CONFIGURATION_DATABASE_NAME: ""
+          LAM_LICENSE: ""
   ssp:
     enabled: true
     type: deployment
@@ -95,15 +95,15 @@ ingress:
     hosts:
       - host: lam.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: ldap-web-lam
-            port: 80
+          - path: /
+            pathType: Prefix
+            service:
+              name: ldap-web-lam
+              port: 80
     tls:
-    - hosts:
-      - lam.example.com
-      secretName: lam.example.com-tls
+      - hosts:
+          - lam.example.com
+        secretName: lam.example.com-tls
   ssp:
     enabled: true
     annotations:
@@ -114,15 +114,15 @@ ingress:
     hosts:
       - host: ssp.example.com
         paths:
-        - path: /
-          pathType: Prefix
-          service:
-            name: ldap-web-ssp
-            port: 80
+          - path: /
+            pathType: Prefix
+            service:
+              name: ldap-web-ssp
+              port: 80
     tls:
-    - hosts:
-      - ssp.example.com
-      secretName: ssp.example.com-tls
+      - hosts:
+          - ssp.example.com
+        secretName: ssp.example.com-tls
 
 persistence:
   scripts:
@@ -146,14 +146,14 @@ persistence:
     advancedMounts:
       lam:
         main:
-        - path: /etc/ldap-account-manager
-          readOnly: false
-          subPath: etc
-        - path: /var/lib/ldap-account-manager
-          readOnly: false
-          subPath: var
+          - path: /etc/ldap-account-manager
+            readOnly: false
+            subPath: etc
+          - path: /var/lib/ldap-account-manager
+            readOnly: false
+            subPath: var
         copy-config:
-        - path: /data
+          - path: /data
   ssp-config:
     enabled: true
     type: secret
@@ -174,7 +174,7 @@ persistence:
         main:
           - path: /www/ssp/conf/images/
             readOnly: true
-          
+
 configMaps:
   scripts:
     data:
