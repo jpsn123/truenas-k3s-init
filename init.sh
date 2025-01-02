@@ -9,7 +9,7 @@ source parameter.sh
 
 # init
 #####################################
-log_head "Truenas init"
+log_header "Truenas init"
 [ -d temp ] || mkdir temp
 sed -i '/## PATCH/,$d' /etc/sysctl.conf
 echo -e "\n## PATCH" >>/etc/sysctl.conf
@@ -86,7 +86,7 @@ systemctl restart fail2ban.service
 
 ## install k3s
 #####################################
-log_head "install k3s"
+log_header "install k3s"
 # init k3s config
 log_info "    init k3s config."
 K3S_CONF=$(

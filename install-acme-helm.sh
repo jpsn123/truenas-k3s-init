@@ -7,7 +7,7 @@ source parameter.sh
 
 # install alidns-webhook for geting certificate automatically
 #####################################
-log_head "install alidns-webhook for geting certificate automatically"
+log_header "install alidns-webhook for geting certificate automatically"
 helm repo add cert-manager-alidns-webhook https://devmachine-fr.github.io/cert-manager-alidns-webhook
 [ -d temp/alidns-webhook ] || helm pull cert-manager-alidns-webhook/alidns-webhook --untar --untardir temp 2>/dev/null || true
 METHOD=install

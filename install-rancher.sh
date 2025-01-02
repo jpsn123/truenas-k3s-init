@@ -7,7 +7,7 @@ source parameter.sh
 
 # install rancher
 #####################################
-log_head "install rancher"
+log_header "install rancher"
 sed -i "s/example.com/${DOMAIN}/g" values-rancher.yaml
 
 kubectl create namespace cattle-system 2>/dev/null || true
