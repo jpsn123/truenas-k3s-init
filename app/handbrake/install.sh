@@ -15,9 +15,9 @@ VNC_PW=$REPLY
 #####################################
 log_info "initial"
 [ -d temp ] || mkdir temp
-k3s kubectl create namespace $NS 2>/dev/null
-k3s kubectl -n $NS delete secret password 2>/dev/null
-k3s kubectl -n $NS create secret generic password \
+kubectl create namespace $NS 2>/dev/null
+kubectl -n $NS delete secret password 2>/dev/null
+kubectl -n $NS create secret generic password \
     --from-literal=vnc-password=$VNC_PW
 sed -i "s/example.com/${DOMAIN}/g" values.yaml
 sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values.yaml

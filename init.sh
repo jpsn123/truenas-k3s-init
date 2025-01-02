@@ -173,7 +173,7 @@ volumeBindingMode: Immediate
 EOF
 `
 echo "$ZFS_SC">./temp/local-zfs-sc.yaml
-k3s kubectl apply -f ./temp/local-zfs-sc.yaml
+kubectl apply -f ./temp/local-zfs-sc.yaml
 
 ## install device plugin for intel gpu
 RES=`lspci | grep VGA | grep Intel`
@@ -334,8 +334,11 @@ log_info "    making commands auto completion"
 sed -i '/##K3S_PATCH/d' $HOME/.profile
 K3S_PATCH=`cat<<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K3S_PATCH
-alias kubectl='k3s kubectl' ##K3S_PATCH
-alias k='k3s kubectl' ##K3S_PATCH
+alias kk='kubectl get pod -A -o wide' ##K3S_PATCH
+alias kp='kubectl get pod -A -o wide' ##K3S_PATCH
+alias kn='kubectl get node -o wide' ##K3S_PATCH
+alias ks='kubectl get svc -A -o wide' ##K3S_PATCH
+alias ki='kubectl get ingress -A -o wide' ##K3S_PATCH
 EOF
 `
 echo "$K3S_PATCH" >> $HOME/.profile
@@ -344,13 +347,12 @@ mkdir -p $HOME/.config/
 [ ! -f $HOME/.config/bash_completion ] && touch $HOME/.config/bash_completion
 sed -i '/##K3S_PATCH/d' $HOME/.config/bash_completion
 
-k3s kubectl completion bash > $HOME/.config/completion_k3s
-echo "source $HOME/.config/completion_k3s ##K3S_PATCH" >> $HOME/.config/bash_completion
-
+kubectl completion bash > $HOME/.config/completion_k3s
 helm completion bash > $HOME/.config/completion_helm
-echo "source $HOME/.config/completion_helm ##K3S_PATCH" >> $HOME/.config/bash_completion
-
 crictl completion bash > $HOME/.config/completion_crictl
+
+echo "source $HOME/.config/completion_k3s ##K3S_PATCH" >> $HOME/.config/bash_completion
+echo "source $HOME/.config/completion_helm ##K3S_PATCH" >> $HOME/.config/bash_completion
 echo "source $HOME/.config/completion_crictl ##K3S_PATCH" >> $HOME/.config/bash_completion
 
 ## done

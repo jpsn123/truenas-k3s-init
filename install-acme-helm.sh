@@ -26,7 +26,7 @@ data:
 EOF
 `
 echo "$ALIDNS_SECRET_YAML">./temp/alidns-secret.yaml
-k3s kubectl apply -f ./temp/alidns-secret.yaml
+kubectl apply -f ./temp/alidns-secret.yaml
 ALIDNS_ISSUE_YAML=`cat<<EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -89,5 +89,5 @@ spec:
 EOF
 `
 echo "$ALIDNS_ISSUE_YAML">./temp/alidns-test-issuer.yaml
-k3s kubectl apply -f ./temp/alidns-issuer.yaml
-k3s kubectl apply -f ./temp/alidns-test-issuer.yaml
+kubectl apply -f ./temp/alidns-issuer.yaml
+kubectl apply -f ./temp/alidns-test-issuer.yaml

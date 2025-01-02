@@ -11,7 +11,7 @@ APP_NAME=emby
 #####################################
 log_info "initial"
 [ -d temp ] || mkdir temp
-k3s kubectl create namespace $NS 2>/dev/null
+kubectl create namespace $NS 2>/dev/null
 sed -i "s/example.com/${DOMAIN}/g" values-emby.yaml
 sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values-emby.yaml
 

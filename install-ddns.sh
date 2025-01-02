@@ -16,7 +16,7 @@ elif $UPDATE_IPV4 ; then
 elif $UPDATE_IPV6 ; then
   UPDATE_TYPE='AAAA'
 fi
-k3s kubectl create namespace ddns 2>/dev/null || true
+kubectl create namespace ddns 2>/dev/null || true
 ALIDNS_SECRET_YAML=`cat<<EOF
 apiVersion: v1
 kind: Secret
@@ -29,7 +29,7 @@ data:
 EOF
 `
 echo "$ALIDNS_SECRET_YAML">./temp/alidns-secret.yaml
-k3s kubectl apply -f ./temp/alidns-secret.yaml
+kubectl apply -f ./temp/alidns-secret.yaml
 
 DDNS_YAML=`cat<<EOF
 apiVersion: apps/v1
@@ -87,4 +87,4 @@ spec:
 EOF
 `
 echo "$DDNS_YAML">./temp/alidns-deployment.yaml
-k3s kubectl apply -f ./temp/alidns-deployment.yaml
+kubectl apply -f ./temp/alidns-deployment.yaml

@@ -10,7 +10,7 @@ source parameter.sh
 log_head "install cert-manager"
 helm repo add jetstack "https://charts.jetstack.io"
 [ -d temp/cert-manager ] || helm pull jetstack/cert-manager --untar --untardir temp 2>/dev/null || true
-k3s kubectl create namespace cert-manager 2>/dev/null || true
+kubectl create namespace cert-manager 2>/dev/null || true
 METHOD=install
 [ `app_is_exist cert-manager cert-manager` == true ] && METHOD=upgrade
 helm $METHOD --namespace cert-manager cert-manager temp/cert-manager \

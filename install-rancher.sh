@@ -10,7 +10,7 @@ source parameter.sh
 log_head "install rancher"
 sed -i "s/example.com/${DOMAIN}/g" values-rancher.yaml
 
-k3s kubectl create namespace cattle-system 2>/dev/null || true
+kubectl create namespace cattle-system 2>/dev/null || true
 helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
 [ -d temp/rancher ] || helm pull rancher-stable/rancher --untar --untardir temp 2>/dev/null || true
 METHOD=install

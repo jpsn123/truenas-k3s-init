@@ -30,25 +30,25 @@ function log_reminder() {
 ## $3: execute command on main master? default is true.
 function run_command() {
     HOST_ARRAY=$1
-    for i in ${HOST_ARRAY[*]}
+    for _common_index in ${HOST_ARRAY[*]}
     do
-        RES=`ip addr | grep $i 2>/dev/null`
+        RES=`ip addr | grep $_common_index 2>/dev/null || true`
         if [ -n "$RES" ]; then
-            LOCAL_IP=$i
+            LOCAL_IP=$_common_index
             break
         fi
     done
-    for i in ${HOST_ARRAY[*]}
+    for _common_index in ${HOST_ARRAY[*]}
     do
-        if [ "$i" == "$LOCAL_IP" ]; then
+        if [ "$_common_index" == "$LOCAL_IP" ]; then
             if [ "$3" != false ]; then
-                echo -e "\033[32m   running command \033[34m \" $2 \" \033[32m, at local...  \033[0m"
+                log_info "   running command \"$2\" at local...  "
                 echo "$2"|sh
                 echo -e "\n"
             fi
         else
-            echo -e "\033[32m   running command \033[34m \" $2 \" \033[32m, at remote node:\033[35m $i...  \033[0m"
-            ssh root@$i "$2"
+            log_info "   running command \" $2 \" at remote node: $_common_index...  "
+            ssh root@$_common_index "$2"
             echo -e "\n"
         fi
     done
@@ -59,19 +59,19 @@ function run_command() {
 ## $2: the file
 function remote_copy() {
     HOST_ARRAY=$1
-    for i in ${HOST_ARRAY[*]}
+    for _common_index in ${HOST_ARRAY[*]}
     do
-        RES=`ip addr | grep $i 2>/dev/null`
+        RES=`ip addr | grep $_common_index 2>/dev/null || true`
         if [ -n "$RES" ]; then
-            LOCAL_IP=$i
+            LOCAL_IP=$_common_index
             break
         fi
     done
-    for i in ${HOST_ARRAY[*]}
+    for _common_index in ${HOST_ARRAY[*]}
     do
-        if [ "$i" != "$LOCAL_IP" ]; then
-            echo -e "\033[32m   copying file \033[34m $2 \033[32m to remote node:\033[35m $i...  \033[0m"
-            scp "$2" "root@$i:$2"
+        if [ "$_common_index" != "$LOCAL_IP" ]; then
+            log_info "   copying file $2 remote node: $_common_index...  "
+            scp "$2" "root@$_common_index:$2"
             echo -e "\n"
         fi
     done
@@ -83,17 +83,17 @@ function remote_copy() {
 ## $3: resource
 ## $4: duration count
 function k8s_wait() {
-    for ((i=0;i<$4;i++))
+    for ((_common_index=0;_common_index<$4;_common_index++))
     do
-        RES=`k3s kubectl -n $1 rollout status $2 $3 -w=false 2>/dev/null|grep -E 'successfully|complete' || true`
+        RES=`kubectl -n $1 rollout status $2 $3 -w=false 2>/dev/null|grep -E 'successfully|complete' || true`
         if [ -n "$RES" ]; then
-            echo -e "\033[34m   resource $3 is ready!  \033[0m"
+            log_info "   resource $3 is ready!"
             return 0
         fi
-        echo -e "\033[33m   waiting $3 be ready...  \033[0m"
+        log_warn "   waiting $3 be ready...  "
         sleep 5
     done
-    echo -e "\033[31m   ERROR: resource $3 isn't ready!  \033[0m"
+    log_error "   ERROR: resource $3 isn't ready!"
     return -1
 }
 
@@ -102,17 +102,17 @@ function k8s_wait() {
 ## $2: resource
 ## $3: duration count
 function k8s_job_wait() {
-    for ((i=0;i<$3;i++))
+    for ((_common_index=0;_common_index<$3;_common_index++))
     do
-        RES=`k3s kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true`
-        if [ "$RES" == '1'  ]; then
-            echo -e "\033[34m   resource $2 is ready!  \033[0m"
+        RES=`kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true`
+        if [ "$RES" = '1'  ]; then
+            log_info "   resource $2 is ready!"
             return 0
         fi
-        echo -e "\033[33m   waiting $2 be ready...  \033[0m"
+        log_warn "   waiting $2 be ready...  "
         sleep 5
     done
-    echo -e "\033[31m   ERROR: resource $2 isn't ready!  \033[0m"
+    log_error "   ERROR: resource $2 isn't ready!"
     return -1
 }
 
@@ -121,9 +121,9 @@ function k8s_job_wait() {
 ## $2: application name.
 function app_is_exist() {
     APPS=`helm list -n $1 -a | sed -n '2,$p' | awk '{print $1}'`
-    for i in ${APPS[*]}
+    for _common_index in ${APPS[*]}
     do
-        if [ "$i" == "$2" ]; then
+        if [ "$_common_index" == "$2" ]; then
             echo true
             return
         fi
