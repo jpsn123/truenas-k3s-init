@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## kube-system
-K3S_VERSION='v1.29'
+K3S_VERSION='v1.31'
 OFFLINE_INSTALL=false
 CLUSTER_CIDR='172.30.0.0/16'
 SERVICE_CIDR='172.31.0.0/16'

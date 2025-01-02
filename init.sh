@@ -23,7 +23,7 @@ sysctl -p
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
 log_info "    making apt usable"
 zfs set readonly=off $(zfs list | grep '/usr' | awk '{print $1}')
-rm /usr/local/bin/apt* /usr/local/bin/dpkg || true
+rm /usr/local/bin/apt* /usr/local/bin/dpkg 2>/dev/null || true
 export PATH="/usr/bin:$PATH"
 chmod +x /usr/bin/*
 wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
