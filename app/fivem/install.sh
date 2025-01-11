@@ -24,9 +24,7 @@ sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values-fivem.yaml
 log_info "install $APP_NAME"
 helm repo add bitnami https://charts.bitnami.com/bitnami
 [ -d temp/mysql ] || helm pull bitnami/mysql --untar --untardir temp --version=$COMMON_CHART_VERSION
-METHOD=install
-[ $(app_is_exist $NS mysql) == true ] && METHOD=upgrade
-helm $METHOD -n $NS mysql temp/mysql -f values-mysql.yaml \
+helm upgrade --install -n $NS mysql temp/mysql -f values-mysql.yaml \
     --set auth.rootPassword=$DB_PW \
     --set auth.password=$DB_PW \
     --set auth.replicationPassword=$DB_PW
@@ -36,9 +34,7 @@ helm $METHOD -n $NS mysql temp/mysql -f values-mysql.yaml \
 log_info "install $APP_NAME"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
-METHOD=install
-[ $(app_is_exist $NS $APP_NAME) == true ] && METHOD=upgrade
-helm $METHOD -n $NS $APP_NAME temp/app-template -f values-fivem.yaml
+helm upgrade --install -n $NS $APP_NAME temp/app-template -f values-fivem.yaml
 k8s_wait $NS deployment $APP_NAME 100
 
 ## done

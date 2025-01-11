@@ -46,9 +46,7 @@ done
 # install ldap
 #####################################
 log_info "install $APP_NAME"
-METHOD=install
-[ $(app_is_exist $NS ldap) == true ] && METHOD=upgrade
-helm $METHOD -n $NS ldap openldap-ha-chart -f values-ldap.yaml
+helm upgrade --install -n $NS ldap openldap-ha-chart -f values-ldap.yaml
 k8s_wait $NS statefulset ldap 60
 
 # cronjob for refresh certs
@@ -61,9 +59,7 @@ kubectl apply -n $NS -f refresh-cert.yaml
 log_info "install ldap-web"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
-METHOD=install
-[ $(app_is_exist $NS ldap-web) == true ] && METHOD=upgrade
-helm $METHOD -n $NS ldap-web temp/app-template -f values-ldap-web.yaml
+helm upgrade --install -n $NS ldap-web temp/app-template -f values-ldap-web.yaml
 
 ## done
 log_trace "init success!!!"

@@ -10,9 +10,7 @@ source parameter.sh
 log_header "install metalLB"
 helm repo add metallb https://metallb.github.io/metallb
 [ -d temp/metallb ] || helm pull metallb/metallb --untar --untardir temp 2>/dev/null || true
-METHOD=install
-[ $(app_is_exist kube-system metallb) == true ] && METHOD=upgrade
-helm $METHOD metallb temp/metallb -n kube-system #--set loadBalancerClass="metallb-lbc"
+helm upgrade --install metallb temp/metallb -n kube-system #--set loadBalancerClass="metallb-lbc"
 
 k8s_wait kube-system deployment metallb-controller 100
 

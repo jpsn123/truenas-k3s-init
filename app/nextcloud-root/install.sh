@@ -32,9 +32,7 @@ kubectl -n $NS apply -f configs.yaml
 log_info "install $APP_NAME"
 helm repo add bitnami https://charts.bitnami.com/bitnami
 [ -d temp/nextcloud ] || (git clone https://github.com/nextcloud/helm.git ./temp && mv -f ./temp/charts/nextcloud ./temp && helm dependency build ./temp/nextcloud)
-METHOD=install
-[ $(app_is_exist $NS nextcloud) == true ] && METHOD=upgrade
-helm $METHOD -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
+helm upgrade --install -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
     --set mariadb.auth.rootPassword=$DB_PW \
     --set mariadb.auth.password=$DB_PW \
     --set redis.auth.password=$REDIS_PW
@@ -44,9 +42,7 @@ helm $METHOD -n $NS nextcloud temp/nextcloud -f values-nextcloud.yaml \
 log_info "install office plugin"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION
-METHOD=install
-[ $(app_is_exist $NS office) == true ] && METHOD=upgrade
-helm $METHOD -n $NS office temp/app-template -f values-office.yaml
+helm upgrade --install -n $NS office temp/app-template -f values-office.yaml
 k8s_wait $NS deployment office-documentserver 100
 k8s_wait $NS deployment office-draw 100
 
