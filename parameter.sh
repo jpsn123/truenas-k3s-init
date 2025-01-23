@@ -13,7 +13,7 @@ LB_IP_RANGE='192.168.100.80-192.168.100.99' ## loadbalancer ip range should be s
 INGRESS_IP='192.168.100.80'                 ## you need set your local network dns server to resolve *.your-domain.com to your-ingress-ip
 ZFS_DATASET_FOR_STORAGE="fast/k8s"
 COMMON_CHART_VERSION="3.2.1"
-STORAGE_CLASS_NAME="fast"
+DEFAULT_STORAGE_CLASS="fast"
 
 ## rancher server
 SUB_DOMAIN='srv' ## rancher servicer sub-domain, you can access https://srv.your-domain.com to manage your k8s

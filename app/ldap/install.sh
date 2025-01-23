@@ -20,8 +20,8 @@ kubectl create -n $NS configmap ssp-images \
 sed -i "s/example.com/${DOMAIN}/g" values-ldap.yaml
 sed -i "s/example.com/${DOMAIN}/g" values-ldap-web.yaml
 # replace sc
-sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values-ldap.yaml
-sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values-ldap-web.yaml
+sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values-ldap.yaml
+sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values-ldap-web.yaml
 # replace dc=example,dc=com
 IFS='.' && DOMAIN_ARR=($DOMAIN) && unset IFS
 LDAP_BASE="dc=${DOMAIN_ARR[0]},dc=${DOMAIN_ARR[1]}"

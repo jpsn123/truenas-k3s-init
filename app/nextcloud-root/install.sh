@@ -23,7 +23,7 @@ kubectl -n $NS create secret generic nextcloud \
     --from-literal=nextcloud-password=$NEXTCLOUD_PW
 sed -i "s/example.com/${DOMAIN}/g" values-nextcloud.yaml
 sed -i "s/example.com/${DOMAIN}/g" values-office.yaml
-sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values-nextcloud.yaml
+sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values-nextcloud.yaml
 kubectl -n $NS delete -f configs.yaml || true
 kubectl -n $NS apply -f configs.yaml
 

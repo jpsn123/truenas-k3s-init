@@ -12,7 +12,7 @@ log_info "initial"
 [ -d temp ] || mkdir temp
 kubectl create namespace $NS 2>/dev/null
 sed -i "s/example.com/${DOMAIN}/g" values.yaml
-sed -i "s/sc-example/${STORAGE_CLASS_NAME}/g" values.yaml
+sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values.yaml
 log_reminder "please input password for minio."
 read -p "password:"
 

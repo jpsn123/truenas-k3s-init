@@ -1,4 +1,4 @@
-FROM nextcloud:29.0.3-fpm
+FROM nextcloud:30.0.5-fpm
 
 RUN set -ex; \
     \
@@ -46,7 +46,6 @@ RUN set -ex; \
         | xargs -rt apt-mark manual; \
     \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    apt-get clean; \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 RUN mkdir -p \

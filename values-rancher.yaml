@@ -4,12 +4,10 @@ ingress:
   includeDefaultExtraAnnotations: true
   ingressClassName: nginx
   extraAnnotations:
-    "kubernetes.io/tls-acme": "true"
-    "cert-manager.io/cluster-issuer": "example.com-letsencrypt-issuer"
-  #    "nginx.ingress.kubernetes.io/server-snippet": |-
-  #      deny 10.14.0.1/32;
-  #      allow 10.0.0.0/8;
-  #      deny all;
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: "example.com-letsencrypt-issuer"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
   tls:
     # options: rancher, letsEncrypt, secret
     source: secret
