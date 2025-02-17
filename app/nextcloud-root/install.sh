@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 cd $(dirname $0)
 source ../../common.sh
 source ../../parameter.sh
@@ -16,15 +17,15 @@ NEXTCLOUD_PW=$REPLY
 #####################################
 log_info "initial"
 [ -d temp ] || mkdir temp
-kubectl create namespace $NS 2>/dev/null
-kubectl -n $NS delete secret nextcloud 2>/dev/null
+kubectl create namespace $NS 2>/dev/null || true
+kubectl -n $NS delete secret nextcloud 2>/dev/null || true
 kubectl -n $NS create secret generic nextcloud \
     --from-literal=nextcloud-username=admin \
     --from-literal=nextcloud-password=$NEXTCLOUD_PW
 sed -i "s/example.com/${DOMAIN}/g" values-nextcloud.yaml
 sed -i "s/example.com/${DOMAIN}/g" values-office.yaml
 sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values-nextcloud.yaml
-kubectl -n $NS delete -f configs.yaml || true
+kubectl -n $NS delete -f configs.yaml 2>/dev/null || true
 kubectl -n $NS apply -f configs.yaml
 
 # install nextcloud

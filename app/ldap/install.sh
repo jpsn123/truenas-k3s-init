@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 cd $(dirname $0)
 source ../../common.sh
 source ../../parameter.sh
@@ -11,7 +12,7 @@ APP_NAME=ldap
 #####################################
 log_info "initial"
 kubectl create namespace $NS 2>/dev/null || true
-kubectl delete -n $NS configmap ssp-images 2>/dev/null
+kubectl delete -n $NS configmap ssp-images 2>/dev/null || true
 kubectl create -n $NS configmap ssp-images \
     --from-file='bk.jpg' \
     --from-file='logo.png'

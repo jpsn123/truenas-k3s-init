@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 cd $(dirname $0)
 source ../../common.sh
 source ../../parameter.sh
@@ -15,8 +16,8 @@ VNC_PW=$REPLY
 #####################################
 log_info "initial"
 [ -d temp ] || mkdir temp
-kubectl create namespace $NS 2>/dev/null
-kubectl -n $NS delete secret password 2>/dev/null
+kubectl create namespace $NS 2>/dev/null || true
+kubectl -n $NS delete secret password 2>/dev/null || true
 kubectl -n $NS create secret generic password \
     --from-literal=vnc-password=$VNC_PW
 sed -i "s/example.com/${DOMAIN}/g" values.yaml

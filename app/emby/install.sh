@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 cd $(dirname $0)
 source ../../common.sh
 source ../../parameter.sh
@@ -11,7 +12,7 @@ APP_NAME=emby
 #####################################
 log_info "initial"
 [ -d temp ] || mkdir temp
-kubectl create namespace $NS 2>/dev/null
+kubectl create namespace $NS 2>/dev/null || true
 sed -i "s/example.com/${DOMAIN}/g" values-emby.yaml
 sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values-emby.yaml
 
