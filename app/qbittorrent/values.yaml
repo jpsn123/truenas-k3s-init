@@ -11,7 +11,7 @@ controllers:
     pod:
       hostNetwork: true
     containers:
-      main:
+      qb:
         order: 1
         image:
           repository: superng6/qbittorrentee
@@ -37,7 +37,7 @@ controllers:
     pod:
       hostNetwork: true
     containers:
-      main:
+      pbh:
         order: 1
         image:
           repository: ghostchu/peerbanhelper
@@ -132,7 +132,7 @@ persistence:
     globalMounts: []
     advancedMounts:
       main: # the controller with the "main"
-        main: # the container with the "main"
+        qb:
           - path: /config
             readOnly: false
 
@@ -146,7 +146,7 @@ persistence:
     globalMounts: []
     advancedMounts:
       pbh:
-        main:
+        pbh:
           - path: /app/data
             readOnly: false
 
@@ -156,6 +156,6 @@ persistence:
   #   hostPath: /mnt/downloads
   #   advancedMounts:
   #     main:
-  #       main:
+  #       qb:
   #       - path: /downloads
   #         readOnly: false

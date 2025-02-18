@@ -9,7 +9,7 @@ controllers:
     type: deployment
     replicas: 1
     containers:
-      main:
+      hb:
         order: 1
         image:
           repository: jutze/handbrake
@@ -95,7 +95,7 @@ persistence:
     globalMounts: []
     advancedMounts:
       main: # the controller with the "main"
-        main: # the container with the "main"
+        hb: # the container with the "main"
           - path: /config
             readOnly: false
 

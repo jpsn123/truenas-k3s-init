@@ -9,7 +9,7 @@ controllers:
     type: deployment
     replicas: 1
     containers:
-      main:
+      fivem:
         image:
           repository: spritsail/fivem
           tag: latest
@@ -73,7 +73,7 @@ persistence:
     globalMounts: []
     advancedMounts:
       main: # the controller with the "main"
-        main:
+        fivem:
           - path: /config
             readOnly: false
             subPath: config

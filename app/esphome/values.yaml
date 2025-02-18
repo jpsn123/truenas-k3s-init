@@ -9,7 +9,7 @@ controllers:
     type: deployment
     replicas: 1
     containers:
-      main:
+      esphome:
         order: 1
         image:
           repository: esphome/esphome
@@ -80,6 +80,6 @@ persistence:
     globalMounts: []
     advancedMounts:
       main: # the controller with the "main"
-        main: # the container with the "main"
+        esphome:
           - path: /config
             readOnly: false
