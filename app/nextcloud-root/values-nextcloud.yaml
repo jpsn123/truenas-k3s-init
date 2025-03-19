@@ -1,6 +1,6 @@
 image:
   repository: jutze/nextcloud
-  tag: 29.0.10-fpm-root
+  tag: 31.0.0-fpm-root
 
 replicaCount: 1
 
@@ -38,7 +38,7 @@ nextcloud:
       opcache.interned_strings_buffer=32
       opcache.max_accelerated_files=20000
       opcache.memory_consumption=384
-      opcache.save_comments=0
+      opcache.save_comments=1
       opcache.revalidate_freq=60
     nextcloud.ini: |-
       memory_limit=4G
@@ -332,7 +332,7 @@ mariadb:
       enabled: true
       storageClass: "sc-example"
       accessMode: ReadWriteOnce
-      size: 10Gi
+      size: 20Gi
 
 redis:
   enabled: true
@@ -355,7 +355,7 @@ persistence:
     helm.sh/resource-policy: keep
   storageClass: "sc-example"
   accessMode: ReadWriteOnce
-  size: 10Gi
+  size: 50Gi
 
   nextcloudData:
     enabled: true
