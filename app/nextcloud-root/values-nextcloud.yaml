@@ -35,14 +35,13 @@ nextcloud:
     opcache-recommended.ini: |-
       [opcache]
       opcache.enable=1
-      opcache.interned_strings_buffer=16
+      opcache.interned_strings_buffer=32
       opcache.max_accelerated_files=20000
-      opcache.memory_consumption=256
-      opcache.save_comments=1
-      opcache.revalidate_freq=1
-      opcache.memory_conclusion=256
+      opcache.memory_consumption=384
+      opcache.save_comments=0
+      opcache.revalidate_freq=60
     nextcloud.ini: |-
-      memory_limit=1024M
+      memory_limit=4G
       upload_max_filesize=16G
       post_max_size=16G
     www.conf: |-
@@ -151,6 +150,14 @@ nextcloud:
     - name: nginx-root-config
       mountPath: /etc/nginx/nginx.conf
       subPath: nginx.conf
+
+    ## fix PR71 https://github.com/nextcloud/helm/pull/71,  remove after PR revert or fix
+    - name: nextcloud-phpconfig
+      mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
+      subPath: nextcloud.ini
+    - name: nextcloud-phpconfig
+      mountPath: /usr/local/etc/php/conf.d/opcache-recommended.ini
+      subPath: opcache-recommended.ini
 
 nginx:
   enabled: true
