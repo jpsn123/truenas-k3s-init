@@ -9,6 +9,14 @@ persistence:
     helm.sh/resource-policy: keep
   size: 2000Gi
 
+resources:
+  requests:
+    cpu: 1
+    memory: 512Mi
+  limits:
+    cpu: 4
+    memory: 8Gi
+
 ingress:
   enabled: true
   ingressClassName: "nginx"

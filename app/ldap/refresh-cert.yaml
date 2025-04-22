@@ -2,13 +2,11 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: delete-pod
-  namespace: ldap
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: delete-pod
-  namespace: ldap
 rules:
   - apiGroups:
       - "*"
@@ -24,7 +22,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: delete-pod
-  namespace: ldap
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -32,13 +29,11 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: delete-pod
-    namespace: ldap
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: restart-openladp
-  namespace: ldap
 spec:
   concurrencyPolicy: Allow
   failedJobsHistoryLimit: 1

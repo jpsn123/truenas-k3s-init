@@ -12,7 +12,7 @@ ingress:
     "nginx.ingress.kubernetes.io/proxy-redirect-from": "http://$host"
     "nginx.ingress.kubernetes.io/proxy-redirect-to": "https://$host"
     "nginx.ingress.kubernetes.io/proxy-request-buffering": "off"
-    "nginx.ingress.kubernetes.io/proxy-body-size": 10G
+    "nginx.ingress.kubernetes.io/proxy-body-size": 32G
     "kubernetes.io/tls-acme": "true"
     "kubernetes.io/ingress.class": nginx
     "cert-manager.io/cluster-issuer": "example.com-letsencrypt-issuer"
@@ -42,8 +42,8 @@ nextcloud:
       opcache.revalidate_freq=60
     nextcloud.ini: |-
       memory_limit=4G
-      upload_max_filesize=16G
-      post_max_size=16G
+      upload_max_filesize=32G
+      post_max_size=32G
     www.conf: |-
       [www]
       user = root
@@ -102,9 +102,12 @@ nextcloud:
           0 => 'www.baidu.com',
         ),
         'trusted_proxies'   => array (
-          0 => '10.0.0.0/8',
-          1 => '172.16.0.0/12',
-          2 => '192.168.0.0/16',
+          0 => '127.0.0.1',
+        ),
+        'forwarded_for_headers' => 
+        array (
+          0 => 'X-Forwarded-For',
+          1 => 'X-Real-IP',
         ),
         "loglevel" => 2,
         'maintenance_window_start' => 1,
@@ -132,6 +135,7 @@ nextcloud:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
+    fsGroupChangePolicy: OnRootMismatch
 
   extraVolumes:
     - name: cron
@@ -187,7 +191,7 @@ nginx:
           proxy_buffer_size 4k;
           proxy_buffers 4 4k;
           proxy_request_buffering off;
-          client_max_body_size 16G;
+          client_max_body_size 32G;
           fastcgi_buffers 64 4K;
 
           # Enable gzip but do not remove ETag headers

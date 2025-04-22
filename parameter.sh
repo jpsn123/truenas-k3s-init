@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## kube-system
-K3S_VERSION='v1.31'
+K3S_VERSION='v1.32'
 OFFLINE_INSTALL=false
 CLUSTER_CIDR='172.30.0.0/16'
 SERVICE_CIDR='172.31.0.0/16'
@@ -14,6 +14,7 @@ INGRESS_IP='192.168.100.80'                 ## you need set your local network d
 ZFS_DATASET_FOR_STORAGE="fast/k8s"
 COMMON_CHART_VERSION="3.2.1"
 DEFAULT_STORAGE_CLASS="fast"
+DEFAULT_SHARED_STORAGE_CLASS='mass'
 
 ## rancher server
 SUB_DOMAIN='srv' ## rancher servicer sub-domain, you can access https://srv.your-domain.com to manage your k8s

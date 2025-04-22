@@ -12,14 +12,14 @@ controllers:
       copy-config:
         image:
           repository: ghcr.io/ldapaccountmanager/lam
-          tag: 8.8
+          tag: 8.9
           pullPolicy: IfNotPresent
         command: ["sh", "/tmp/init.sh"]
     containers:
       lam:
         image:
           repository: ghcr.io/ldapaccountmanager/lam
-          tag: 8.8
+          tag: 8.9
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
@@ -28,7 +28,7 @@ controllers:
           LDAP_BASE_DN: dc=example,dc=com
           LDAP_GROUPS_DN: ou=groups,dc=example,dc=com
           LDAP_ORGANISATION: "example LDAP Account Manager"
-          LDAP_SERVER: ldap://ldap:389
+          LDAP_SERVER: ldap://ldap
           LDAP_USER: cn=admin,dc=example,dc=com
           LDAP_USERS_DN: ou=users,dc=example,dc=com
           LAM_LANG: en_US
@@ -65,6 +65,11 @@ controllers:
                 key: LDAP_ADMIN_PASSWORD
           LDAP_STARTTLS: "false"
           LDAP_BASE_SEARCH: dc=example,dc=com
+          SMTP_PASS:
+            valueFrom:
+              secretKeyRef:
+                name: smtp-passwd
+                key: PASS
           IS_BEHIND_PROXY: "true"
           SITE_URL: https://ssp.example.com
 
@@ -268,7 +273,6 @@ secrets:
         $mail_smtp_host = 'smtp.example.com';
         $mail_smtp_auth = true;
         $mail_smtp_user = 'system@example.com';
-        $mail_smtp_pass = '';
         $mail_smtp_port = 994;
         $mail_smtp_timeout = 30;
         $mail_smtp_keepalive = false;

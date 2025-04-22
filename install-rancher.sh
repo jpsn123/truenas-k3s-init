@@ -12,7 +12,7 @@ sed -i "s/example.com/${DOMAIN}/g" values-rancher.yaml
 
 kubectl create namespace cattle-system 2>/dev/null || true
 helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
-[ -d temp/rancher ] || helm pull rancher-stable/rancher --untar --untardir temp 2>/dev/null || true
+[ -d temp/rancher ] || (helm repo update rancher-stable && helm pull rancher-stable/rancher --untar --untardir temp)
 helm upgrade --install -n cattle-system rancher temp/rancher -f values-rancher.yaml \
   --set hostname=${SUB_DOMAIN}.${DOMAIN} \
   --set ingress.tls.secretName=${SUB_DOMAIN}.${DOMAIN}-tls

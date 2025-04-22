@@ -21,7 +21,7 @@ read -p "password:"
 #####################################
 log_info "install $APP_NAME"
 helm repo add bitnami https://charts.bitnami.com/bitnami
-[ -d temp/minio ] || helm pull bitnami/minio --untar --untardir temp
+[ -d temp/minio ] || (helm repo update bitnami && helm pull bitnami/minio --untar --untardir temp)
 helm upgrade --install -n $NS $APP_NAME temp/minio -f values.yaml \
     --set auth.rootPassword=$REPLY
 

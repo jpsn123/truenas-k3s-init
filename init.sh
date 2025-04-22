@@ -348,7 +348,7 @@ sed -i '/##K3S_PATCH/d' $HOME/.profile
 K3S_PATCH=$(
   cat <<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K3S_PATCH
-alias kk='kubectl get pod -A -o wide' ##K3S_PATCH
+alias kk='kubectl get pod -A' ##K3S_PATCH
 alias kp='kubectl get pod -A -o wide' ##K3S_PATCH
 alias kn='kubectl get node -o wide' ##K3S_PATCH
 alias ks='kubectl get svc -A -o wide' ##K3S_PATCH

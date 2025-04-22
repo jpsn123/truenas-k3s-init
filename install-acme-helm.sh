@@ -9,7 +9,7 @@ source parameter.sh
 #####################################
 log_header "install alidns-webhook for geting certificate automatically"
 helm repo add cert-manager-alidns-webhook https://devmachine-fr.github.io/cert-manager-alidns-webhook
-[ -d temp/alidns-webhook ] || helm pull cert-manager-alidns-webhook/alidns-webhook --untar --untardir temp 2>/dev/null || true
+[ -d temp/alidns-webhook ] || (helm repo update cert-manager-alidns-webhook && helm pull cert-manager-alidns-webhook/alidns-webhook --untar --untardir temp)
 helm upgrade --install alidns-webhook temp/alidns-webhook -n cert-manager --set groupName="acme.${DOMAIN}"
 k8s_wait cert-manager deployment alidns-webhook 50
 ALIDNS_SECRET_YAML=$(

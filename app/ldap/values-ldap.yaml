@@ -1,14 +1,20 @@
 global:
   ldapDomain: "example.com"
   adminUser: "admin"
-  adminPassword: Not@SecurePassw0rd
   configUserEnabled: true
   configUser: "admin"
-  configPassword: Not@SecurePassw0rd
   ldapPort: 389
   sslLdapPort: 636
 
-replicaCount: 1
+replicaCount: 1 # if > 1, must set replication.enable=true
+replication:
+  enabled: true
+  clusterName: "cluster.local"
+  retry: 20
+  timeout: 5
+  interval: 00:00:00:10
+  starttls: "critical"
+  tls_reqcert: "never"
 
 image:
   repository: jutze/openldap
@@ -28,6 +34,7 @@ service:
   type: LoadBalancer
 
 env:
+  TZ: Asia/Shanghai
   BITNAMI_DEBUG: "false"
   LDAP_LOGLEVEL: "256"
   LDAP_TLS_ENFORCE: "false"
@@ -164,21 +171,13 @@ customAcls: |-
   olcAccess: {1}to attrs=userPassword,shadowLastChange
     by self write
     by dn="cn=admin,dc=example,dc=com" write
-    by anonymous auth by * none
+    by anonymous auth
+    by * none
   olcAccess: {2}to *
     by dn="cn=admin,dc=example,dc=com" write
     by dn="cn=readonly,dc=example,dc=com" read
     by self read
     by * none
-
-replication:
-  enabled: false
-  clusterName: "cluster.local"
-  retry: 60
-  timeout: 1
-  interval: 00:00:00:10
-  starttls: "critical"
-  tls_reqcert: "never"
 
 persistence:
   enabled: true
@@ -193,21 +192,21 @@ initTLSSecret:
 
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 30
-  periodSeconds: 10
+  initialDelaySeconds: 60
+  periodSeconds: 120
   timeoutSeconds: 1
   successThreshold: 1
-  failureThreshold: 3
+  failureThreshold: 2
 readinessProbe:
   enabled: true
-  initialDelaySeconds: 30
-  periodSeconds: 10
+  initialDelaySeconds: 0
+  periodSeconds: 60
   timeoutSeconds: 1
   successThreshold: 1
   failureThreshold: 2
 startupProbe:
   enabled: true
-  initialDelaySeconds: 15
+  initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 1
   successThreshold: 1
