@@ -4,8 +4,8 @@
 
 set -e
 cd $(dirname $0)
-source common.sh
-source parameter.sh
+source ../common.sh
+source ../parameter.sh
 
 # init
 #####################################
@@ -117,7 +117,7 @@ kubelet-arg:
 - max-pods=250
 # - feature-gates=''
 kube-proxy-arg:
-- proxy-mode=ipvs
+- proxy-mode=nftables
 # - feature-gates=''
 EOF
 )

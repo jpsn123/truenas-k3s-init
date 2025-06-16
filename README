@@ -1,7 +1,7 @@
 install step:
-  1. modify 'parameter.sh' file, input your self configuration. if you want to use offline k3s package and docker images, place your files to k3s directory.
+  1. modify 'parameter.sh' file, input your self configuration.
   2. skip if you don't want to customize helm application installation params, modify files start with "values-xxx.yaml".
-  3. run "bash auto-install.sh" command to install k3s and components, you can step to run script files whice start with "install-xxx.sh" as "auto-install.sh" manually.
+  3. run "bash k3s/auto-install.sh" command to install k3s and components, you can step to run script files whice start with "install-xxx.sh" as "auto-install.sh" manually.
   4. install apps. go to app directory, modify "values-xxx.yaml" file and run "install.sh" script. if you want update apps, you can run "install.sh" again or run "update.sh" if have.
 
 安装步骤：
@@ -12,4 +12,4 @@ install step:
 
 
 notes:
-  1. you need re-run ./init.sh script, if upgrade truenas.
+  1. you need re-run k3s/init.sh script, if upgrade truenas.

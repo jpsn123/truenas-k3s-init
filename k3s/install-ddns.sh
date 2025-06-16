@@ -2,8 +2,8 @@
 
 set -e
 cd $(dirname $0)
-source common.sh
-source parameter.sh
+source ../common.sh
+source ../parameter.sh
 
 # install aliyun-ddns, update random public ipv4 or ipv6 whice assigned by ISP to globle dns server.
 #####################################

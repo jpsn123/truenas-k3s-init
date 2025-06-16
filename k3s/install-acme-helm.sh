@@ -2,8 +2,8 @@
 
 set -e
 cd $(dirname $0)
-source common.sh
-source parameter.sh
+source ../common.sh
+source ../parameter.sh
 
 # install alidns-webhook for geting certificate automatically
 #####################################

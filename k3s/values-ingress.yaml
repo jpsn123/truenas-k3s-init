@@ -6,6 +6,8 @@ controller:
     name: nginx
     enabled: true
     default: true
+  enableAnnotationValidations: false # TODO: bug on annotation redirect, remove if fix
+  allowSnippetAnnotations: true
 
   config:
     use-gzip: "true"
@@ -26,8 +28,12 @@ controller:
     hsts-preload: "true"
     http-snippet: |-
       sendfile  on;
-
-  allowSnippetAnnotations: true
+    global-auth-cache-duration: "200 202 401 60m"
+    load-balance: "ewma"
+    annotations-risk-level: Critical
+    # disable-access-log: "true"
+    skip-access-log-urls: '~^.+\.(jpg|jpeg|gif|bmp|css|png|html|htm|ico|xml|svg|js|map|woff|woff2|ttf)$'
+    annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount,{,}"
 
   proxySetHeaders: {}
 
