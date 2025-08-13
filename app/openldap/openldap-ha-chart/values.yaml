@@ -57,14 +57,14 @@ image:
   #tag: 2.6.3
   repository: jutze/openldap
   tag: 2.6.8
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   pullSecrets: []
 
 initSchema:
-  image: 
+  image:
     repository: alpine
     tag: 3
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
     pullSecrets: []
 
 extraLabels: {}
@@ -87,19 +87,18 @@ service:
   #loadBalancerIP:
   #loadBalancerSourceRanges: []
   type: ClusterIP
-  sessionAffinity: None
+  sessionAffinity: ClientIP
 
 # Default configuration for openldap as environment variables. These get injected directly in the container.
 # Use the env variables from https://hub.docker.com/r/bitnami/openldap/
 # Be careful, do not modify the following values unless you know exactly what your are doing
 env:
- BITNAMI_DEBUG: "true"
- LDAP_LOGLEVEL: "256"
- LDAP_TLS_ENFORCE: "false"
- LDAPTLS_REQCERT: "never"
- LDAP_ENABLE_TLS: "yes"
- LDAP_SKIP_DEFAULT_TREE: "no"
-
+  BITNAMI_DEBUG: "true"
+  LDAP_LOGLEVEL: "256"
+  LDAP_TLS_ENFORCE: "false"
+  LDAPTLS_REQCERT: "never"
+  LDAP_ENABLE_TLS: "yes"
+  LDAP_SKIP_DEFAULT_TREE: "no"
 
 # Pod Disruption Budget for Stateful Set
 # Disabled by default, to ensure backwards compatibility
@@ -366,7 +365,7 @@ serviceAccount:
   automountServiceAccountToken: false
   ## @param serviceAccount.annotations Additional custom annotations for the ServiceAccount
   ##
-  annotations: {}  
+  annotations: {}
 
 ## @section Init Container Parameters
 
@@ -392,7 +391,7 @@ initTLSSecret:
     ##
     pullPolicy: IfNotPresent
   # The name of a kubernetes.io/tls type secret to use for TLS
-  secret: "" 
+  secret: ""
   ## init-tls-secret container's resource requests and limits
   ## ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
   ## @param initTlsSecret.resources.limits The resources limits for the init container
@@ -427,8 +426,8 @@ volumePermissions:
     tag: 10-debian-10
     pullPolicy: IfNotPresent
 
-  ## Command to execute during the volumePermission startup
-    command: [ 'sh', '-c', 'chmod -R g+rwX /bitnami' ]
+    ## Command to execute during the volumePermission startup
+    command: ["sh", "-c", "chmod -R g+rwX /bitnami"]
   ## command: {}
   ## Init container's resource requests and limits
   ## ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -459,7 +458,6 @@ updateReplication:
     ##   memory: 1Gi
     limits: {}
     requests: {}
-
 
 ## Configure extra options for liveness, readiness, and startup probes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes

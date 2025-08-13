@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-pages-tls
+spec:
+  dnsNames:
+    - pages.example.com
+    - "*.pages.example.com"
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: example.com-letsencrypt-issuer
+  secretName: gitlab-pages-tls

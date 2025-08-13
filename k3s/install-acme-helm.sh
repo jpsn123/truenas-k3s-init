@@ -34,7 +34,7 @@ metadata:
   name: ${DOMAIN}-letsencrypt-issuer
 spec:
   acme:
-    email: $ACME_EMAIL
+    email: ${ACME_EMAIL}
     server: 'https://acme-v02.api.letsencrypt.org/directory'
     #disableAccountKeyGeneration: true
     privateKeySecretRef:
@@ -66,7 +66,7 @@ metadata:
   name: ${DOMAIN}-letsencrypt-test-issuer
 spec:
   acme:
-    email: $ACME_EMAIL
+    email: ${ACME_EMAIL}
     server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
     disableAccountKeyGeneration: true
     privateKeySecretRef:

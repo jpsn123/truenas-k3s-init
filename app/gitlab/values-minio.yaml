@@ -1,0 +1,48 @@
+global:
+  defaultStorageClass: "sc-large-example"
+
+mode: standalone
+
+defaultBuckets: "git-lfs, gitlab-artifacts, gitlab-uploads, gitlab-packages, gitlab-backups, gitlab-tmp, gitlab-registry, gitlab-pages"
+
+persistence:
+  enabled: true
+  annotations:
+    helm.sh/resource-policy: keep
+  size: 1Ti
+
+resources:
+  requests:
+    cpu: 1
+    memory: 512Mi
+  limits:
+    cpu: 4
+    memory: 8Gi
+
+ingress:
+  enabled: true
+  ingressClassName: "nginx"
+  hostname: s3.git.example.com
+  annotations:
+    helm.sh/resource-policy: keep
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.12.0.0/16"
+  extraTls:
+    - hosts:
+        - s3.git.example.com
+      secretName: gitlab-wildcard-tls
+
+apiIngress:
+  enabled: true
+  ingressClassName: "nginx"
+  hostname: s3-api.git.example.com
+  annotations:
+    helm.sh/resource-policy: keep
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  extraTls:
+    - hosts:
+        - s3-api.git.example.com
+      secretName: gitlab-wildcard-tls

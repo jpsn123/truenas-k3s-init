@@ -46,10 +46,10 @@ service middlewared restart
 # configure docker
 log_info "     config docker."
 DOCKER_CONF=$(cat /etc/docker/daemon.json |
-  jq '."log-opts"."max-size" = "100m"' |
-  jq '."log-opts"."max-file" = "3"' |
-  jq '."max-concurrent-uploads" = 1' |
-  jq '."features"."push_with_retries" = true')
+    jq '."log-opts"."max-size" = "100m"' |
+    jq '."log-opts"."max-file" = "3"' |
+    jq '."max-concurrent-uploads" = 1' |
+    jq '."features"."push_with_retries" = true')
 echo -n "$DOCKER_CONF" >/etc/docker/daemon.json
 systemctl restart docker || true
 
@@ -57,7 +57,7 @@ systemctl restart docker || true
 log_info "    some patch on profile"
 sed -i '/##PROFILE_PATCH/d' $HOME/.profile
 PROFILE_PATCH=$(
-  cat <<EOF
+    cat <<EOF
 ln -sf /run/truenas_libvirt/libvirt-sock /var/run/libvirt/libvirt-sock 2>/dev/null ##PROFILE_PATCH
 chmod +x /usr/bin/* ##PROFILE_PATCH
 EOF
@@ -72,7 +72,7 @@ systemctl stop fail2ban.service
 sed -i "s/banaction = iptables.*/banaction = iptables-ipset-proto6/" /etc/fail2ban/jail.conf
 sed -i "s/banaction_allports = iptables.*/banaction_allports = iptables-ipset-proto6-allports/" /etc/fail2ban/jail.conf
 SSHD_BAN_CONF=$(
-  cat <<EOF
+    cat <<EOF
 [sshd]
 bantime  = 365d
 findtime  = 1h
@@ -90,7 +90,7 @@ log_header "install k3s"
 # init k3s config
 log_info "    init k3s config."
 K3S_CONF=$(
-  cat <<EOF
+    cat <<EOF
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
@@ -128,29 +128,8 @@ echo "$K3S_CONF" >/etc/rancher/k3s/config.yaml
 log_info "    enable k3s service"
 RES=$(k3s -v 2>/dev/null | grep $K3S_VERSION || true)
 if [ -z "$RES" ]; then
-  if [ $OFFLINE_INSTALL == true ]; then
-    log_info "Configure offline k3s installation, please copy files to k3s directory, inclue your self docker images"
-    [ -e k3s/install.sh ] || curl -sfL https://get.k3s.io >k3s/install.sh || (
-      echo -e "\033[31m error: k3s/install.sh file not found! \033[0m"
-      false
-    )
-    [ -e k3s/k3s ] || (
-      echo -e "\033[31m      error: k3s/k3s file not found! \033[0m"
-      false
-    )
-    [ -e k3s/k3s-airgap-images*.tar* ] || (
-      echo -e "\033[31m      error: k3s/k3s-airgap-images file not found, your must provide k3s docker images. \033[0m"
-      false
-    )
-    mkdir -p $DATA_DIR/agent/images/
-    cp -f k3s/k3s /usr/local/bin/
-    chmod +x /usr/local/bin/k3s
-    cp -f k3s/*images*.tar* $DATA_DIR/agent/images/
-    cat k3s/install.sh | INSTALL_K3S_SKIP_DOWNLOAD=true sh -
-  else
     log_info "install k3s online"
     curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=$K3S_VERSION sh -
-  fi
 fi
 
 # install helm
@@ -168,7 +147,7 @@ log_info "    install local-zfs csi"
 kubectl apply -f zfs-operator.yaml
 zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
 ZFS_SC=$(
-  cat <<EOF
+    cat <<EOF
 allowVolumeExpansion: true
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -191,20 +170,20 @@ kubectl apply -f ./temp/local-zfs-sc.yaml
 ## install device plugin for intel gpu
 RES=$(lspci | grep VGA | grep Intel)
 if [ -n "$RES" ]; then
-  RES=$(kubectl get node -oyaml | grep gpu.intel.com/i915)
-  if [ -z "$RES" ]; then
-    kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=main'
-    kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=main'
-    kubectl apply -n node-feature-discovery -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/monitoring_shared-dev_nfd?ref=main'
-  fi
+    RES=$(kubectl get node -oyaml | grep gpu.intel.com/i915)
+    if [ -z "$RES" ]; then
+        kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=main'
+        kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=main'
+        kubectl apply -n node-feature-discovery -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/monitoring_shared-dev_nfd?ref=main'
+    fi
 fi
 
 ## post installation
 #####################################
 # bash_completion
 if [ ! -f /etc/profile.d/bash_completion.sh ]; then
-  log_info "    making /etc/profile.d/bash_completion.sh"
-  cat <<"EOF" >/etc/profile.d/bash_completion.sh
+    log_info "    making /etc/profile.d/bash_completion.sh"
+    cat <<"EOF" >/etc/profile.d/bash_completion.sh
 # shellcheck shell=sh disable=SC1091,SC2039,SC2166
 # Check for interactive bash and that we haven't already been sourced.
 if [ "x${BASH_VERSION-}" != x -a "x${PS1-}" != x -a "x${BASH_COMPLETION_VERSINFO-}" = x ]; then
@@ -346,7 +325,7 @@ EOF
 log_info "    making commands auto completion"
 sed -i '/##K3S_PATCH/d' $HOME/.profile
 K3S_PATCH=$(
-  cat <<EOF
+    cat <<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K3S_PATCH
 alias kk='kubectl get pod -A' ##K3S_PATCH
 alias kp='kubectl get pod -A -o wide' ##K3S_PATCH

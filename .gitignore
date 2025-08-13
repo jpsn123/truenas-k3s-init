@@ -2,3 +2,7 @@
 k3s/k3s
 k3s/*.tar
 k3s/*.gz
+.venv
+downloads
+config.json
+__pycache__

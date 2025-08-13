@@ -5,4 +5,3 @@ echo -e "\033[36m Start to install all component, If you want to customize the i
 ./install-cert-manager.sh
 ./install-acme-helm.sh
 ./install-rancher.sh
-./install-ddns.sh

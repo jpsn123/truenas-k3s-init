@@ -47,6 +47,9 @@ spec:
       {{- end }}
     {{- end }}
   sessionAffinity: {{ .Values.service.sessionAffinity }}
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 14400
   selector:
     app.kubernetes.io/component: {{ template "openldap.fullname" . }}
     release: {{ .Release.Name }}

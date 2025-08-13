@@ -43,7 +43,7 @@ controllers:
       main:
         image:
           repository: 186184848/documentserver
-          tag: 8.2.2
+          tag: 8.3.3
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai

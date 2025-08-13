@@ -142,6 +142,7 @@ persistence:
             subPath: lam-init.sh
   lam-config:
     enabled: true
+    forceRename: ldap-web-lam-config
     type: persistentVolumeClaim
     storageClass: sc-example
     accessMode: ReadWriteOnce

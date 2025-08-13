@@ -1,0 +1,213 @@
+global:
+  ldapDomain: "example.com"
+  adminUser: "admin"
+  configUserEnabled: true
+  configUser: "admin"
+  ldapPort: 389
+  sslLdapPort: 636
+
+replicaCount: 2 # if > 1, must set replication.enable=true
+
+image:
+  repository: jutze/openldap
+  tag: 2.6.8
+
+initSchema:
+  image:
+    repository: debian
+    tag: latest
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+
+service:
+  enableLdapPort: true
+  enableSslLdapPort: true
+  loadBalancerIP:
+  type: LoadBalancer
+
+env:
+  TZ: Asia/Shanghai
+  BITNAMI_DEBUG: "false"
+  LDAP_LOGLEVEL: "256"
+  LDAP_TLS_ENFORCE: "false"
+  LDAPTLS_REQCERT: "never"
+  LDAP_ENABLE_TLS: "yes"
+
+# Custom openldap schema files used to be used in addition to default schemas
+# Note that the supplied files are sorted by name and inserted into 'LDAP_EXTRA_SCHEMAS' env var
+# after chart default schemas, allowing you to control the loading sequence.
+customSchemaFiles:
+  #enable memberOf ldap search functionality, users automagically track groups they belong to
+  01-ldapns-schema.ldif: |-
+    dn: cn=ldapns,cn=schema,cn=config
+    objectClass: olcSchemaConfig
+    cn: ldapns
+    olcAttributeTypes: {0}( 1.3.6.1.4.1.5322.17.2.1 NAME 'authorizedService' DESC 'IANA GSS-API authorized service name' EQUALITY caseIgnoreMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+    olcAttributeTypes: {1}( 1.3.6.1.4.1.5322.17.2.2 NAME 'loginStatus' DESC 'Currently logged in sessions for a user' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstringsMatch ORDERING caseIgnoreOrderingMatch SYNTAX OMsDirectoryString )
+    olcObjectClasses: {0}( 1.3.6.1.4.1.5322.17.1.1 NAME 'authorizedServiceObject' DESC 'Auxiliary object class for adding authorizedService attribute' SUP top AUXILIARY MAY authorizedService )
+    olcObjectClasses: {1}( 1.3.6.1.4.1.5322.17.1.2 NAME 'hostObject' DESC 'Auxiliary object class for adding host attribute' SUP top AUXILIARY MAY host )
+    olcObjectClasses: {2}( 1.3.6.1.4.1.5322.17.1.3 NAME 'loginStatusObject' DESC 'Auxiliary object class for login status attribute' SUP top AUXILIARY MAY loginStatus )
+
+  02-load-module.ldif: |-
+    # Load memberof module
+    dn: cn=module,cn=config
+    cn: module
+    objectClass: olcModuleList
+    olcModuleLoad: memberof
+    olcModuleLoad: refint
+    olcModuleLoad: ppolicy
+    olcModulePath: /opt/bitnami/openldap/lib/openldap
+
+    dn: olcOverlay=memberof,olcDatabase={2}mdb,cn=config
+    changetype: add
+    objectClass: olcOverlayConfig
+    objectClass: olcMemberOf
+    olcOverlay: memberof
+    olcMemberOfDangling: ignore
+    olcMemberOfRefInt: TRUE
+    olcMemberOfGroupOC: groupOfUniqueNames
+    olcMemberOfMemberAD: uniqueMember
+    olcMemberOfMemberOfAD: memberOf
+
+    dn: olcOverlay=refint,olcDatabase={2}mdb,cn=config
+    changetype: add
+    objectClass: olcOverlayConfig
+    objectClass: olcRefintConfig
+    olcOverlay: refint
+    olcRefintAttribute: owner
+    olcRefintAttribute: manager
+    olcRefintAttribute: uniqueMember
+    olcRefintAttribute: member
+    olcRefintAttribute: memberOf
+
+    dn: olcOverlay=ppolicy,olcDatabase={2}mdb,cn=config
+    changetype: add
+    objectClass: olcConfig
+    objectClass: olcOverlayConfig
+    objectClass: olcPPolicyConfig
+    olcOverlay: ppolicy
+    olcPPolicyDefault: cn=default,ou=policies,dc=example,dc=com
+    olcPPolicyHashCleartext: TRUE
+    olcPPolicyUseLockout: TRUE
+
+# Custom openldap configuration files used to override default settings
+# DO NOT FORGET to put the Root Organisation object as it won't be created while using customLdifFiles
+customLdifFiles:
+  00-root.ldif: |-
+    dn: dc=example,dc=com
+    objectClass: dcObject
+    objectClass: organization
+    o: example.com
+
+    dn: ou=groups,dc=example,dc=com
+    objectclass: organizationalUnit
+    ou: groups
+
+    dn: ou=users,dc=example,dc=com
+    objectclass: organizationalUnit
+    ou: users
+
+    dn: cn=admin,dc=example,dc=com
+    cn: admin
+    description: LDAP administrator
+    objectclass: simpleSecurityObject
+    objectclass: organizationalRole
+    userPassword: admin
+
+    dn: cn=readonly,dc=example,dc=com
+    cn: readonly
+    description: LDAP readonly
+    objectclass: simpleSecurityObject
+    objectclass: organizationalRole
+    userPassword: admin
+
+    dn: cn=Everyone,ou=groups,dc=example,dc=com
+    cn: Everyone
+    description: default
+    gidnumber: 10000
+    objectclass: posixGroup
+
+  01-init-ppolicy.ldif: |-
+    dn: ou=policies,dc=example,dc=com
+    objectClass: top
+    objectClass: organizationalUnit
+    ou: policies
+
+    dn: cn=default,ou=policies,dc=example,dc=com
+    cn: default
+    objectClass: top
+    objectClass: device
+    objectClass: pwdPolicy
+    pwdAttribute: userPassword
+    pwdInHistory: 3
+    pwdMinLength: 8
+    pwdMaxFailure: 10
+    pwdFailureCountInterval: 1800
+    pwdCheckQuality: 2
+    pwdMustChange: FALSE
+    pwdGraceAuthNLimit: 0
+    pwdMaxAge: 0
+    pwdExpireWarning: 1209600
+    pwdLockoutDuration: 900
+    pwdLockout: TRUE
+
+# Custom openldap ACLs
+# If not defined, the following default ACLs are applied:
+customAcls: |-
+  dn: olcDatabase={2}mdb,cn=config
+  changetype: modify
+  replace: olcAccess
+  olcAccess: {0}to *
+    by dn.exact=gidNumber=0+uidNumber=1001,cn=peercred,cn=external,cn=auth manage
+    by * break
+  olcAccess: {1}to attrs=userPassword,shadowLastChange
+    by self write
+    by dn="cn=admin,dc=example,dc=com" write
+    by anonymous auth by * none
+  olcAccess: {2}to *
+    by dn="cn=admin,dc=example,dc=com" write
+    by dn="cn=readonly,dc=example,dc=com" read
+    by self read
+    by * none
+
+replication:
+  enabled: true
+  clusterName: "cluster.local"
+  retry: 60
+  timeout: 1
+  interval: 00:00:00:10
+  starttls: "critical"
+  tls_reqcert: "never"
+
+persistence:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+  storageClass: "sc-example"
+
+initTLSSecret:
+  tls_enabled: true
+  secret: "ldap-tls"
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 120
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 2
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 60
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 2
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 3
