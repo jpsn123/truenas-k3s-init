@@ -1,5 +1,5 @@
 global:
-  defaultStorageClass: "mass"
+  defaultStorageClass: "sc-large-example"
 
 mode: standalone
 

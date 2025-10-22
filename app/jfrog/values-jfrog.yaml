@@ -1,0 +1,98 @@
+databaseUpgradeReady: false
+global:
+  imageRegistry: ""
+  jfrogUrl: https://bin.example.com
+  database:
+    initContainerSetupDBImage: "releases-docker.jfrog.io/postgres:16.6-alpine"
+#  versions:
+#    artifactory:
+
+postgresql:
+  enabled: true
+  enablePostgresUser: true
+  image:
+    repository: bitnamilegacy/postgresql
+    tag: 16.6.0-debian-12-r2
+  auth:
+    postgresPassword: "postgres"
+  primary:
+    extendedConfiguration: |
+      max_connections = 1000
+      max_wal_size = 1000MB
+    persistence:
+      storageClass: sc-example
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 1
+        memory: 512Mi
+      limits:
+        cpu: 4
+        memory: 8Gi
+
+## This Rabbitmq is used by Xray and Pipelines only, set rabbitmq.enabled: false, when Xray or Pipelines is not enabled
+rabbitmq:
+  enabled: false
+
+artifactory:
+  enabled: true
+  unifiedUpgradeAllowed: true
+  postgresql:
+    enabled: false
+  nginx:
+    enabled: false
+  ingress:
+    enabled: false
+    tls:
+      - secretName: artifactory-tls
+        hosts:
+          - bin.example.com
+          - "*.bin.example.com"
+  waitForDatabase: false
+  database:
+    type: postgresql
+    driver: org.postgresql.Driver
+    url: '{{ include "database.url" . }}'
+    user: artifactory
+  artifactory:
+    image:
+      registry: docker.io
+      repository: jutze/artifactory-pro
+    replicaCount: 1
+    migration:
+      enabled: false
+    persistence:
+      storageClassName: sc-large-example
+      accessMode: ReadWriteMany
+      size: 2Ti
+    license:
+      licenseKey: |-
+        cHJvZHVjdHM6CiAgYXJ0aWZhY3Rvcnk6CiAgICBwcm9kdWN0OiBaWGh3YVhKbGN6b2dNakE1T1Mwd05DMHdPRlF3T1RveE9EbzBNbG9LYVdRNklEUTRaREZpTkRBd0xUQmhNbU10TmpKak1TMHdaREE0TFdJNU56YzBZek14TmpCa1l3cHZkMjVsY2pvZ0ltWnlaV1VnZEhKcFlXd2lDbkJ5YjNCbGNuUnBaWE02Q2lBZ2NtVm5hWE4wY21GMGFXOXVTMlY1Vkc5clpXNDZJQ0lpQ25OcFoyNWhkSFZ5WlRvZ2JuVnNiQXAwY21saGJEb2dabUZzYzJVS2RIbHdaVG9nUlU1VVJWSlFVa2xUUlY5UVRGVlRYMVJTU1VGTUNuWmhiR2xrUm5KdmJUb2dNakF5TVMwd01TMHdPRlF3T1RveE9EbzBNaTR3T0RGYQogICAgc2lnbmF0dXJlOiAiIgp2ZXJzaW9uOiAxCg==
+
+xray:
+  enabled: false
+
+catalog:
+  enabled: false
+
+distribution:
+  enabled: true
+  unifiedUpgradeAllowed: true
+  distribution:
+    unifiedSecretInstallation: true
+  postgresql:
+    enabled: false
+  database:
+    url: '{{ include "database.url" . }}'
+    user: distribution
+  redis:
+    persistence:
+      storageClass: sc-example
+      size: 10Gi
+
+worker:
+  enabled: false
+
+preUpgradeHook:
+  ## This is required to be performed to check if existing products like distribution already exists
+  enabled: false

@@ -43,11 +43,15 @@ gitlab-rake cache:clear
 gitlab-rake gitlab:check
 ```
 
-gitlab-rake gitlab:elastic:index_projects_status
-gitlab-rake gitlab:elastic:info rake
-
 ### console
 
 ```
 gitlab-rails console
 ```
+
+gitlab-rake gitlab:elastic:recreate_index
+gitlab-rake gitlab:elastic:index
+gitlab-rake gitlab:elastic:info rake
+gitlab-rake gitlab:elastic:index_projects_status
+gitlab-rake gitlab:elastic:projects_not_indexed
+gitlab-rake gitlab:elastic:index_projects ID_FROM=1 ID_TO=1000

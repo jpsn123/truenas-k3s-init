@@ -35,8 +35,8 @@ controllers:
           LAM_PASSWORD:
             valueFrom:
               secretKeyRef:
-                name: ldap-ltb-passwd
-                key: LDAP_ADMIN_PASSWORD
+                name: openldap-passwd
+                key: LAM_ADMIN_PASSWORD
           LAM_CONFIGURATION_DATABASE: "files"
           LAM_CONFIGURATION_HOST: ""
           LAM_CONFIGURATION_PORT: ""
@@ -68,8 +68,8 @@ controllers:
           SMTP_PASS:
             valueFrom:
               secretKeyRef:
-                name: smtp-passwd
-                key: PASS
+                name: openldap-passwd
+                key: SMTP_PASS
           IS_BEHIND_PROXY: "true"
           SITE_URL: https://ssp.example.com
 

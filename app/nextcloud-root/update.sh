@@ -7,12 +7,12 @@ NS=nextcloud
 
 # initial
 #####################################
-echo -e "\033[42;30m initial \n\033[0m"
-[ -d temp ] || mkdir temp
-sed -i "s/example.com/${DOMAIN}/g" values-nextcloud.yaml
+log_header "initial"
+copy_and_replace_default_values values-*.yaml
+kubectl -n $NS apply -f temp/values-configs.yaml
 
 # update nextcloud
 #####################################
-echo -e "\033[42;30m update nextcloud \n\033[0m"
+log_header "update nextcloud"
 [ -d temp/nextcloud ] || (git clone https://github.com/nextcloud/helm.git ./temp && mv -f ./temp/charts/nextcloud ./temp && helm dependency build ./temp/nextcloud)
-helm upgrade -n $NS nextcloud temp/nextcloud --reuse-values -f values-nextcloud.yaml
+helm upgrade -n $NS nextcloud temp/nextcloud --reuse-values -f temp/values-nextcloud.yaml

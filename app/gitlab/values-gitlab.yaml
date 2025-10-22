@@ -48,12 +48,21 @@ global:
     internal:
       names:
         - default
+        - default-2
   minio:
     enabled: false
   grafana:
     enabled: false
   appConfig:
-    defaultTheme: 2
+    defaultTheme: 5
+    defaultSyntaxHighlightingTheme: 3
+    defaultProjectsFeatures:
+      issues: true
+      mergeRequests: true
+      wiki: true
+      snippets: true
+      builds: true
+      containerRegistry: false
     object_store:
       enabled: true
       proxy_download: false
@@ -131,9 +140,9 @@ global:
         key: connection
   smtp:
     enabled: true
-    address: ""
+    address: "smtp.qiye.163.com"
     port: 994
-    user_name: ""
+    user_name: "system@jutze.com.cn"
     password:
       secret: mail-password
       key: password
@@ -142,9 +151,9 @@ global:
     openssl_verify_mode: "peer"
     tls: true
   email:
-    from: ""
+    from: "system@jutze.com.cn"
     display_name: GitLab
-    reply_to: ""
+    reply_to: "yiqin.li@jutze.com.cn"
     subject_suffix: ""
   time_zone: Asia/Shanghai
   antiAffinity: soft
@@ -166,8 +175,7 @@ global:
       repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-base
       pullPolicy: IfNotPresent
 
-certmanager:
-  install: false
+installCertmanager: false
 
 nginx-ingress:
   enabled: false
@@ -216,12 +224,12 @@ gitlab:
       serviceUpstream: "false"
     trusted_proxies:
       - 10.240.0.0/16
-    minReplicas: 1
-    maxReplicas: 1
+    minReplicas: 2
+    maxReplicas: 2
   sidekiq:
     enabled: true
     minReplicas: 1
-    maxReplicas: 2
+    maxReplicas: 1
     hpa:
       cpu:
         targetAverageValue: 1

@@ -10,7 +10,7 @@ APP_NAME=fivem
 
 log_reminder "please input password for database."
 read -p "password:"
-DB_PW=$(echo -n $REPLY@mysql | md5sum | head -c 16)
+DB_PW=$(echo -n "$REPLY@$NS@mysql" | md5sum | head -c 16)
 
 # initial
 #####################################

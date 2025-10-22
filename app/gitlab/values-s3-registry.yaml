@@ -1,7 +1,7 @@
 # 弃用，使用bin.jutze.cn
 s3:
   v4auth: true
-  regionendpoint: "https://s3-api.git.jutze.cn"
+  regionendpoint: "https://s3-api.git.example.com"
   region: default
   accesskey:
   secretkey:

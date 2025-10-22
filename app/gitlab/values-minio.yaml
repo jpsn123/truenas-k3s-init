@@ -1,7 +1,14 @@
 global:
   defaultStorageClass: "sc-large-example"
+  security:
+    allowInsecureImages: true
 
 mode: standalone
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/minio
+  tag: 2025.4.8-debian-12-r3
 
 defaultBuckets: "git-lfs, gitlab-artifacts, gitlab-uploads, gitlab-packages, gitlab-backups, gitlab-tmp, gitlab-registry, gitlab-pages"
 

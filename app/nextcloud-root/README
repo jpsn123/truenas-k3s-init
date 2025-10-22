@@ -1,0 +1,21 @@
+### ldap filter
+
+`(&(objectclass=inetOrgPerson)(authorizedService=git))`
+
+### run command in k8s shell
+
+runuser --user www-data -- php occ upgrade
+runuser --user www-data -- php occ db:add-missing-columns
+runuser --user www-data -- php occ db:add-missing-indices
+runuser --user www-data -- php occ db:add-missing-primary-keys
+runuser --user www-data -- php occ maintenance:mode --off
+
+runuser --user www-data -- php /var/www/html/occ files:scan-app-data
+runuser --user www-data -- php /var/www/html/occ files:scan --all
+runuser --user www-data -- php /var/www/html/occ preview:generate-all -vvv
+php occ maintenance:mimetype:update-db --repair-filecache
+
+### ldap 用户运维
+
+php occ ldap:show-remnants
+php occ user:delete [user]

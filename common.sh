@@ -17,11 +17,11 @@ function log_trace() {
 }
 
 function log_header() {
-    echo -e "\033[42;30m $1\n\033[0m"
+    echo -e "\033[42;30m$1\n\033[0m"
 }
 
 function log_reminder() {
-    echo -e "\033[35m $1\n\033[0m"
+    echo -e "\033[35m$1\n\033[0m"
 }
 
 ## function run_command can execute command on every node.
@@ -79,6 +79,7 @@ function remote_copy() {
 ## $3: resource
 ## $4: duration count
 function k8s_wait() {
+    sleep 2
     for ((_common_index = 0; _common_index < $4; _common_index++)); do
         RES=$(kubectl -n $1 rollout status $2 $3 -w=false 2>/dev/null | grep -E 'successfully|complete' || true)
         if [ -n "$RES" ]; then
@@ -97,6 +98,7 @@ function k8s_wait() {
 ## $2: resource
 ## $3: duration count
 function k8s_job_wait() {
+    sleep 2
     for ((_common_index = 0; _common_index < $3; _common_index++)); do
         RES=$(kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true)
         if [ "$RES" = '1' ]; then
@@ -108,6 +110,36 @@ function k8s_job_wait() {
     done
     log_error "   ERROR: resource $2 isn't ready!"
     return -1
+}
+
+## function to create pool with param.
+## $1: pool name
+## $2: pg num
+## $3: pgp num
+## $4: redundancy type
+## $5: crush rule
+## $6: application label
+## $7: min_pg
+## $8: replicated size or ec_overwrites
+## $9: ec_profile
+function create_pool_helper() {
+    if [[ $4 == replicated ]]; then
+        ceph osd pool create $1 $2 $3 $4 $5
+        ceph osd pool set $1 size $8
+    else
+        ceph osd pool create $1 $2 $3 $4 $9 $5
+        ceph osd pool set $1 allow_ec_overwrites $8
+    fi
+    ceph osd pool application enable $1 $6
+    ceph osd pool set $1 pg_num_min $7
+}
+
+## function to reset pool pg num.
+## $1: pool name
+## $2: pg num
+function reset_pool_pg() {
+    ceph osd pool set $1 pg_num $2
+    ceph osd pool set $1 pgp_num $2
 }
 
 ## function app_is_exist.
@@ -122,4 +154,20 @@ function app_is_exist() {
         fi
     done
     echo false
+}
+
+## function copy_and_replace_default_values.
+## $@: file name
+function copy_and_replace_default_values() {
+    [ -d temp ] || mkdir temp
+    for file in "$@"; do
+        TEMP_NAME=$(dirname "$file")/temp
+        cp -f "$file" "$TEMP_NAME/$file"
+        sed -i "s/example.com/${DOMAIN}/g" "$TEMP_NAME/$file"
+        sed -i "s/sc-shared-example-cachefs/${DEFAULT_SHARED_CACHEFS_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
+        sed -i "s/sc-shared-example/${DEFAULT_SHARED_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
+        sed -i "s/sc-large-example/${DEFAULT_LARGE_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
+        sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
+        sed -i -e "s/^\(.*\)10.0.0.1/\1${INGRESS_IP}/g" "$TEMP_NAME/$file"
+    done
 }

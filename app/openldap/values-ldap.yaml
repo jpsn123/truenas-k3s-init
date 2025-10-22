@@ -8,7 +8,7 @@ global:
 
 replicaCount: 1 # if > 1, must set replication.enable=true
 replication:
-  enabled: true
+  enabled: false
   clusterName: "cluster.local"
   retry: 20
   timeout: 5
@@ -18,13 +18,14 @@ replication:
 
 image:
   repository: jutze/openldap
+  pullPolicy: IfNotPresent
   tag: 2.6.8
 
 initSchema:
   image:
     repository: debian
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
     pullSecrets: []
 
 service:
@@ -151,7 +152,7 @@ customLdifFiles:
     pwdMinLength: 8
     pwdMaxFailure: 10
     pwdFailureCountInterval: 1800
-    pwdCheckQuality: 2
+    pwdCheckQuality: 1
     pwdMustChange: FALSE
     pwdGraceAuthNLimit: 0
     pwdMaxAge: 0

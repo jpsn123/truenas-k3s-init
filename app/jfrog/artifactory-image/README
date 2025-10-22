@@ -1,0 +1,4 @@
+1. 提取license-manager-*.jar artifactory-addons-manager-*.jar
+2. 定位到 org.jfrog.license.legacy.SignedLicense、org.jfrog.license.multiplatform.SignedLicense、org.jfrog.license.multiplatform.SignedProduct
+3. patch三个class的vertify函数 
+4. patch 后放置jar包到该目录 build
