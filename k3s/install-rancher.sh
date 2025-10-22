@@ -8,7 +8,7 @@ source ../parameter.sh
 # install rancher
 #####################################
 log_header "install rancher"
-sed -i "s/example.com/${DOMAIN}/g" values-rancher.yaml
+copy_and_replace_default_values values-rancher.yaml
 
 kubectl create namespace cattle-system 2>/dev/null || true
 helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
