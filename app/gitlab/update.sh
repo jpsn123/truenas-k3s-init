@@ -11,6 +11,13 @@ NS=gitlab
 # initial
 #####################################
 copy_and_replace_default_values values-*.yaml
+copy_and_replace_default_values values-*.ini
+kubectl -n $NS delete secret gitlab-rails-storage 2>/dev/null
+kubectl -n $NS delete secret gitlab-toolbox-s3cmd 2>/dev/null
+kubectl -n $NS delete secret gitlab-registry-storage 2>/dev/null
+kubectl -n $NS create secret generic gitlab-rails-storage --from-file=connection=temp/values-s3-rails.yaml
+kubectl -n $NS create secret generic gitlab-toolbox-s3cmd --from-file=config='temp/values-s3-backup.ini'
+#kubectl -n $NS create secret generic gitlab-registry-storage --from-file=config=temp/values-s3-registry.yaml
 
 UPDATE_MINIO=false
 UPDATE_PG=false
