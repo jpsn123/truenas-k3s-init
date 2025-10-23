@@ -183,6 +183,7 @@ persistence:
 
 configMaps:
   scripts:
+    forceRename: ldap-web-scripts
     data:
       lam-init.sh: |-
         # Copy config from /etc
@@ -198,6 +199,7 @@ configMaps:
 
 secrets:
   ssp-config:
+    forceRename: ldap-web-ssp-config
     stringData:
       config.inc.local.php: |-
         <?php
