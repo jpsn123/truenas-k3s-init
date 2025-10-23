@@ -6,7 +6,6 @@ source ../../common.sh
 source ../../parameter.sh
 
 NS=openldap
-APP_NAME=ldap
 
 log_reminder "please input admin password seed."
 read -p "password seed:"
@@ -35,7 +34,7 @@ sed -i "s/dc=example,dc=com/${LDAP_BASE}/g" temp/values-*.yaml
 
 # request ldap certificate
 #####################################
-kubectl apply -n $NS -f ldap-tls.yaml
+kubectl apply -n $NS -f temp/values-ldap-tls.yaml
 for ((i = 0; i < 100; i++)); do
     RES=$(kubectl get -n $NS certificate ldap-tls -o=jsonpath='{.status.conditions[0].status}' 2>/dev/null || true)
     if [ "$RES" == 'True' ]; then
@@ -48,7 +47,7 @@ done
 
 # install ldap
 #####################################
-log_header "install $APP_NAME"
+log_header "install openldap"
 helm upgrade --install -n $NS ldap openldap-ha-chart -f temp/values-ldap.yaml \
     --set global.adminPassword=$PASSWD \
     --set global.configPassword=$PASSWD
