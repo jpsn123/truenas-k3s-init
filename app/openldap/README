@@ -1,7 +1,6 @@
 the chart does not fully support scaling the openldap cluster. To scale the cluster please follow scaling your cluster: https://github.com/jp-gouin/helm-openldap?tab=readme-ov-file#scaling-your-cluster
 
 ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/brep.ldif
-ldapadd -H ldapi:/// -D "cn=admin,dc=example,dc=com" -W -f 00-root.ldif
 
 LDAP log level, just for debug
       -1 any enable all debugging
