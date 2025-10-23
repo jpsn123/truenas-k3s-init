@@ -34,9 +34,9 @@ kubectl -n $NS delete secret gitlab-gitlab-initial-root-password 2>/dev/null
 kubectl -n $NS delete secret ldap-password 2>/dev/null
 kubectl -n $NS create secret generic mail-password --from-literal=password=$SMTP_PW
 kubectl -n $NS create secret generic ldap-password --from-literal=password=$LDAP_PW
-kubectl -n $NS create secret generic gitlab-rails-storage --from-file=connection=values-s3-rails.yaml
-kubectl -n $NS create secret generic gitlab-toolbox-s3cmd --from-file=config='values-s3-backup.ini'
-#kubectl -n $NS create secret generic gitlab-registry-storage --from-file=config=values-s3-registry.yaml
+kubectl -n $NS create secret generic gitlab-rails-storage --from-file=connection=temp/values-s3-rails.yaml
+kubectl -n $NS create secret generic gitlab-toolbox-s3cmd --from-file=config='temp/values-s3-backup.ini'
+#kubectl -n $NS create secret generic gitlab-registry-storage --from-file=config=temp/values-s3-registry.yaml
 kubectl -n $NS create secret generic gitlab-gitlab-initial-root-password --from-literal=password=$GITLAB_PW
 # create certificates
 kubectl apply -n $NS -f temp/values-wildcard-tls.yaml
@@ -64,7 +64,7 @@ helm upgrade --install -n $NS postgresql temp/postgresql -f temp/values-postgres
     --set auth.replicationPassword=$DB_PW
 k8s_wait $NS statefulset postgresql 100
 kubectl -n $NS exec postgresql-0 -- bash -c \
-    'PGPASSWORD=${POSTGRES_PASSWORD} psql --dbname=gitlabhq_production --username=admin -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS btree_gist; CREATE EXTENSION IF NOT EXISTS plpgsql;"'
+    'PGPASSWORD=$(cat ${POSTGRES_POSTGRES_PASSWORD_FILE}) psql --dbname=gitlabhq_production --username=admin -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS btree_gist; CREATE EXTENSION IF NOT EXISTS plpgsql;"'
 kubectl -n $NS patch secret postgresql --type merge --patch \
     "{\"data\":{\"username\":\"$(echo -n admin | base64)\"}}"
 
