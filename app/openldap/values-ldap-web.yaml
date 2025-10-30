@@ -35,8 +35,8 @@ controllers:
           LAM_PASSWORD:
             valueFrom:
               secretKeyRef:
-                name: ldap-ltb-passwd
-                key: LDAP_ADMIN_PASSWORD
+                name: openldap-passwd
+                key: LAM_ADMIN_PASSWORD
           LAM_CONFIGURATION_DATABASE: "files"
           LAM_CONFIGURATION_HOST: ""
           LAM_CONFIGURATION_PORT: ""
@@ -68,8 +68,8 @@ controllers:
           SMTP_PASS:
             valueFrom:
               secretKeyRef:
-                name: smtp-passwd
-                key: PASS
+                name: openldap-passwd
+                key: SMTP_PASS
           IS_BEHIND_PROXY: "true"
           SITE_URL: https://ssp.example.com
 
@@ -183,6 +183,7 @@ persistence:
 
 configMaps:
   scripts:
+    forceRename: ldap-web-scripts
     data:
       lam-init.sh: |-
         # Copy config from /etc
@@ -198,6 +199,7 @@ configMaps:
 
 secrets:
   ssp-config:
+    forceRename: ldap-web-ssp-config
     stringData:
       config.inc.local.php: |-
         <?php

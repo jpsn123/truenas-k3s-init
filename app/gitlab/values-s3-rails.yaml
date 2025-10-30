@@ -3,5 +3,5 @@ region: default
 aws_access_key_id:
 aws_secret_access_key:
 aws_signature_version: 4
-endpoint: "https://s3-api.git.jutze.cn"
+endpoint: "https://s3-api.git.example.com"
 path_style: true

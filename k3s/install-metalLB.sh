@@ -10,9 +10,7 @@ source ../parameter.sh
 log_header "install metalLB"
 helm repo add metallb https://metallb.github.io/metallb
 [ -d temp/metallb ] || (helm repo update metallb && helm pull metallb/metallb --untar --untardir temp)
-helm upgrade --install metallb temp/metallb -n kube-system #--set loadBalancerClass="metallb-lbc"
-
-k8s_wait kube-system deployment metallb-controller 100
+helm upgrade --install metallb temp/metallb -n kube-system --wait --timeout 600 #--set loadBalancerClass="metallb-lbc"
 
 YAML=$(
   cat <<EOF
@@ -37,8 +35,6 @@ EOF
 )
 echo "$YAML" >./temp/metallb-config.yaml
 kubectl apply -f ./temp/metallb-config.yaml
-
-k8s_wait kube-system daemonset metallb-speaker 100
 
 ## done
 log_trace "init success!!!"

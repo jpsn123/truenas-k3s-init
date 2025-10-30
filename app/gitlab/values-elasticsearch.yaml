@@ -18,23 +18,35 @@ security:
 
 image:
   registry: docker.io
-  repository: bitnami/elasticsearch
-#  tag: 8.17.1-debian-12-r0
+  repository: bitnamilegacy/elasticsearch
+  tag: 9.1.2-debian-12-r0
+
+sysctlImage:
+  registry: docker.io
+  repository: bitnamilegacy/os-shell
+  tag: 12-debian-12-r50
 
 extraEnvVars:
+  - name: ELASTICSEARCH_HEAP_SIZE
+    value: 4096m
+  - name: ELASTICSEARCH_DISABLE_JVM_HEAP_DUMP
+    value: "yes"
   - name: TZ
     value: Asia/Shanghai
+
+plugins: "analysis-smartcn"
 
 # 先使用单节点模式，后面有需求可以再扩展
 master:
   masterOnly: false
   replicaCount: 1
-  requests:
-    cpu: 1
-    memory: 1Gi
-  limits:
-    cpu: 2
-    memory: 8Gi
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 10Gi
   persistence:
     size: 50Gi
 data:
@@ -50,6 +62,11 @@ service:
   type: ClusterIP
 
 kibana:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/kibana
+    tag: 9.1.2-debian-12-r0
+
   clusterDomain: cluster.local
 
   auth:
@@ -79,15 +96,12 @@ kibana:
     path: /
     annotations:
       helm.sh/resource-policy: keep
-      kubernetes.io/tls-acme: "true"
-      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
       nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8"
     tls: false
     extraTls:
       - hosts:
-          - git.example.com
-          - "*.git.example.com"
-        secretName: git.example.com-tls
+          - es.git.example.com
+        secretName: gitlab-wildcard-tls
     ingressClassName: "nginx"
 
   resources:
@@ -97,3 +111,20 @@ kibana:
     limits:
       cpu: 2
       memory: 4Gi
+#
+# set es replicas to zero, index health check
+##############
+#  PUT _index_template/no-replicas
+#  {
+#    "priority": 1,
+#    "template": {
+#      "settings": {
+#        "number_of_replicas": 0,
+#        "index": {}
+#      }
+#    },
+#    "index_patterns": [
+#      "*"
+#    ]
+#  }
+##############

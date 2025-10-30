@@ -6,7 +6,15 @@ global:
   ldapPort: 389
   sslLdapPort: 636
 
-replicaCount: 2 # if > 1, must set replication.enable=true
+replicaCount: 1 # if > 1, must set replication.enable=true
+replication:
+  enabled: false
+  clusterName: "cluster.local"
+  retry: 20
+  timeout: 5
+  interval: 00:00:00:10
+  starttls: "critical"
+  tls_reqcert: "never"
 
 image:
   repository: jutze/openldap

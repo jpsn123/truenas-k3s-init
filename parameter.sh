@@ -16,9 +16,9 @@ DOMAIN=''
 ZFS_DATASET_FOR_STORAGE="fast/k8s"
 DEFAULT_STORAGE_CLASS='fast'                # for default
 DEFAULT_SHARED_STORAGE_CLASS='fast'         # for shared
-DEFAULT_SHARED_CACHEFS_STORAGE_CLASS='mass' # for shared with cachefs, accelerate io speed
+DEFAULT_SHARED_CACHEFS_STORAGE_CLASS='fast' # for shared with cachefs, accelerate io speed
 DEFAULT_LARGE_STORAGE_CLASS='mass'          # for large capacity storage
-COMMON_CHART_VERSION="4.1.1"
+COMMON_CHART_VERSION="4.3.0"
 
 ## acme
 ACME_EMAIL=''

@@ -1,15 +1,14 @@
-FROM nextcloud:30.0.6-fpm
+FROM nextcloud:31.0.9-fpm
 
 RUN set -ex; \
     \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         ffmpeg \
-        ghostscript \
-        libmagickcore-6.q16-6-extra \
         procps \
         supervisor \
-        libreoffice \
+#       ghostscript \
+#       libreoffice \
 #       smbclient \
     ; \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
@@ -21,15 +20,12 @@ RUN set -ex; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         libbz2-dev \
-        libc-client-dev \
         libkrb5-dev \
 #       libsmbclient-dev \
     ; \
     \
-    docker-php-ext-configure imap --with-kerberos --with-imap-ssl; \
     docker-php-ext-install \
         bz2 \
-        imap \
     ; \
 #   pecl install smbclient; \
 #   docker-php-ext-enable smbclient; \

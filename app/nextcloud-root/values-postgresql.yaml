@@ -2,8 +2,8 @@ global:
   defaultStorageClass: sc-example
   postgresql:
     auth:
-      username: admin
-      database: gitlabhq_production
+      username: nextcloud
+      database: nextcloud
 
 clusterDomain: "cluster.local"
 # 数据库HA和复制模式，使用几年下来效果并不理想，对于大部分需求来说，单节点足够了
@@ -21,7 +21,7 @@ primary:
       cpu: 8
       memory: 16Gi
   service:
-    type: ClusterIP
+    type: LoadBalancer
   persistence:
     size: 50Gi
 
