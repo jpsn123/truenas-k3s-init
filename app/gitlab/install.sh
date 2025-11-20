@@ -59,7 +59,7 @@ fi
 #####################################
 log_header "install postgresql"
 [ -d temp/postgresql ] || (helm pull oci://registry-1.docker.io/bitnamicharts/postgresql --untar --untardir temp --version=16.7.27)
-helm upgrade --install -n $NS postgresql temp/postgresql --wait --timeout 600 -f temp/values-postgresql.yaml \
+helm upgrade --install -n $NS postgresql temp/postgresql --wait --timeout 600s -f temp/values-postgresql.yaml \
     --set global.postgresql.auth.postgresPassword=$DB_PW \
     --set global.postgresql.auth.password=$DB_PW \
     --set auth.replicationPassword=$DB_PW
@@ -72,14 +72,14 @@ kubectl -n $NS patch secret postgresql --type merge --patch \
 #####################################
 log_header "install redis"
 [ -d temp/redis ] || (helm pull oci://registry-1.docker.io/bitnamicharts/redis --untar --untardir temp --version=22.0.7)
-helm upgrade --install -n $NS redis temp/redis --wait --timeout 600 -f temp/values-redis.yaml \
+helm upgrade --install -n $NS redis temp/redis --wait --timeout 600s -f temp/values-redis.yaml \
     --set global.redis.password=$REDIS_PW
 
 ## install elasticsearch
 #####################################
 log_header "install elasticsearch"
 [ -d temp/elasticsearch ] || (helm pull oci://registry-1.docker.io/bitnamicharts/elasticsearch --untar --untardir temp --version=22.1.6)
-helm upgrade --install -n $NS elasticsearch temp/elasticsearch --wait --timeout 600 -f temp/values-elasticsearch.yaml \
+helm upgrade --install -n $NS elasticsearch temp/elasticsearch --wait --timeout 600s -f temp/values-elasticsearch.yaml \
     --set security.elasticPassword=$ELASTICSEARCH_PW \
     --set kibana.elasticsearch.security.auth.kibanaPassword=$ELASTICSEARCH_PW
 

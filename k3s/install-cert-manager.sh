@@ -11,7 +11,7 @@ log_header "install cert-manager"
 helm repo add jetstack "https://charts.jetstack.io"
 [ -d temp/cert-manager ] || (helm repo update jetstack && helm pull jetstack/cert-manager --untar --untardir temp 2>/dev/null)
 kubectl create namespace cert-manager 2>/dev/null || true
-helm upgrade --install -n cert-manager cert-manager temp/cert-manager  --wait --timeout 600 \
+helm upgrade --install -n cert-manager cert-manager temp/cert-manager  --wait --timeout 600s \
   --set crds.enabled=true \
   --set extraArgs={--enable-certificate-owner-ref}
 

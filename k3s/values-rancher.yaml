@@ -14,3 +14,14 @@ ingress:
 
 replicas: 1
 tls: ingress
+
+fleet:
+  controller:
+    replicas: 0
+  gitjob:
+    replicas: 0
+  helmops:
+    enabled: true
+    replicas: 0
+  agent:
+    replicas: 0

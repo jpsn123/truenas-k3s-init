@@ -48,7 +48,7 @@ done
 # install ldap
 #####################################
 log_header "install openldap"
-helm upgrade --install -n $NS ldap openldap-ha-chart --wait --timeout 600 -f temp/values-ldap.yaml \
+helm upgrade --install -n $NS ldap openldap-ha-chart --wait --timeout 600s -f temp/values-ldap.yaml \
     --set global.adminPassword=$PASSWD \
     --set global.configPassword=$PASSWD
 

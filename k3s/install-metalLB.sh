@@ -10,7 +10,7 @@ source ../parameter.sh
 log_header "install metalLB"
 helm repo add metallb https://metallb.github.io/metallb
 [ -d temp/metallb ] || (helm repo update metallb && helm pull metallb/metallb --untar --untardir temp)
-helm upgrade --install metallb temp/metallb -n kube-system --wait --timeout 600 #--set loadBalancerClass="metallb-lbc"
+helm upgrade --install metallb temp/metallb -n kube-system --wait --timeout 600s #--set loadBalancerClass="metallb-lbc"
 
 YAML=$(
   cat <<EOF
