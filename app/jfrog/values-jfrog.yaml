@@ -76,7 +76,7 @@ catalog:
   enabled: false
 
 distribution:
-  enabled: true
+  enabled: false
   unifiedUpgradeAllowed: true
   distribution:
     unifiedSecretInstallation: true
