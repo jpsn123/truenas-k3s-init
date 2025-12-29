@@ -61,7 +61,7 @@ def scan_new_files():
     if mtimes_max != 0:
         _save_last_scan_time(datetime.fromtimestamp(mtimes_max))
         
-    filtered = [f for f in files if not (f.lower().endswith("-c.mp4") or f.lower().endswith("-uc.mp4"))]
+    filtered = [f for f in files if not (f.lower().endswith("-c.mp4") or f.lower().endswith("-uc.mp4") or f.lower().endswith("-m.mp4"))]
     result_files = []
     for f in filtered:
         base_name = os.path.splitext(f)[0]
