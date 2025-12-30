@@ -13,9 +13,9 @@ runuser --user www-data -- php occ maintenance:mode --off
 runuser --user www-data -- php /var/www/html/occ files:scan-app-data
 runuser --user www-data -- php /var/www/html/occ files:scan --all
 runuser --user www-data -- php /var/www/html/occ preview:generate-all -vvv
-php occ maintenance:mimetype:update-db --repair-filecache
+runuser --user www-data -- php occ maintenance:mimetype:update-db --repair-filecache
 
 ### ldap 用户运维
 
-php occ ldap:show-remnants
-php occ user:delete [user]
+runuser --user www-data -- php occ ldap:show-remnants
+runuser --user www-data -- php occ user:delete [user]

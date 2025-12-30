@@ -1,4 +1,4 @@
-FROM nextcloud:31.0.9-fpm
+FROM nextcloud:32.0.3-fpm
 
 RUN set -ex; \
     \
@@ -46,12 +46,7 @@ RUN set -ex; \
 
 RUN mkdir -p \
     /var/log/supervisord \
-    /var/run/supervisord \
-    ; \
-    sed -e '/stream_get_contents($pipes\[1\])/i\stream_set_blocking($pipes\[1\], 0);' -e '/stream_get_contents($pipes\[2\])/i\stream_set_blocking($pipes\[2\], 0);' -i /usr/src/nextcloud/lib/private/Preview/Movie.php ; \
-    sed -e "s/user='www-data'/user='root'/g" -e "s/group='www-data'/group='root'/g" -i /entrypoint.sh ; \
-    rm -rf /var/spool/cron/crontabs/www-data \
-;
+    /var/run/supervisord
 
 COPY supervisord.conf /
 
