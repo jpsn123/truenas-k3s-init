@@ -1,0 +1,25 @@
+zfs-localpv:
+  crds:
+    zfsLocalPv:
+      enabled: true
+    csi:
+      volumeSnapshots:
+        enabled: true
+
+engines:
+  local:
+    lvm:
+      enabled: false
+    zfs:
+      enabled: true
+    rawfile:
+      enabled: false
+  replicated:
+    mayastor:
+      enabled: false
+
+loki:
+  enabled: false
+
+alloy:
+  enabled: false

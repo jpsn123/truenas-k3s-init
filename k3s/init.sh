@@ -43,16 +43,6 @@ sed -i -e "s/.*vm_data\['command_line_args'\]/##COMMENT\0/g" /usr/lib/python3/di
 sed -i -e "/'commandline'/a 'children': [create_element('arg', value='-cpu'),create_element('arg', value='host,hv_ipi,hv_relaxed,hv_reset,hv_runtime,hv_spinlocks=0x1fff,hv_stimer,hv_synic,hv_time,hv_vapic,hv_vendor_id=proxmox,hv_vpindex,kvm=off,+kvm_pv_eoi,+kvm_pv_unhalt')] ##PATCH" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
 service middlewared restart
 
-# configure docker
-log_info "     config docker."
-DOCKER_CONF=$(cat /etc/docker/daemon.json |
-    jq '."log-opts"."max-size" = "100m"' |
-    jq '."log-opts"."max-file" = "3"' |
-    jq '."max-concurrent-uploads" = 1' |
-    jq '."features"."push_with_retries" = true')
-echo -n "$DOCKER_CONF" >/etc/docker/daemon.json
-systemctl restart docker || true
-
 # some patch on profile
 log_info "    some patch on profile"
 sed -i '/##PROFILE_PATCH/d' $HOME/.profile
@@ -141,42 +131,6 @@ chmod 700 ./temp/get_helm.sh
 log_info "    making k3s certification auto refresh"
 echo "0 2 1 jan,jul * root k3s certificate rotate --data-dir $DATA_DIR && systemctl restart k3s" >/etc/cron.d/renew_k3s_cert
 echo "0 2 1 1 * root crictl rmi --prune" >/etc/cron.d/cleanup
-
-## install zfs csi
-log_info "    install local-zfs csi"
-kubectl apply -f zfs-operator.yaml
-zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
-ZFS_SC=$(
-    cat <<EOF
-allowVolumeExpansion: true
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-  name: ${DEFAULT_STORAGE_CLASS}
-parameters:
-  fstype: zfs
-  poolname: ${ZFS_DATASET_FOR_STORAGE}
-  shared: "yes"
-provisioner: zfs.csi.openebs.io
-reclaimPolicy: Delete
-volumeBindingMode: Immediate
-EOF
-)
-echo "$ZFS_SC" >./temp/local-zfs-sc.yaml
-kubectl apply -f ./temp/local-zfs-sc.yaml
-
-## install device plugin for intel gpu
-RES=$(lspci | grep VGA | grep Intel)
-if [ -n "$RES" ]; then
-    RES=$(kubectl get node -oyaml | grep gpu.intel.com/i915)
-    if [ -z "$RES" ]; then
-        kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=main'
-        kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=main'
-        kubectl apply -n node-feature-discovery -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/monitoring_shared-dev_nfd?ref=main'
-    fi
-fi
 
 ## post installation
 #####################################
