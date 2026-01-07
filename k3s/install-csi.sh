@@ -9,8 +9,8 @@ source ../parameter.sh
 #####################################
 log_header "install zfs csi"
 
-helm repo add openebs https://openebs.github.io/charts
-[ -d temp/zfs-csi ] || (helm repo update openebs && helm pull openebs/openebs --untar --untardir temp)
+helm repo add openebs https://openebs.github.io/charts 2>/dev/null || true
+[ -d temp/openebs ] || (helm repo update openebs && helm pull openebs/openebs --untar --untardir temp)
 helm upgrade --install --create-namespace zfs-csi temp/openebs -n openebs --wait --timeout 600s -f values-openebs.yaml
 
 zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true

@@ -1,3 +1,18 @@
+openebs-crds:
+  csi:
+    volumeSnapshots:
+      enabled: false
+      keep: false
+
+localpv-provisioner:
+  localpv:
+    enabled: false
+
+lvm-localpv:
+  crds:
+    lvmLocalPv:
+      enabled: false
+
 zfs-localpv:
   crds:
     zfsLocalPv:
@@ -17,6 +32,16 @@ engines:
   replicated:
     mayastor:
       enabled: false
+
+mayastor:
+  csi:
+    node:
+      initContainers:
+        enabled: true
+  etcd:
+    clusterDomain: cluster.local
+  localpv-provisioner:
+    enabled: false
 
 loki:
   enabled: false
