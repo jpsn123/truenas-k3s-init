@@ -13,24 +13,12 @@ helm repo add openebs https://openebs.github.io/charts 2>/dev/null || true
 [ -d temp/openebs ] || (helm repo update openebs && helm pull openebs/openebs --untar --untardir temp)
 helm upgrade --install --create-namespace zfs-csi temp/openebs -n openebs --wait --timeout 600s -f values-openebs.yaml
 
-zfs create ${ZFS_POOL_FOR_STORAGE} 2>/dev/null || true
-ZFS_SC=$(
-    cat <<EOF
-allowVolumeExpansion: true
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-  name: ${DEFAULT_STORAGE_CLASS}
-parameters:
-  fstype: zfs
-  poolname: ${ZFS_DATASET_FOR_STORAGE}
-  shared: "yes"
-provisioner: zfs.csi.openebs.io
-reclaimPolicy: Delete
-volumeBindingMode: Immediate
-EOF
-)
-echo "$ZFS_SC" >./temp/local-zfs-sc.yaml
-kubectl apply -f ./temp/local-zfs-sc.yaml
+## create storageclass
+log_info "create storageclass"
+echo "$STORAGE_CLASS_YAML" >./temp/storageclass.yaml
+kubectl apply -f ./temp/storageclass.yaml
+
+## create snapshotclass
+log_info "create snapshotclass"
+echo "$SNAPSHOT_CLASS_YAML" >./temp/volumesnapshot-class.yaml
+kubectl apply -f ./temp/volumesnapshot-class.yaml

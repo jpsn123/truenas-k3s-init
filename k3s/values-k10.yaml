@@ -1,0 +1,75 @@
+global:
+  persistence:
+    storageClass: sc-example
+  image:
+    pullPolicy: IfNotPresent
+
+kastenDisasterRecovery:
+  quickMode:
+    enabled: true
+
+auth:
+  tokenAuth:
+    enabled: true
+
+ingress:
+  create: true
+  annotations:
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+  name: "k10"
+  tls:
+    enabled: true
+    secretName: k10-tls
+  class: "nginx"
+  host: "k10.example.com"
+## don't change this value, snapshot id from log
+logLevel: info
+multicluster:
+  enabled: false
+garbagecollector:
+  daemonPeriod: 21600
+  keepMaxActions: 1000
+  actions:
+    enabled: true
+eula:
+  accept: true
+  company: intel
+  email: intel@intel.com
+excludedApps:
+  - cert-manager
+  - external-srv
+  - default
+  - ingress-nginx
+  - ingress-nginx-pri
+  - kube-node-lease
+  - kube-public
+  - kube-system
+  - vpn
+  - openebs
+  - node-feature-discovery
+prometheus:
+  server:
+    enabled: false
+limiter:
+  executorReplicas: 2
+  executorThreads: 8
+  snapshotExportsPerAction: 3
+  snapshotExportsPerCluster: 3
+  volumeRestoresPerAction: 3
+  volumeRestoresPerCluster: 3
+  workloadSnapshotsPerAction: 3
+  workloadRestoresPerAction: 3
+  imageCopiesPerCluster: 3
+timeout:
+  blueprintBackup: 45
+  blueprintRestore: 600
+  blueprintDelete: 45
+  blueprintHooks: 20
+  checkRepoPodReady: 360
+  statsPodReady: 360
+  efsRestorePodReady: 360
+  workerPodReady: 360
+  jobWait: ""
