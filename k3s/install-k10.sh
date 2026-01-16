@@ -47,6 +47,21 @@ kubectl -n $NS patch configmap k10-config --type merge --patch \
 # optional, customize tool-images for self-defined kopia repo password
 kubectl -n $NS patch configmap k10-config --type merge --patch \
     "{\"data\":{\"KanisterToolsImage\":\"jutze/kanister-tools:$VERSION\"}}"
+
+# optional, use custom metering image, for node > 5
+PATCH=$(
+    cat <<EOF
+spec:
+  template:
+    spec:
+      containers:
+      - name: metering-svc
+        image: jutze/metering:$VERSION
+EOF
+)
+kubectl patch -n $NS deployment metering-svc --patch "$PATCH"
+
+# kill all k10 pods to reload config
 kubectl -n $NS delete pod -l app.kubernetes.io/instance=k10
 
 # create k10 admin token
