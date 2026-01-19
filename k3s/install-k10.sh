@@ -40,7 +40,10 @@ kubectl annotate volumesnapshotclass \
 
 # install
 helm repo add kasten https://charts.kasten.io/
-[ -d temp/k10 ] || (helm repo update kasten && helm pull kasten/k10 --untar --untardir temp --version=$VERSION)
+if [ ! -f temp/k10/Chart.yaml ] || ! grep -Eq "version:[[:space:]]*$VERSION" temp/k10/Chart.yaml; then
+    helm repo update kasten
+    helm pull kasten/k10 --untar --untardir temp --version=$VERSION
+fi
 helm upgrade --install -n $NS k10 temp/k10 -f temp/values-k10.yaml
 
 # change config excludedApps
