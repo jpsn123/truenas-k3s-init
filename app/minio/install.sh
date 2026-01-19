@@ -13,9 +13,14 @@ log_info "initial"
 [ -d temp ] || mkdir temp
 kubectl create namespace $NS 2>/dev/null || true
 copy_and_replace_default_values values-*.yaml
-log_reminder "please input password seed for minio."
-read -p "password seed:"
-MINIO_PW=$(echo -n "$REPLY@$NS@minio" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+if kubectl get secret minio -n $NS >/dev/null 2>&1; then
+    MINIO_PW=$(kubectl get secret minio -n $NS -ojsonpath='{.data.root-password}' | base64 --decode)
+    log_info "reuse existing minio root-password."
+else
+    log_reminder "please input password seed for minio."
+    read -p "password seed:"
+    MINIO_PW=$(echo -n "$REPLY@$NS@minio" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
 
 # install
 #####################################

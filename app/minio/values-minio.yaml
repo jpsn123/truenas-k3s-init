@@ -3,6 +3,10 @@ global:
 
 mode: standalone
 
+image:
+  registry: docker.io
+  repository: bitnamilegacy/minio
+
 persistence:
   enabled: true
   annotations:
