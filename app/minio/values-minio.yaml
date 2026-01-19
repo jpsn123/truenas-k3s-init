@@ -1,5 +1,7 @@
 global:
   defaultStorageClass: "sc-large-example"
+  security:
+    allowInsecureImages: true
 
 mode: standalone
 
