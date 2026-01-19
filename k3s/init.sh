@@ -84,7 +84,6 @@ K3S_CONF=$(
 cluster-cidr: $CLUSTER_CIDR
 service-cidr: $SERVICE_CIDR
 data-dir: $DATA_DIR
-snapshotter: fuse-overlayfs
 disable-network-policy: true
 flannel-backend: host-gw
 disable:
