@@ -13,7 +13,8 @@ persistence:
   enabled: true
   annotations:
     helm.sh/resource-policy: keep
-  size: 2000Gi
+  size: 5000Gi
+  existingClaim: "minio-data"
 
 resources:
   requests:
