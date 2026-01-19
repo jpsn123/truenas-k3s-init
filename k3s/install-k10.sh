@@ -11,9 +11,16 @@ VERSION=8.5.0
 # install k10 for backup
 #####################################
 log_header "install k10 for backup"
-log_reminder "please input admin password seed for k10."
-read -p "password seed:"
-PASSWD=$(echo -n "$REPLY@k10" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+# init
+kubectl create namespace $NS 2>/dev/null || true
+if kubectl get secret k10-cluster-passphrase -n $NS >/dev/null 2>&1; then
+    PASSWD=$(kubectl get secret k10-cluster-passphrase -n $NS -ojsonpath='{.data.passphrase}' | base64 --decode)
+    log_info "reuse existing k10-cluster-passphrase."
+else
+    log_reminder "please input admin password seed for k10."
+    read -p "password seed:"
+    PASSWD=$(echo -n "$REPLY@k10" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
 copy_and_replace_default_values values-k10.yaml
 
 # init
