@@ -51,10 +51,10 @@ echo "ORPHAN dataset count: ${#orphans[@]}"
 if (( ${#orphans[@]} > 0 )); then
   echo "ORPHAN list:"
   printf '%s\n' "${orphans[@]}"
-
+  echo -e "\n\033[35m dataset任然存在,可能是还存在未过期的snapshot\033[0m"
   echo
-  read -r -p "Delete ALL orphan datasets above? Type 'yes' to delete: " ans
-  if [[ "$ans" == "yes" ]]; then
+  read -r -p "Delete ALL orphan datasets above? Type 'yes-i-really-want' to delete: " ans
+  if [[ "$ans" == "yes-i-really-want" ]]; then
     echo "Deleting..."
     for ds in "${orphans[@]}"; do
       echo "zfs destroy -r $ds"
