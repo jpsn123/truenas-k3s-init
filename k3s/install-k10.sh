@@ -11,7 +11,6 @@ VERSION=8.5.0
 # install k10 for backup
 #####################################
 log_header "install k10 for backup"
-# init
 kubectl create namespace $NS 2>/dev/null || true
 if kubectl get secret k10-cluster-passphrase -n $NS >/dev/null 2>&1; then
     PASSWD=$(kubectl get secret k10-cluster-passphrase -n $NS -ojsonpath='{.data.passphrase}' | base64 --decode)
@@ -22,9 +21,6 @@ else
     PASSWD=$(echo -n "$REPLY@k10" | sha1sum | awk '{print $1}' | base64 | head -c 32)
 fi
 copy_and_replace_default_values values-k10.yaml
-
-# init
-kubectl create namespace $NS 2>/dev/null || true
 kubectl delete secret k10-cluster-passphrase -n $NS 2>/dev/null || true
 kubectl create secret generic k10-cluster-passphrase --namespace $NS \
     --from-literal passphrase=$PASSWD
