@@ -6,16 +6,35 @@ source ../../common.sh
 source ../../parameter.sh
 NS=nextcloud
 
-log_reminder "please input password seed for setting nextcloud."
-read -p "password seed:"
-REDIS_PW=$(echo -n "$REPLY@$NS@redis" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-DB_PW=$(echo -n "$REPLY@$NS@pg" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-NEXTCLOUD_PW=$(echo -n "$REPLY@$NS@nextcloud" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-
 # initial
 #####################################
 log_header "initial"
 kubectl create namespace $NS 2>/dev/null || true
+if kubectl get secret redis -n $NS >/dev/null 2>&1; then
+    REDIS_PW=$(kubectl get secret redis -n $NS -ojsonpath='{.data.redis-password}' | base64 --decode)
+    log_info "reuse existing redis password."
+fi
+if kubectl get secret postgresql -n $NS >/dev/null 2>&1; then
+    DB_PW=$(kubectl get secret postgresql -n $NS -ojsonpath='{.data.password}' | base64 --decode)
+    log_info "reuse existing postgresql password."
+fi
+if kubectl get secret nextcloud -n $NS >/dev/null 2>&1; then
+    NEXTCLOUD_PW=$(kubectl get secret nextcloud -n $NS -ojsonpath='{.data.nextcloud-password}' | base64 --decode)
+    log_info "reuse existing nextcloud password."
+fi
+if [ -z "$REDIS_PW" ] || [ -z "$DB_PW" ] || [ -z "$NEXTCLOUD_PW" ]; then
+    log_reminder "please input password seed for setting nextcloud."
+    read -p "password seed:"
+fi
+if [ -z "$REDIS_PW" ]; then
+    REDIS_PW=$(echo -n "$REPLY@$NS@redis" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$DB_PW" ]; then
+    DB_PW=$(echo -n "$REPLY@$NS@pg" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$NEXTCLOUD_PW" ]; then
+    NEXTCLOUD_PW=$(echo -n "$REPLY@$NS@nextcloud" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
 kubectl -n $NS delete secret nextcloud 2>/dev/null || true
 kubectl -n $NS create secret generic nextcloud \
     --from-literal=nextcloud-username=admin \
@@ -47,9 +66,7 @@ helm upgrade --install -n $NS redis temp/redis --wait --timeout 600s -f temp/val
 log_header "install nextcloud"
 helm repo add nextcloud https://nextcloud.github.io/helm/
 [ -d temp/nextcloud ] || (helm repo update nextcloud && helm pull nextcloud/nextcloud --untar --untardir temp)
-helm upgrade --install -n $NS nextcloud temp/nextcloud --wait --timeout 600s -f temp/values-nextcloud.yaml --set replicaCount=1
-REPLICA=$(sed -E -n 's/^\s*replicaCount:\s*([0-9]+)\s*$/\1/p' values-nextcloud.yaml)
-kubectl scale -n $NS deployment nextcloud --replicas $REPLICA
+helm upgrade --install -n $NS nextcloud temp/nextcloud --wait --timeout 1200s -f temp/values-nextcloud.yaml --set replicaCount=1
 
 # install office
 #####################################
@@ -57,6 +74,7 @@ log_header "install office plugin"
 helm repo add bjw-s https://bjw-s-labs.github.io/helm-charts
 [ -d temp/app-template ] || (helm repo update bjw-s && helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION)
 helm upgrade --install -n $NS office temp/app-template --wait --timeout 600s -f temp/values-office.yaml
+
 ## done
 log_trace "install success!!!"
 log_trace "run command to get boostrap password:"

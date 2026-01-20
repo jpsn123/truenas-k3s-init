@@ -7,17 +7,25 @@ source ../../parameter.sh
 
 NS=openldap
 
-log_reminder "please input admin password seed."
-read -p "password seed:"
-PASSWD=$(echo -n "$REPLY@$NS@ldap" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-log_reminder "please input smtp password."
-read -p "password:"
-SMTP_PASSWD=$REPLY
-
 # initial
 #####################################
 log_header "initial"
 kubectl create namespace $NS 2>/dev/null || true
+if kubectl get secret openldap-passwd -n $NS >/dev/null 2>&1; then
+    PASSWD=$(kubectl get secret openldap-passwd -n $NS -ojsonpath='{.data.LAM_ADMIN_PASSWORD}' | base64 --decode)
+    SMTP_PASSWD=$(kubectl get secret openldap-passwd -n $NS -ojsonpath='{.data.SMTP_PASS}' | base64 --decode)
+    log_info "reuse existing openldap password."
+fi
+if [ -z "$PASSWD" ]; then
+    log_reminder "please input admin password seed."
+    read -p "password seed:"
+    PASSWD=$(echo -n "$REPLY@$NS@ldap" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$SMTP_PASSWD" ]; then
+    log_reminder "please input smtp password."
+    read -p "password:"
+    SMTP_PASSWD=$REPLY
+fi
 kubectl delete -n $NS configmap ssp-images 2>/dev/null || true
 kubectl create -n $NS configmap ssp-images \
     --from-file='bk.jpg' \

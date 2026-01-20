@@ -5,26 +5,67 @@ source ../../common.sh
 source ../../parameter.sh
 NS=gitlab
 
-log_reminder "input password seed for setting gitlab."
-read -p "password seed:"
-MINIO_PW=$(echo -n "$REPLY@$NS@minio" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-REDIS_PW=$(echo -n "$REPLY@$NS@redis" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-DB_PW=$(echo -n "$REPLY@$NS@pg" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-ELASTICSEARCH_PW=$(echo -n "$REPLY@$NS@elasticsearch" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-GITLAB_PW=$(echo -n "$REPLY@$NS@gitlab" | sha1sum | awk '{print $1}' | base64 | head -c 32)
-
-log_reminder "please input smtp password."
-read -p "password:"
-SMTP_PW=$REPLY
-
-log_reminder "please input ldap password."
-read -p "password:"
-LDAP_PW=$REPLY
-
 # initial
 #####################################
 log_header "initial"
 kubectl create namespace $NS 2>/dev/null || true
+if kubectl get secret minio -n $NS >/dev/null 2>&1; then
+    MINIO_PW=$(kubectl get secret minio -n $NS -ojsonpath='{.data.root-password}' | base64 --decode)
+    log_info "reuse existing minio password."
+fi
+if kubectl get secret redis -n $NS >/dev/null 2>&1; then
+    REDIS_PW=$(kubectl get secret redis -n $NS -ojsonpath='{.data.redis-password}' | base64 --decode)
+    log_info "reuse existing redis password."
+fi
+if kubectl get secret postgresql -n $NS >/dev/null 2>&1; then
+    DB_PW=$(kubectl get secret postgresql -n $NS -ojsonpath='{.data.password}' | base64 --decode)
+    log_info "reuse existing postgresql password."
+fi
+if kubectl get secret elasticsearch -n $NS >/dev/null 2>&1; then
+    ELASTICSEARCH_PW=$(kubectl get secret elasticsearch -n $NS -ojsonpath='{.data.elasticsearch-password}' | base64 --decode)
+    log_info "reuse existing elasticsearch password."
+fi
+if kubectl get secret gitlab-gitlab-initial-root-password -n $NS >/dev/null 2>&1; then
+    GITLAB_PW=$(kubectl get secret gitlab-gitlab-initial-root-password -n $NS -ojsonpath='{.data.password}' | base64 --decode)
+    log_info "reuse existing gitlab root password."
+fi
+if kubectl get secret mail-password -n $NS >/dev/null 2>&1; then
+    SMTP_PW=$(kubectl get secret mail-password -n $NS -ojsonpath='{.data.password}' | base64 --decode)
+    log_info "reuse existing smtp password."
+fi
+if kubectl get secret ldap-password -n $NS >/dev/null 2>&1; then
+    LDAP_PW=$(kubectl get secret ldap-password -n $NS -ojsonpath='{.data.password}' | base64 --decode)
+    log_info "reuse existing ldap password."
+fi
+if [ -z "$MINIO_PW" ] || [ -z "$REDIS_PW" ] || [ -z "$DB_PW" ] || [ -z "$ELASTICSEARCH_PW" ] || [ -z "$GITLAB_PW" ]; then
+    log_reminder "input password seed for setting gitlab."
+    read -p "password seed:"
+fi
+if [ -z "$MINIO_PW" ]; then
+    MINIO_PW=$(echo -n "$REPLY@$NS@minio" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$REDIS_PW" ]; then
+    REDIS_PW=$(echo -n "$REPLY@$NS@redis" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$DB_PW" ]; then
+    DB_PW=$(echo -n "$REPLY@$NS@pg" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$ELASTICSEARCH_PW" ]; then
+    ELASTICSEARCH_PW=$(echo -n "$REPLY@$NS@elasticsearch" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$GITLAB_PW" ]; then
+    GITLAB_PW=$(echo -n "$REPLY@$NS@gitlab" | sha1sum | awk '{print $1}' | base64 | head -c 32)
+fi
+if [ -z "$SMTP_PW" ]; then
+    log_reminder "please input smtp password."
+    read -p "password:"
+    SMTP_PW=$REPLY
+fi
+if [ -z "$LDAP_PW" ]; then
+    log_reminder "please input ldap password."
+    read -p "password:"
+    LDAP_PW=$REPLY
+fi
 copy_and_replace_default_values values-*.yaml
 copy_and_replace_default_values values-*.ini
 kubectl -n $NS delete secret mail-password 2>/dev/null
