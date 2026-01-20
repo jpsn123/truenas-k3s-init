@@ -9,9 +9,9 @@ pools="$(kubectl get sc -o jsonpath='{range .items[?(@.provisioner=="zfs.csi.ope
 pvtsv="$(kubectl get pv -o jsonpath='{range .items[?(@.spec.csi.driver=="zfs.csi.openebs.io")]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{.spec.storageClassName}{"\t"}{.spec.claimRef.namespace}{"/"}{.spec.claimRef.name}{"\t"}{.spec.csi.volumeHandle}{"\n"}{end}')"
 
 # 3) 打印表头
-printf "%-55s %-38s %-10s %-6s %-34s %-5s %-6s\n" "DATASET" "PV" "PHASE" "SC" "CLAIM" "USED" "ORPHAN"
-printf "%-55s %-38s %-10s %-6s %-34s %-5s %-6s\n" \
-"-------------------------------------------------------" "--------------------------------------" "----------" "------" "----------------------------------" "-----" "------"
+printf "%-64s %-45s %-10s %-6s %-40s %-5s %-6s\n" "DATASET" "PV" "PHASE" "SC" "CLAIM" "USED" "ORPHAN"
+printf "%-64s %-45s %-10s %-6s %-40s %-5s %-6s\n" \
+"----------------------------------------------------------------" "---------------------------------------------" "----------" "------" "----------------------------------------" "-----" "------"
 
 # 4) 以 zfs dataset 为主循环：打印明细，同时收集 ORPHAN 清单（用数组）
 orphans=()
@@ -36,8 +36,8 @@ while read -r ds; do
     orphans+=("$ds")
   fi
 
-  printf "%-55s %-38s %-10s %-6s %-34s %-5s %-6s\n" \
-    "${ds:0:55}" "$pv" "$phase" "$sc" "${claim:0:34}" "$used" "$orphan"
+  printf "%-64s %-45s %-10s %-6s %-40s %-5s %-6s\n" \
+    "${ds:0:64}" "$pv" "$phase" "$sc" "${claim:0:40}" "$used" "$orphan"
 done < <(
   printf "%s\n" "$pools" | while read -r pool; do
     [[ -z "$pool" ]] && continue
