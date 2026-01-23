@@ -66,8 +66,8 @@ if [ -z "$LDAP_PW" ]; then
     read -p "password:"
     LDAP_PW=$REPLY
 fi
-copy_and_replace_default_values values-*.yaml
-copy_and_replace_default_values values-*.ini
+render_values_file_to_temp values-*.yaml
+render_values_file_to_temp values-*.ini
 kubectl -n $NS delete secret mail-password 2>/dev/null
 kubectl -n $NS delete secret gitlab-rails-storage 2>/dev/null
 kubectl -n $NS delete secret gitlab-toolbox-s3cmd 2>/dev/null

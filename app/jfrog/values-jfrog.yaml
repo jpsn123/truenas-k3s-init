@@ -1,7 +1,7 @@
 databaseUpgradeReady: false
 global:
   imageRegistry: ""
-  jfrogUrl: https://bin.example.com
+  jfrogUrl: https://bin.${DOMAIN}
   database:
     initContainerSetupDBImage: "releases-docker.jfrog.io/postgres:16.6-alpine"
 #  versions:
@@ -20,7 +20,7 @@ postgresql:
       max_connections = 1000
       max_wal_size = 1000MB
     persistence:
-      storageClass: sc-example
+      storageClass: ${DEFAULT_STORAGE_CLASS}
       size: 20Gi
     resources:
       requests:
@@ -46,8 +46,8 @@ artifactory:
     tls:
       - secretName: artifactory-tls
         hosts:
-          - bin.example.com
-          - "*.bin.example.com"
+          - bin.${DOMAIN}
+          - "*.bin.${DOMAIN}"
   waitForDatabase: false
   database:
     type: postgresql
@@ -62,7 +62,7 @@ artifactory:
     migration:
       enabled: false
     persistence:
-      storageClassName: sc-large-example
+      storageClassName: ${DEFAULT_LARGE_STORAGE_CLASS}
       accessMode: ReadWriteMany
       size: 2Ti
     license:
@@ -87,7 +87,7 @@ distribution:
     user: distribution
   redis:
     persistence:
-      storageClass: sc-example
+      storageClass: ${DEFAULT_STORAGE_CLASS}
       size: 10Gi
 
 worker:

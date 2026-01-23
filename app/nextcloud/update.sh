@@ -8,7 +8,7 @@ NS=nextcloud
 # initial
 #####################################
 log_header "initial"
-copy_and_replace_default_values values-*.yaml
+render_values_file_to_temp values-*.yaml
 kubectl -n $NS apply -f temp/values-configs.yaml
 
 # update nextcloud

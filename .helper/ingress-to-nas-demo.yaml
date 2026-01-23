@@ -29,7 +29,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     kubernetes.io/tls-acme: "true"
     nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
     nginx.ingress.kubernetes.io/proxy-body-size: 4G
@@ -40,7 +40,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: nas.example.com
+    - host: nas.${DOMAIN}
       http:
         paths:
           - backend:
@@ -52,5 +52,5 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - nas.example.com
-      secretName: nas.example.com-tls
+        - nas.${DOMAIN}
+      secretName: nas.${DOMAIN}-tls

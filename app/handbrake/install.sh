@@ -20,15 +20,14 @@ kubectl create namespace $NS 2>/dev/null || true
 kubectl -n $NS delete secret password 2>/dev/null || true
 kubectl -n $NS create secret generic password \
     --from-literal=vnc-password=$VNC_PW
-sed -i "s/example.com/${DOMAIN}/g" values.yaml
-sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" values.yaml
+render_values_file_to_temp values-*.yaml
 
 # install app
 #####################################
 log_info "install $APP_NAME"
 helm repo add bjw-s https://bjw-s.github.io/helm-charts
 [ -d temp/app-template ] || (helm repo update bjw-s && helm pull bjw-s/app-template --untar --untardir temp --version=$COMMON_CHART_VERSION)
-helm upgrade --install -n $NS $APP_NAME temp/app-template --wait --timeout 600s -f values.yaml
+helm upgrade --install -n $NS $APP_NAME temp/app-template --wait --timeout 600s -f ./temp/values-hb.yaml
 
 ## done
 log_trace "init success!!!"

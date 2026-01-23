@@ -1,5 +1,5 @@
 global:
-  defaultStorageClass: "sc-large-example"
+  defaultStorageClass: "${DEFAULT_LARGE_STORAGE_CLASS}"
   security:
     allowInsecureImages: true
 
@@ -29,19 +29,19 @@ resources:
 ingress:
   enabled: true
   ingressClassName: "nginx"
-  hostname: s3.git.example.com
+  hostname: s3.git.${DOMAIN}
   annotations:
     helm.sh/resource-policy: keep
     nginx.ingress.kubernetes.io/whitelist-source-range: "10.12.0.0/16"
   extraTls:
     - hosts:
-        - s3.git.example.com
+        - s3.git.${DOMAIN}
       secretName: gitlab-wildcard-tls
 
 apiIngress:
   enabled: true
   ingressClassName: "nginx"
-  hostname: s3-api.git.example.com
+  hostname: s3-api.git.${DOMAIN}
   annotations:
     helm.sh/resource-policy: keep
     nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
@@ -51,5 +51,5 @@ apiIngress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
   extraTls:
     - hosts:
-        - s3-api.git.example.com
+        - s3-api.git.${DOMAIN}
       secretName: gitlab-wildcard-tls

@@ -34,11 +34,12 @@ kubectl delete -n $NS secret openldap-passwd 2>/dev/null || true
 kubectl create -n $NS secret generic openldap-passwd \
     --from-literal SMTP_PASS=$SMTP_PASSWD \
     --from-literal LAM_ADMIN_PASSWORD=$PASSWD
-copy_and_replace_default_values values-*.yaml
+render_values_file_to_temp values-*.yaml
 # replace dc=example,dc=com
 IFS='.' && DOMAIN_ARR=($DOMAIN) && unset IFS
 LDAP_BASE="dc=${DOMAIN_ARR[0]},dc=${DOMAIN_ARR[1]}"
 sed -i "s/dc=example,dc=com/${LDAP_BASE}/g" temp/values-*.yaml
+sed -i "s/example.com/${DOMAIN}/g" values-*.yaml
 
 # request ldap certificate
 #####################################

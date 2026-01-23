@@ -156,18 +156,98 @@ function app_is_exist() {
     echo false
 }
 
-## function copy_and_replace_default_values.
+## function render_values_file_to_temp.
 ## $@: file name
-function copy_and_replace_default_values() {
+function render_values_file_to_temp() {
     [ -d temp ] || mkdir temp
     for file in "$@"; do
         TEMP_NAME=$(dirname "$file")/temp
-        cp -f "$file" "$TEMP_NAME/$file"
-        sed -i "s/example.com/${DOMAIN}/g" "$TEMP_NAME/$file"
-        sed -i "s/sc-shared-example-cachefs/${DEFAULT_SHARED_CACHEFS_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
-        sed -i "s/sc-shared-example/${DEFAULT_SHARED_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
-        sed -i "s/sc-large-example/${DEFAULT_LARGE_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
-        sed -i "s/sc-example/${DEFAULT_STORAGE_CLASS}/g" "$TEMP_NAME/$file"
-        sed -i -e "s/^\(.*\)10.0.0.1/\1${INGRESS_IP}/g" "$TEMP_NAME/$file"
+        eval "echo \"$(cat $file)\"" >"$TEMP_NAME/$file"
     done
+}
+
+## function load_kernel_modules_with_conf.
+## $1: conf file name
+## $@: module names
+load_kernel_modules_with_conf() {
+    local conf_name="$1"; shift
+    local modules=("$@")
+
+    if [[ -z "$conf_name" ]]; then
+        log_error "conf path is empty"
+        return 1
+    fi
+    if [[ "$conf_name" == */* ]]; then
+        log_error "conf name must be a file name, not a path: $conf_name"
+        return 1
+    fi
+    conf_path="/etc/modules-load.d/$conf_name"
+
+    install -d /etc/modules-load.d || return 1
+    {
+        for m in "${modules[@]}"; do
+            echo "$m"
+        done
+    } | tee "$conf_path" >/dev/null || return 1
+
+    for m in "${modules[@]}"; do
+        if modprobe "$m"; then
+            log_info "modprobe ok: $m"
+        else
+            log_error "modprobe failed: $m"
+        fi
+    done
+}
+
+## function apply_sysctl_patch.
+## $@: sysctl key-value pairs (e.g. net.ipv4.ip_forward=1)
+apply_sysctl_patch() {
+    local sysctl_conf="/etc/sysctl.conf"
+    local marker="## PATCH"
+    local kv key tmp
+
+    for kv in "$@"; do
+        key="${kv%%=*}"
+        [[ -n "$key" && "$kv" == *=* ]] || { echo "bad kv: $kv" >&2; return 1; }
+        tmp="$(mktemp)" || return 1
+        awk -v marker="$marker" -v key="$key" -v kv="$kv" '
+            BEGIN { inpatch=0; seen_marker=0 }
+            {
+                if ($0 == marker) { inpatch=1; seen_marker=1; print; next }
+                if (inpatch && $0 ~ "^[[:space:]]*" key "[[:space:]]*=") next
+                print
+            }
+            END {
+                if (!seen_marker) { print ""; print marker }
+                print kv
+            }
+        ' "$sysctl_conf" >"$tmp" && cat "$tmp" >"$sysctl_conf" && rm -f "$tmp" || { rm -f "$tmp"; return 1; }
+    done
+
+    sysctl -p
+}
+
+## function wait_helmchart_ready.
+## $1: namespace
+## $2: chart name
+## $3: timeout in seconds
+wait_helmchart_ready() {
+    local namespace=$1
+    local chart_name=$2
+    local timeout=$3
+    local elapsed=0
+
+    while [ $elapsed -lt $timeout ]; do
+        STATUS=$(kubectl -n "$namespace" get helmchart "$chart_name" -o jsonpath='{.status.conditions[?(@.type=="Deployed")].status}' 2>/dev/null || echo "False")
+        if [ "$STATUS" == "True" ]; then
+            log_info "HelmChart $chart_name in namespace $namespace is deployed successfully."
+            return 0
+        fi
+        log_warn "Waiting for HelmChart $chart_name in namespace $namespace to be deployed..."
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+
+    log_error "Timeout waiting for HelmChart $chart_name in namespace $namespace to be deployed."
+    return 1
 }

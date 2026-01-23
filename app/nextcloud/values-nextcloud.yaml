@@ -16,15 +16,15 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     kubernetes.io/tls-acme: "true"
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: "example.com-letsencrypt-issuer"
+    cert-manager.io/cluster-issuer: "${DOMAIN}-letsencrypt-issuer"
   tls:
     - secretName: nextcloud-tls
       hosts:
-        - pan.example.com
-        - "*.pan.example.com"
+        - pan.${DOMAIN}
+        - "*.pan.${DOMAIN}"
 
 nextcloud:
-  host: pan.example.com
+  host: pan.${DOMAIN}
   existingSecret:
     enabled: true
     secretName: nextcloud
@@ -105,7 +105,7 @@ nextcloud:
         'templatedirectory' => '',
         'trashbin_retention_obligation' => 'auto, 7',
         'versions_retention_obligation' => 'auto, 7',
-        'overwrite.cli.url' => 'https://pan.example.com'
+        'overwrite.cli.url' => 'https://pan.${DOMAIN}'
       );
     redis.config.php: |-
       <?php
@@ -234,7 +234,7 @@ persistence:
   enabled: true
   annotations:
     helm.sh/resource-policy: keep
-  storageClass: "sc-shared-example-cachefs" # nextcloud会将网页资源放在共享存储中，且访问特别频繁，为了加速访问，使用cachefs
+  storageClass: "${DEFAULT_SHARED_CACHEFS_STORAGE_CLASS}" # nextcloud会将网页资源放在共享存储中，且访问特别频繁，为了加速访问，使用cachefs
   accessMode: ReadWriteMany
   size: 50Gi
 
@@ -243,7 +243,7 @@ persistence:
     subPath:
     annotations:
       helm.sh/resource-policy: keep
-    storageClass: "sc-large-example"
+    storageClass: "${DEFAULT_LARGE_STORAGE_CLASS}"
     accessMode: ReadWriteMany
     size: 20Ti
 

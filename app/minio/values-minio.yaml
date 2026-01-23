@@ -1,5 +1,5 @@
 global:
-  defaultStorageClass: "sc-large-example"
+  defaultStorageClass: "${DEFAULT_LARGE_STORAGE_CLASS}"
   security:
     allowInsecureImages: true
 
@@ -27,28 +27,28 @@ resources:
 ingress:
   enabled: true
   ingressClassName: "nginx"
-  hostname: s3.example.com
+  hostname: s3.${DOMAIN}
   annotations:
     helm.sh/resource-policy: keep
     kubernetes.io/tls-acme: "true"
-    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
   extraTls:
     - hosts:
-        - s3.example.com
-        - "*.s3.example.com"
-      secretName: s3.example.com-tls
+        - s3.${DOMAIN}
+        - "*.s3.${DOMAIN}"
+      secretName: s3.${DOMAIN}-tls
 
 apiIngress:
   enabled: true
   ingressClassName: "nginx"
-  hostname: api.s3.example.com
+  hostname: api.s3.${DOMAIN}
   annotations:
     helm.sh/resource-policy: keep
     kubernetes.io/tls-acme: "true"
-    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
   extraTls:
     - hosts:
-        - s3.example.com
-        - "*.s3.example.com"
-      secretName: s3.example.com-tls
+        - s3.${DOMAIN}
+        - "*.s3.${DOMAIN}"
+      secretName: s3.${DOMAIN}-tls

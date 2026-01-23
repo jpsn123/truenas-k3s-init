@@ -4,10 +4,10 @@ metadata:
   name: gitlab-pages-tls
 spec:
   dnsNames:
-    - pages.example.com
-    - "*.pages.example.com"
+    - pages.${DOMAIN}
+    - "*.pages.${DOMAIN}"
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: example.com-letsencrypt-issuer
+    name: ${DOMAIN}-letsencrypt-issuer
   secretName: gitlab-pages-tls

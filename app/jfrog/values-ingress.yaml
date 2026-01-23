@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   annotations:
     field.cattle.io/description: "UI界面管理，只供内网使用"
-    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     helm.sh/resource-policy: keep
     kubernetes.io/tls-acme: "true"
     meta.helm.sh/release-name: jfrog-platform
@@ -20,7 +20,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: bin.example.com
+    - host: bin.${DOMAIN}
       http:
         paths:
           - backend:
@@ -32,8 +32,8 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - bin.example.com
-        - "*.bin.example.com"
+        - bin.${DOMAIN}
+        - "*.bin.${DOMAIN}"
       secretName: artifactory-tls
 ---
 apiVersion: networking.k8s.io/v1
@@ -41,7 +41,7 @@ kind: Ingress
 metadata:
   annotations:
     field.cattle.io/description: "通用资源，可外网下载"
-    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     helm.sh/resource-policy: keep
     kubernetes.io/tls-acme: "true"
     meta.helm.sh/release-name: jfrog-platform
@@ -57,7 +57,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: bin.example.com
+    - host: bin.${DOMAIN}
       http:
         paths:
           - backend:
@@ -69,8 +69,8 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - bin.example.com
-        - "*.bin.example.com"
+        - bin.${DOMAIN}
+        - "*.bin.${DOMAIN}"
       secretName: artifactory-tls
 ---
 apiVersion: networking.k8s.io/v1
@@ -78,7 +78,7 @@ kind: Ingress
 metadata:
   annotations:
     field.cattle.io/description: "Docker资源，可外网下载"
-    cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     helm.sh/resource-policy: keep
     kubernetes.io/tls-acme: "true"
     meta.helm.sh/release-name: jfrog-platform
@@ -96,7 +96,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: "*.bin.example.com"
+    - host: "*.bin.${DOMAIN}"
       http:
         paths:
           - backend:
@@ -108,6 +108,6 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - bin.example.com
-        - "*.bin.example.com"
+        - bin.${DOMAIN}
+        - "*.bin.${DOMAIN}"
       secretName: artifactory-tls

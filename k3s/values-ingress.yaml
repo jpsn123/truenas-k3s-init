@@ -45,7 +45,7 @@ controller:
 
   service:
     type: LoadBalancer
-    loadBalancerIP: 10.0.0.1
+    loadBalancerIP: ${INGRESS_IP}
     externalTrafficPolicy: Local
 
   kind: DaemonSet

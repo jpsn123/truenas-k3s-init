@@ -3,15 +3,15 @@ global:
   image:
     pullPolicy: IfNotPresent
   hosts:
-    domain: example.com
+    domain: ${DOMAIN}
     https: true
     gitlab:
-      name: git.example.com
+      name: git.${DOMAIN}
       https: true
     registry: {}
     kas: {}
     pages:
-      name: pages.example.com
+      name: pages.${DOMAIN}
       https: true
   ingress:
     class: nginx
@@ -186,7 +186,7 @@ prometheus:
     persistentVolume:
       enabled: false
       size: 20Gi
-      storageClass: sc-example
+      storageClass: ${DEFAULT_STORAGE_CLASS}
 
 redis:
   install: false
@@ -235,7 +235,7 @@ gitlab:
         targetAverageValue: 1
   gitaly:
     persistence:
-      storageClass: sc-example
+      storageClass: ${DEFAULT_STORAGE_CLASS}
       size: 200Gi
       annotations: {}
   gitlab-shell:

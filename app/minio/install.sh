@@ -12,7 +12,7 @@ APP_NAME=minio
 log_info "initial"
 [ -d temp ] || mkdir temp
 kubectl create namespace $NS 2>/dev/null || true
-copy_and_replace_default_values values-*.yaml
+render_values_file_to_temp values-*.yaml
 if kubectl get secret minio -n $NS >/dev/null 2>&1; then
     MINIO_PW=$(kubectl get secret minio -n $NS -ojsonpath='{.data.root-password}' | base64 --decode)
     log_info "reuse existing minio root-password."

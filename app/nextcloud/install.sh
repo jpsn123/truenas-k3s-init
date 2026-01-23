@@ -39,7 +39,7 @@ kubectl -n $NS delete secret nextcloud 2>/dev/null || true
 kubectl -n $NS create secret generic nextcloud \
     --from-literal=nextcloud-username=admin \
     --from-literal=nextcloud-password=$NEXTCLOUD_PW
-copy_and_replace_default_values values-*.yaml
+render_values_file_to_temp values-*.yaml
 kubectl -n $NS apply -f temp/values-configs.yaml
 kubectl -n $NS apply -f temp/values-important-pvc.yaml
 

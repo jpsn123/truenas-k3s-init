@@ -20,7 +20,7 @@ else
     read -p "password seed:"
     PASSWD=$(echo -n "$REPLY@k10" | sha1sum | awk '{print $1}' | base64 | head -c 32)
 fi
-copy_and_replace_default_values values-k10.yaml
+render_values_file_to_temp values-k10.yaml
 kubectl delete secret k10-cluster-passphrase -n $NS 2>/dev/null || true
 kubectl create secret generic k10-cluster-passphrase --namespace $NS \
     --from-literal passphrase=$PASSWD

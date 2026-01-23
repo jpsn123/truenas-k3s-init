@@ -4,10 +4,10 @@ metadata:
   name: gitlab-wildcard-tls
 spec:
   dnsNames:
-    - git.example.com
-    - "*.git.example.com"
+    - git.${DOMAIN}
+    - "*.git.${DOMAIN}"
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: example.com-letsencrypt-issuer
+    name: ${DOMAIN}-letsencrypt-issuer
   secretName: gitlab-wildcard-tls

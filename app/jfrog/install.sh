@@ -32,7 +32,7 @@ fi
 if [ -z "$PG_PW" ]; then
     PG_PW=$(echo -n "$REPLY@$NS@pg" | sha1sum | awk '{print $1}' | base64 | head -c 32)
 fi
-copy_and_replace_default_values values-*.yaml
+render_values_file_to_temp values-*.yaml
 
 # install jfrog
 #####################################

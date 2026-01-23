@@ -88,7 +88,7 @@ persistence:
   config:
     enabled: true
     type: persistentVolumeClaim
-    storageClass: sc-example
+    storageClass: ${DEFAULT_STORAGE_CLASS}
     accessMode: ReadWriteOnce
     size: 10Gi
     retain: true

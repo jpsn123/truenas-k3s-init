@@ -90,10 +90,10 @@ ingress:
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
-      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     className: "nginx"
     hosts:
-      - host: draw.pan.example.com
+      - host: draw.pan.${DOMAIN}
         paths:
           - path: /
             pathType: Prefix
@@ -102,18 +102,18 @@ ingress:
               port: 8080
     tls:
       - hosts:
-          - pan.example.com
-          - "*.pan.example.com"
+          - pan.${DOMAIN}
+          - "*.pan.${DOMAIN}"
         secretName: nextcloud-tls
   documentserver:
     enabled: true
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
-      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     className: "nginx"
     hosts:
-      - host: doc.pan.example.com
+      - host: doc.pan.${DOMAIN}
         paths:
           - path: /
             pathType: Prefix
@@ -122,6 +122,6 @@ ingress:
               port: 80
     tls:
       - hosts:
-          - pan.example.com
-          - "*.pan.example.com"
+          - pan.${DOMAIN}
+          - "*.pan.${DOMAIN}"
         secretName: nextcloud-tls

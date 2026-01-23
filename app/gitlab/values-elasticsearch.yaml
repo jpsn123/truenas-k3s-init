@@ -1,5 +1,5 @@
 global:
-  defaultStorageClass: sc-example
+  defaultStorageClass: ${DEFAULT_STORAGE_CLASS}
   kibanaEnabled: true
   elasticsearch:
     service:
@@ -92,7 +92,7 @@ kibana:
 
   ingress:
     enabled: true
-    hostname: es.git.example.com
+    hostname: es.git.${DOMAIN}
     path: /
     annotations:
       helm.sh/resource-policy: keep
@@ -100,7 +100,7 @@ kibana:
     tls: false
     extraTls:
       - hosts:
-          - es.git.example.com
+          - es.git.${DOMAIN}
         secretName: gitlab-wildcard-tls
     ingressClassName: "nginx"
 

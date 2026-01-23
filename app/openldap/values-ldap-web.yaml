@@ -24,13 +24,10 @@ controllers:
         env:
           TZ: Asia/Shanghai
           LAM_SKIP_PRECONFIGURE: false
-          LDAP_DOMAIN: example.com
-          LDAP_BASE_DN: dc=example,dc=com
-          LDAP_GROUPS_DN: ou=groups,dc=example,dc=com
-          LDAP_ORGANISATION: "example LDAP Account Manager"
+          LDAP_DOMAIN: jutze.cn
+          LDAP_BASE_DN: dc=jutze,dc=cn
+          LDAP_ORGANISATION: "Jutze LDAP Account Manager"
           LDAP_SERVER: ldap://ldap
-          LDAP_USER: cn=admin,dc=example,dc=com
-          LDAP_USERS_DN: ou=users,dc=example,dc=com
           LAM_LANG: en_US
           LAM_PASSWORD:
             valueFrom:
@@ -71,7 +68,7 @@ controllers:
                 name: openldap-passwd
                 key: SMTP_PASS
           IS_BEHIND_PROXY: "true"
-          SITE_URL: https://ssp.example.com
+          SITE_URL: https://ssp.${DOMAIN}
 
 service:
   lam:
@@ -95,10 +92,10 @@ ingress:
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
-      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     className: "nginx"
     hosts:
-      - host: lam.example.com
+      - host: lam.${DOMAIN}
         paths:
           - path: /
             pathType: Prefix
@@ -107,17 +104,17 @@ ingress:
               port: 80
     tls:
       - hosts:
-          - lam.example.com
-        secretName: lam.example.com-tls
+          - lam.${DOMAIN}
+        secretName: lam.${DOMAIN}-tls
   ssp:
     enabled: true
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
-      cert-manager.io/cluster-issuer: example.com-letsencrypt-issuer
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
     className: "nginx"
     hosts:
-      - host: ssp.example.com
+      - host: ssp.${DOMAIN}
         paths:
           - path: /
             pathType: Prefix
@@ -126,8 +123,8 @@ ingress:
               port: 80
     tls:
       - hosts:
-          - ssp.example.com
-        secretName: ssp.example.com-tls
+          - ssp.${DOMAIN}
+        secretName: ssp.${DOMAIN}-tls
 
 persistence:
   scripts:
@@ -144,7 +141,7 @@ persistence:
     enabled: true
     forceRename: ldap-web-lam-config
     type: persistentVolumeClaim
-    storageClass: sc-example
+    storageClass: ${DEFAULT_STORAGE_CLASS}
     accessMode: ReadWriteOnce
     size: 1Gi
     retain: true
@@ -265,17 +262,17 @@ secrets:
         # default = false
         $mail_address_use_ldap = false;
         # Who the email should come from
-        $mail_from = "system@example.com";
-        $mail_from_name = "Self Service Password";
-        $mail_signature = "\nFrom SSP Cloud. (Self Service Password Center)";
+        $mail_from = "system@jutze.com.cn";
+        $mail_from_name = "Jutze Self Service Password";
+        $mail_signature = "\nFrom Jutze Cloud. (Self Service Password Center)";
         # Notify users anytime their password is changed
         $notify_on_change = true;
         $mail_protocol = 'smtp';
         $mail_smtp_debug = 0;
         $mail_debug_format = 'html';
-        $mail_smtp_host = 'smtp.example.com';
+        $mail_smtp_host = 'smtp.qiye.163.com';
         $mail_smtp_auth = true;
-        $mail_smtp_user = 'system@example.com';
+        $mail_smtp_user = 'system@jutze.com.cn';
         $mail_smtp_port = 994;
         $mail_smtp_timeout = 30;
         $mail_smtp_keepalive = false;

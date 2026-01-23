@@ -1,4 +1,5 @@
 debug: false
+hostname: srv.${DOMAIN}
 ingress:
   enabled: true
   includeDefaultExtraAnnotations: true
@@ -6,11 +7,12 @@ ingress:
   extraAnnotations:
     helm.sh/resource-policy: keep
     kubernetes.io/tls-acme: "true"
-    cert-manager.io/cluster-issuer: "example.com-letsencrypt-issuer"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
+    cert-manager.io/cluster-issuer: "${DOMAIN}-letsencrypt-issuer"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.100.20"
   tls:
     # options: rancher, letsEncrypt, secret
     source: secret
+    secretName: rancher-tls
 
 replicas: 1
 tls: ingress
