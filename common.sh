@@ -156,13 +156,29 @@ function app_is_exist() {
     echo false
 }
 
-## function render_values_file_to_temp.
+## function render_values_file_to_temp. autofill parameter.sh value to values.yaml file.
 ## $@: file name
 function render_values_file_to_temp() {
     [ -d temp ] || mkdir temp
     for file in "$@"; do
         TEMP_NAME=$(dirname "$file")/temp
-        eval "echo \"$(cat $file)\"" >"$TEMP_NAME/$file"
+        # Only expand ${VAR} in environment variables
+        while IFS= read -r line; do
+            out=""
+            while [[ $line =~ ^([^$]*)(\$\{[A-Z_][A-Z0-9_]*\})(.*)$ ]]; do
+                out+="${BASH_REMATCH[1]}"
+                token="${BASH_REMATCH[2]}"
+                var="${token:2:-1}"
+                val="${!var}"
+                if [[ -n "$val" ]]; then
+                    out+="$val"
+                else
+                    out+="$token"
+                fi
+                line="${BASH_REMATCH[3]}"
+            done
+            printf '%s\n' "$out$line"
+        done <"$file" >"$TEMP_NAME/$file"
     done
 }
 
