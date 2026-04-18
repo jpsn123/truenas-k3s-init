@@ -73,45 +73,6 @@ function remote_copy() {
     done
 }
 
-## function k8s_wait.
-## $1: k8s namespace
-## $2: resource type
-## $3: resource
-## $4: duration count
-function k8s_wait() {
-    sleep 2
-    for ((_common_index = 0; _common_index < $4; _common_index++)); do
-        RES=$(kubectl -n $1 rollout status $2 $3 -w=false 2>/dev/null | grep -E 'successfully|complete' || true)
-        if [ -n "$RES" ]; then
-            log_info "   resource $3 is ready!"
-            return 0
-        fi
-        log_warn "   waiting $3 be ready...  "
-        sleep 5
-    done
-    log_error "   ERROR: resource $3 isn't ready!"
-    return -1
-}
-
-## function k8s_job_wait.
-## $1: k8s namespace
-## $2: resource
-## $3: duration count
-function k8s_job_wait() {
-    sleep 2
-    for ((_common_index = 0; _common_index < $3; _common_index++)); do
-        RES=$(kubectl -n $1 get jobs.batch $2 -o=jsonpath='{.status.succeeded}' 2>/dev/null || true)
-        if [ "$RES" = '1' ]; then
-            log_info "   resource $2 is ready!"
-            return 0
-        fi
-        log_warn "   waiting $2 be ready...  "
-        sleep 5
-    done
-    log_error "   ERROR: resource $2 isn't ready!"
-    return -1
-}
-
 ## function to create pool with param.
 ## $1: pool name
 ## $2: pg num
@@ -162,7 +123,6 @@ function render_values_file_to_temp() {
     [ -d temp ] || mkdir temp
     for file in "$@"; do
         TEMP_NAME=$(dirname "$file")/temp
-        # Only expand ${VAR} in environment variables
         while IFS= read -r line; do
             out=""
             while [[ $line =~ ^([^$]*)(\$\{[A-Z_][A-Z0-9_]*\})(.*)$ ]]; do
@@ -254,8 +214,8 @@ wait_helmchart_ready() {
     local elapsed=0
 
     while [ $elapsed -lt $timeout ]; do
-        STATUS=$(kubectl -n "$namespace" get helmchart "$chart_name" -o jsonpath='{.status.conditions[?(@.type=="Deployed")].status}' 2>/dev/null || echo "False")
-        if [ "$STATUS" == "True" ]; then
+        STATUS=$(kubectl -n "$namespace" get helmchart "$chart_name" -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || echo "True")
+        if [ "$STATUS" == "False" ]; then
             log_info "HelmChart $chart_name in namespace $namespace is deployed successfully."
             return 0
         fi

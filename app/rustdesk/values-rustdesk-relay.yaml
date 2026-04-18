@@ -1,0 +1,78 @@
+global:
+  fullnameOverride: rustdesk-relay
+
+defaultPodOptions: {}
+
+controllers:
+  main:
+    enabled: true
+    forceRename: rustdesk-relay
+    type: deployment
+    replicas: 1
+    containers:
+      hbbr:
+        image:
+          repository: jutze/remote-desktop
+          tag: 1.1.15
+          pullPolicy: IfNotPresent
+        command: ["hbbr"]
+        env:
+          TZ: ${TIMEZONE}
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 4
+            memory: 2048Mi
+
+service:
+  rustdesk:
+    enabled: true
+    forceRename: rustdesk
+    controller: main
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+    ports:
+      relay:
+        enabled: true
+        port: 21117
+        protocol: TCP
+      relay-web-client:
+        enabled: true
+        port: 21119
+        protocol: TCP
+
+ingress:
+  rustdesk:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    className: "nginx"
+    hosts:
+      - host: rd-cn.${DOMAIN}
+        paths:
+          - path: /ws/relay
+            pathType: Prefix
+            service:
+              name: rustdesk
+              port: 21119
+    tls:
+      - hosts:
+          - rd-cn.${DOMAIN}
+        secretName: rustdesk-tls
+
+persistence:
+  data:
+    enabled: true
+    forceRename: rustdesk-data
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
+    globalMounts:
+      - path: /root
+        readOnly: false
