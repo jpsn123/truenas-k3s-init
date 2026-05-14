@@ -6,7 +6,7 @@ source ../common.sh
 source ../parameter.sh
 
 NS=kasten-io
-VERSION=8.5.0
+VERSION=8.5.8
 
 # install k10 for backup
 #####################################
@@ -44,11 +44,11 @@ helm upgrade --install -n $NS k10 temp/k10 -f temp/values-k10.yaml
 
 # change config excludedApps
 RANCHER_NS_ARR=$(kubectl get ns -o=jsonpath='{.items[*].metadata.name}' | tr " " "\n" | grep -E 'cattle-|fleet-|local|p-[a-z0-9]+|user-|u-[a-z0-9]+')
-IGRORE_STR=$(kubectl -n kasten-io get configmaps k10-config -o=jsonpath='{.data.excludedApps}')
-NS_IGRORE_ARR=(${IGRORE_STR//,/ })
-IGRORE_STR=($(echo "${RANCHER_NS_ARR[@]}" "${NS_IGRORE_ARR[@]}" | tr ' ' '\n' | sort -u | tr '\n' ','))
+IGNORE_STR=$(kubectl -n kasten-io get configmaps k10-config -o=jsonpath='{.data.excludedApps}')
+NS_IGNORE_ARR=(${IGNORE_STR//,/ })
+IGNORE_STR=($(echo "${RANCHER_NS_ARR[@]}" "${NS_IGNORE_ARR[@]}" | tr ' ' '\n' | sort -u | tr '\n' ','))
 kubectl -n $NS patch configmap k10-config --type merge --patch \
-    "{\"data\":{\"excludedApps\":\"${IGRORE_STR:0:-1}\"}}"
+    "{\"data\":{\"excludedApps\":\"${IGNORE_STR:0:-1}\"}}"
 
 # optional, customize tool-images for self-defined kopia repo password
 kubectl -n $NS patch configmap k10-config --type merge --patch \
