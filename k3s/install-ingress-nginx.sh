@@ -10,10 +10,10 @@ source ../parameter.sh
 log_header "install ingress-nginx"
 render_values_file_to_temp values-ingress.yaml
 
-helm repo add ingress-nginx "https://kubernetes.github.io/ingress-nginx"
-[ -d temp/ingress-nginx ] || (helm repo update ingress-nginx && helm pull ingress-nginx/ingress-nginx --untar --untardir temp)
+helm repo add rke2-charts "https://rancher.github.io/rke2-charts"
+[ -d temp/rke2-ingress-nginx ] || (helm repo update rke2-charts && helm pull rke2-charts/rke2-ingress-nginx --untar --untardir temp)
 kubectl create namespace ingress-nginx 2>/dev/null || true
-helm upgrade --install ingress-nginx temp/ingress-nginx -n ingress-nginx --wait --timeout 600s -f ./temp/values-ingress.yaml
+helm upgrade --install rke2-ingress-nginx temp/rke2-ingress-nginx -n ingress-nginx --wait --timeout 600s -f temp/values-ingress.yaml
 
-## done
-log_trace "init success!!!"
+# done
+log_trace "install ingress-nginx success!!!"

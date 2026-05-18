@@ -1,3 +1,7 @@
+global:
+  prime:
+    enabled: true
+
 controller:
   image:
     digest: ""
@@ -6,7 +10,8 @@ controller:
     name: nginx
     enabled: true
     default: true
-  enableAnnotationValidations: false # TODO: bug on annotation redirect, remove if fix
+    controllerValue: "k8s.io/ingress-nginx"
+  enableAnnotationValidations: true # TODO: bug on annotation redirect, remove if fix https://github.com/kubernetes/ingress-nginx/issues/11175
   allowSnippetAnnotations: true
 
   config:
@@ -33,7 +38,7 @@ controller:
     annotations-risk-level: Critical
     # disable-access-log: "true"
     skip-access-log-urls: '~^.+\.(jpg|jpeg|gif|bmp|css|png|html|htm|ico|xml|svg|js|map|woff|woff2|ttf)$'
-    annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount,{,}"
+    annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount"
 
   proxySetHeaders: {}
 
@@ -47,6 +52,7 @@ controller:
     type: LoadBalancer
     loadBalancerIP: ${INGRESS_IP}
     externalTrafficPolicy: Local
+    internalTrafficPolicy: Local
 
   kind: DaemonSet
   hostNetwork: false
@@ -54,10 +60,3 @@ controller:
     enabled: false
 defaultBackend:
   enabled: "true"
-tcp:
-  #  53: "dns/dns:53"
-  20000: "not-exist-ns/should-be-modified:20000"
-
-udp:
-#  53: "dns/dns:53"
-#  30000: "not-exist-ns/should-be-modified:30000"
