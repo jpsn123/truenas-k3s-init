@@ -17,13 +17,18 @@ ingress:
 replicas: 1
 tls: ingress
 
+livenessProbe:
+  periodSeconds: 60
+readinessProbe:
+  periodSeconds: 30
+
 fleet:
   controller:
-    replicas: 0
+    replicas: 1
   gitjob:
-    replicas: 0
+    replicas: 1
   helmops:
-    enabled: true
-    replicas: 0
+    enabled: false
+    replicas: 1
   agent:
-    replicas: 0
+    replicas: 1

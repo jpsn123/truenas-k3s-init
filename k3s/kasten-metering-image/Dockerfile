@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=gcr.io/kasten-images/metering:8.5.8
+ARG BASE_IMAGE=""
 
 FROM $BASE_IMAGE AS base
 

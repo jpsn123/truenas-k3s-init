@@ -10,14 +10,14 @@ source ../parameter.sh
 # init
 #####################################
 log_header "Truenas init"
-[ -d temp ] || mkdir temp
-sed -i '/## PATCH/,$d' /etc/sysctl.conf
-echo -e "\n## PATCH" >>/etc/sysctl.conf
-echo "net.core.default_qdisc=fq" >>/etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=bbr" >>/etc/sysctl.conf
-echo "fs.inotify.max_user_watches=1048576" >>/etc/sysctl.conf
-echo "fs.inotify.max_user_instances=8192" >>/etc/sysctl.conf
-sysctl -p
+
+# sysctl
+apply_sysctl_patch net.core.default_qdisc=fq
+apply_sysctl_patch net.ipv4.ip_forward=1
+apply_sysctl_patch net.ipv4.tcp_congestion_control=bbr
+apply_sysctl_patch fs.inotify.max_user_watches=1048576
+apply_sysctl_patch fs.inotify.max_user_instances=65536
+sysctl --system
 
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
@@ -31,7 +31,6 @@ cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d || true
 apt update
 swapoff -a
 sed -i '/^\/swap/s/^/# /' /etc/fstab
-sed -i "s/^#net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/g" /etc/sysctl.conf #forward vm ipv4 package if configure network bridge
 
 # improve vm running performance
 log_info "    improve vm running performance"
@@ -157,7 +156,7 @@ EOF
 fi
 
 # bashrc
-log_info "    making bashrc, you need configurate your shell to 'bash' by TrueNAS UI."
+log_info "    making bashrc"
 cat <<"EOF" >/root/.bashrc
 # ~/.bashrc: executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
@@ -194,6 +193,60 @@ if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
+function prompt_git_status() {
+    local GIT_BRANCH=""
+    local GIT_STATE=""
+    local GIT_STATUS=""
+    local STATUS_LINE=""
+    local INDEX_STATUS=""
+    local WORKTREE_STATUS=""
+    local HAS_STAGED=false
+    local HAS_UNSTAGED=false
+    local HAS_UNTRACKED=false
+
+    command -v git >/dev/null 2>&1 || return
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return
+
+    GIT_BRANCH=$(git branch --show-current 2>/dev/null || true)
+    if [ -z "$GIT_BRANCH" ]; then
+        GIT_BRANCH=$(git rev-parse --short HEAD 2>/dev/null || true)
+    fi
+    [ -n "$GIT_BRANCH" ] || return
+
+    GIT_STATUS=$(git status --porcelain 2>/dev/null || true)
+    while IFS= read -r STATUS_LINE; do
+        [ -n "$STATUS_LINE" ] || continue
+        if [[ "$STATUS_LINE" == "??"* ]]; then
+            HAS_UNTRACKED=true
+            continue
+        fi
+
+        INDEX_STATUS="${STATUS_LINE:0:1}"
+        WORKTREE_STATUS="${STATUS_LINE:1:1}"
+        case "$INDEX_STATUS" in
+            M|T|A|D|R|C|U) HAS_STAGED=true ;;
+        esac
+        case "$WORKTREE_STATUS" in
+            M|T|A|D|R|C|U) HAS_UNSTAGED=true ;;
+        esac
+    done <<< "$GIT_STATUS"
+
+    if [ "$HAS_STAGED" = true ]; then
+        GIT_STATE="${GIT_STATE}+"
+    fi
+    if [ "$HAS_UNSTAGED" = true ]; then
+        GIT_STATE="${GIT_STATE}!"
+    fi
+    if [ "$HAS_UNTRACKED" = true ]; then
+        GIT_STATE="${GIT_STATE}?"
+    fi
+    if [ -z "$GIT_STATE" ]; then
+        GIT_STATE="="
+    fi
+
+    printf ' [%s%s]' "$GIT_BRANCH" "$GIT_STATE"
+}
+
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
     xterm-color|*-256color) color_prompt=yes;;
@@ -216,9 +269,9 @@ if [ -n "$force_color_prompt" ]; then
 fi
 
 if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\e[31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[m\]\[\e[32m\]\[\e[1;32m\]\A\[\e[36m\] \w\[\e[m\]\$\[\e[m\] '
+    PS1='${debian_chroot:+($debian_chroot)}\[\e[31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[m\]\[\e[32m\]\[\e[1;32m\]\A\[\e[36m\] \w\[\e[35m\]$(prompt_git_status)\[\e[m\]\$\[\e[m\] '
 else
-    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w$(prompt_git_status)\$ '
 fi
 unset color_prompt force_color_prompt
 
@@ -246,10 +299,22 @@ fi
 # colored GCC warnings and errors
 export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
-# some more ls aliases
-alias ll='ls -l'
-alias la='ls -A'
-alias l='ls -CF'
+# some more aliases
+if command -v eza >/dev/null 2>&1; then
+    alias ll='eza -alF --group-directories-first --git'
+    alias la='eza -a --group-directories-first --git'
+    alias l='eza -F --group-directories-first --git'
+else
+    alias ll='ls -alF'
+    alias la='ls -A'
+    alias l='ls -CF'
+fi
+alias htop='bashtop'
+alias gs='git status -sb'
+alias ga='git add'
+alias gc='git commit'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate --all'
 
 # Alias definitions.
 # You may want to put all your additions into a separate file like
@@ -280,8 +345,8 @@ sed -i '/##K3S_PATCH/d' $HOME/.profile
 K3S_PATCH=$(
     cat <<EOF
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml ##K3S_PATCH
-alias kk='kubectl get pod -A' ##K3S_PATCH
-alias kp='kubectl get pod -A -o wide' ##K3S_PATCH
+alias k='kubectl get pod -A' ##K3S_PATCH
+alias kk='kubectl get pod -A -o wide' ##K3S_PATCH
 alias kn='kubectl get node -o wide' ##K3S_PATCH
 alias ks='kubectl get svc -A -o wide' ##K3S_PATCH
 alias ki='kubectl get ingress -A -o wide' ##K3S_PATCH

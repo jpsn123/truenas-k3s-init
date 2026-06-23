@@ -1,4 +1,6 @@
-FROM gcr.io/kasten-images/kanister-tools:8.5.8
+ARG BASE_IMAGE=""
+
+FROM $BASE_IMAGE
 USER root
 RUN curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl && \

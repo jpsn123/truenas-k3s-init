@@ -8,12 +8,16 @@ source ../parameter.sh
 # install cert-manager
 #####################################
 log_header "install cert-manager"
-helm repo add jetstack "https://charts.jetstack.io"
-[ -d temp/cert-manager ] || (helm repo update jetstack && helm pull jetstack/cert-manager --untar --untardir temp 2>/dev/null)
 kubectl create namespace cert-manager 2>/dev/null || true
-helm upgrade --install -n cert-manager cert-manager temp/cert-manager  --wait --timeout 600s \
-  --set crds.enabled=true \
-  --set extraArgs={--enable-certificate-owner-ref}
+read CHART_VERSION APP_VERSION < <(get_helm_chart_versions "jetstack" "https://charts.jetstack.io" "cert-manager")
+ensure_helm_repo_chart "jetstack" "https://charts.jetstack.io" "cert-manager" "$CHART_VERSION"
+helm upgrade --install --namespace cert-manager cert-manager temp/cert-manager --wait --timeout 600s \
+    --set crds.enabled=true \
+    --set livenessProbe.initialDelaySeconds=120 \
+    --set livenessProbe.periodSeconds=60 \
+    --set webhook.livenessProbe.initialDelaySeconds=120 \
+    --set webhook.livenessProbe.periodSeconds=60 \
+    --set webhook.readinessProbe.periodSeconds=30
 
-## done
-log_trace "init success!!!"
+# done
+log_trace "install cert-manager success!!!"

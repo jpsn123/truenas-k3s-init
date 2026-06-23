@@ -8,9 +8,8 @@ source ../parameter.sh
 # install
 #####################################
 log_header "install zfs csi"
-
-helm repo add openebs https://openebs.github.io/openebs 2>/dev/null || true
-[ -d temp/openebs ] || (helm repo update openebs && helm pull openebs/openebs --untar --untardir temp)
+read CHART_VERSION APP_VERSION < <(get_helm_chart_versions "openebs" "https://openebs.github.io/openebs"" "openebs")
+ensure_helm_repo_chart "openebs" "https://openebs.github.io/openebs" "openebs" "$CHART_VERSION"
 helm upgrade --install --create-namespace zfs-csi temp/openebs -n openebs --wait --timeout 600s -f values-openebs.yaml
 
 ## create storageclass

@@ -1,7 +1,3 @@
-global:
-  prime:
-    enabled: true
-
 controller:
   image:
     digest: ""
@@ -40,6 +36,12 @@ controller:
     skip-access-log-urls: '~^.+\.(jpg|jpeg|gif|bmp|css|png|html|htm|ico|xml|svg|js|map|woff|woff2|ttf)$'
     annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount"
 
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+
   proxySetHeaders: {}
 
   addHeaders:
@@ -49,6 +51,7 @@ controller:
     port: 18443
 
   service:
+    enabled: true
     type: LoadBalancer
     loadBalancerIP: ${INGRESS_IP}
     externalTrafficPolicy: Local
