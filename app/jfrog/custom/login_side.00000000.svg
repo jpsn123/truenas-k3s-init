@@ -1,0 +1,24 @@
+<svg width="334" height="619" viewBox="0 0 334 619" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="side">
+<g id="side_pic">
+<rect id="Mask" width="334" height="619" fill="url(#paint0_linear)"/>
+<mask id="mask0" mask-type="alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="334" height="619">
+<rect id="Mask_2" width="334" height="619" fill="white"/>
+</mask>
+<g mask="url(#mask0)">
+<g id="jfrog-icon">
+<g id="A-link">
+<g id="A">
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear" x1="1.04679e-06" y1="82.1657" x2="268.955" y2="688.464" gradientUnits="userSpaceOnUse">
+<stop offset="0.347896" stop-color="#e3e0e0"/>
+<stop offset="1" stop-color="#77c8f7"/>
+</linearGradient>
+</defs>
+</svg>

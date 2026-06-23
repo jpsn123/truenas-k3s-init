@@ -1,0 +1,41 @@
+{% extends "email/base.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="text-primary" style="max-width:430px;margin-bottom:10px;">以下通知已创建：</p>
+<p class="text-secondary" style="max-width:430px;margin-bottom:20px;">The following notification was created:</p>
+<div class="notification-body">{{ body }}</div>
+{% if link %}
+<a id="confirm" href="{{ link.target }}" rel="noopener noreferrer" target="_blank" class="btn-primary">{{ link.label }}</a>
+{% endif %}
+{% if key_value %}
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" class="properties-table">
+  {% for key, value in key_value.items %}
+  <tr>
+    <td class="td-right">{{ key }}</td>
+    <td>{{ value }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}
+
+{% block sub_content %}
+{% if link %}
+<div class="sub-content break-word">
+  如果按钮无法打开，请复制以下链接到浏览器：<br>
+  If the button does not work, copy and paste this link into your browser:<br>
+  <a href="{{ link.target }}" rel="noopener noreferrer" target="_blank">{{ link.target }}</a>
+</div>
+{% endif %}
+{% if source %}
+<div class="sub-content">
+  此邮件由通知传输 <code>{{ source.from }}</code> 发送。<br>
+  This email was sent from the notification transport <code>{{ source.from }}</code>.
+</div>
+{% endif %}
+{% endblock %}

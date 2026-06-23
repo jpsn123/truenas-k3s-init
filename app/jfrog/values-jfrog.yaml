@@ -9,13 +9,18 @@ global:
 
 postgresql:
   enabled: true
-  enablePostgresUser: true
   image:
+    registry: docker.io
     repository: bitnamilegacy/postgresql
     tag: 16.6.0-debian-12-r2
   auth:
     postgresPassword: "postgres"
   primary:
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 60
+    readinessProbe:
+      periodSeconds: 30
     extendedConfiguration: |
       max_connections = 1000
       max_wal_size = 1000MB
@@ -24,11 +29,13 @@ postgresql:
       size: 20Gi
     resources:
       requests:
-        cpu: 1
+        cpu: 100m
         memory: 512Mi
       limits:
-        cpu: 4
-        memory: 8Gi
+        cpu: 2
+        memory: 4Gi
+  upgradeHookSTSDelete:
+    enabled: false
 
 ## This Rabbitmq is used by Xray and Pipelines only, set rabbitmq.enabled: false, when Xray or Pipelines is not enabled
 rabbitmq:
@@ -54,13 +61,75 @@ artifactory:
     driver: org.postgresql.Driver
     url: '{{ include "database.url" . }}'
     user: artifactory
+  router:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          httpHeaders:
+            - name: X-Jfrog-Ignore-Unhealthy
+              value: "true"
+          path: /router/api/v1/system/liveness
+          port: {{ .Values.router.externalPort }}
+          scheme: {{ include "artifactory.scheme" . | upper }}
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        initialDelaySeconds: 10
+        periodSeconds: 60
+        failureThreshold: 5
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
   artifactory:
     image:
-      registry: docker.io
-      repository: jutze/artifactory-pro
+      registry: releases-docker.jfrog.io
+      repository: jfrog/artifactory-pro
     replicaCount: 1
     migration:
       enabled: false
+    customVolumes: |
+      - name: jfrog-patch-script
+        configMap:
+          name: jfrog-patch
+      - name: jfrog-patch-jars
+        emptyDir: {}
+      - name: jfrog-frontend-custom
+        configMap:
+          name: jfrog-frontend-custom
+          defaultMode: 0755
+    customVolumeMounts: |
+      - name: jfrog-patch-jars
+        mountPath: /jfrog-patch
+      - name: jfrog-frontend-custom
+        mountPath: /jfrog-custom
+        readOnly: true
+    customInitContainers: |
+      - name: copy-artifactory-jars
+        image: {{ include "artifactory.getImageInfoByValue" (list . "artifactory") }}
+        imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            cp /opt/jfrog/artifactory/app/artifactory/tomcat/webapps/artifactory/WEB-INF/lib/artifactory-addons-manager-*.jar /jfrog-patch/ &&
+            cp /opt/jfrog/artifactory/app/access/tomcat/webapps/access/WEB-INF/lib/license-manager-*.jar /jfrog-patch/
+        volumeMounts:
+          - name: jfrog-patch-jars
+            mountPath: /jfrog-patch
+      - name: patch-artifactory-jars
+        image: python:3.12-slim
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |
+            python3 /tmp/patch/patch.py --in-place --strip-signatures /jfrog-patch/artifactory-addons-manager-*.jar /jfrog-patch/license-manager-*.jar
+        volumeMounts:
+          - name: jfrog-patch-jars
+            mountPath: /jfrog-patch
+          - name: jfrog-patch-script
+            mountPath: /tmp/patch
+            readOnly: true
+    preStartCommand: "cp -f /jfrog-patch/artifactory-addons-manager-*.jar /opt/jfrog/artifactory/app/artifactory/tomcat/webapps/artifactory/WEB-INF/lib/ && cp -f /jfrog-patch/license-manager-*.jar /opt/jfrog/artifactory/app/access/tomcat/webapps/access/WEB-INF/lib/"
     persistence:
       storageClassName: ${DEFAULT_LARGE_STORAGE_CLASS}
       accessMode: ReadWriteMany
@@ -68,6 +137,167 @@ artifactory:
     license:
       licenseKey: |-
         cHJvZHVjdHM6CiAgYXJ0aWZhY3Rvcnk6CiAgICBwcm9kdWN0OiBaWGh3YVhKbGN6b2dNakE1T1Mwd05DMHdPRlF3T1RveE9EbzBNbG9LYVdRNklEUTRaREZpTkRBd0xUQmhNbU10TmpKak1TMHdaREE0TFdJNU56YzBZek14TmpCa1l3cHZkMjVsY2pvZ0ltWnlaV1VnZEhKcFlXd2lDbkJ5YjNCbGNuUnBaWE02Q2lBZ2NtVm5hWE4wY21GMGFXOXVTMlY1Vkc5clpXNDZJQ0lpQ25OcFoyNWhkSFZ5WlRvZ2JuVnNiQXAwY21saGJEb2dabUZzYzJVS2RIbHdaVG9nUlU1VVJWSlFVa2xUUlY5UVRGVlRYMVJTU1VGTUNuWmhiR2xrUm5KdmJUb2dNakF5TVMwd01TMHdPRlF3T1RveE9EbzBNaTR3T0RGYQogICAgc2lnbmF0dXJlOiAiIgp2ZXJzaW9uOiAxCg==
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /artifactory/api/v1/system/liveness
+          port: {{ .Values.artifactory.tomcat.maintenanceConnector.port }}
+        initialDelaySeconds: 0
+        periodSeconds: 60
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        failureThreshold: 5
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
+  frontend:
+    extraEnvironmentVariables:
+      - name: BRAND_PREFIX
+        value: ${BRAND_PREFIX}
+    lifecycle:
+      postStart:
+        exec:
+          command:
+            - /bin/sh
+            - /jfrog-custom/custom.sh
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /api/v1/system/liveness
+          port: {{ .Values.frontend.internalPort }}
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
+  access:
+    preStartCommand: "cp -f /jfrog-patch/artifactory-addons-manager-*.jar /opt/jfrog/artifactory/app/artifactory/tomcat/webapps/artifactory/WEB-INF/lib/ && cp -f /jfrog-patch/license-manager-*.jar /opt/jfrog/artifactory/app/access/tomcat/webapps/access/WEB-INF/lib/"
+    livenessProbe:
+      enabled: true
+      config: |
+        exec:
+          command:
+            - sh
+            - -c
+            - curl --fail --max-time {{ .Values.probes.timeoutSeconds }} http://localhost:8040/access/api/v1/system/liveness
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
+  metadata:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /api/v1/system/liveness
+          port: {{ .Values.metadata.internalPort }}
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+  evidence:
+    livenessProbe:
+      enabled: true
+      config: |
+        exec:
+          command:
+            - sh
+            - -c
+            - curl --fail --max-time {{ .Values.probes.timeoutSeconds }} http://localhost:{{ .Values.evidence.internalPort }}/api/v1/system/liveness
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+  event:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /api/v1/system/liveness
+          port: {{ .Values.event.internalPort }}
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+  jfconnect:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /api/v1/system/liveness
+          port: {{ .Values.jfconnect.internalPort }}
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+  onemodel:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /api/v1/system/liveness
+          port: {{ .Values.onemodel.internalPort }}
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        initialDelaySeconds: 10
+        periodSeconds: 60
+        failureThreshold: 5
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
+  topology:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /topology/api/v1/system/liveness
+          port: {{ .Values.topology.internalPort }}
+          scheme: HTTP
+        initialDelaySeconds: 10
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
+  jfconfig:
+    livenessProbe:
+      enabled: true
+      config: |
+        httpGet:
+          path: /jfconfig/api/v1/system/liveness
+          port: {{ .Values.jfconfig.internalPort }}
+          scheme: HTTP
+        initialDelaySeconds: 10
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
+    readinessProbe:
+      enabled: false
+  observability:
+    livenessProbe:
+      enabled: true
+      config: |
+        exec:
+          command:
+            - sh
+            - -c
+            - curl --fail --max-time {{ .Values.probes.timeoutSeconds }} http://localhost:{{ .Values.observability.internalPort }}/api/v1/system/liveness
+        initialDelaySeconds: 0
+        failureThreshold: 5
+        timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+        periodSeconds: 60
+        successThreshold: 1
 
 xray:
   enabled: false
@@ -93,6 +323,11 @@ distribution:
 worker:
   enabled: false
 
+bridge:
+  enabled: false
+
 preUpgradeHook:
   ## This is required to be performed to check if existing products like distribution already exists
   enabled: false
+  image:
+    registry: "releases-docker.jfrog.io"

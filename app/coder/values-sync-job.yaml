@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: code-server-jfrog-sync
+  namespace: ${NS}
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: sync
+              image: badouralix/curl-jq:alpine
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - /scripts/sync-code-server-to-jfrog.sh
+              env:
+                - name: CODE_SERVER_MIRROR_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: coder-code-server-jfrog
+                      key: mirror-url
+                - name: JFROG_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: coder-code-server-jfrog
+                      key: token
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts/sync-code-server-to-jfrog.sh
+                  subPath: sync-code-server-to-jfrog.sh
+          volumes:
+            - name: script
+              configMap:
+                name: coder-code-server-jfrog-sync
+                defaultMode: 0755

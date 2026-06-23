@@ -1,4 +1,15 @@
-FROM nextcloud:32.0.3-fpm
+ARG BASE_IMAGE=""
+FROM $BASE_IMAGE
+
+RUN set -ex; \
+    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do \
+        [ -f "$f" ] || continue; \
+        sed -i \
+            -e 's|http://deb.debian.org/debian|https://mirrors.tuna.tsinghua.edu.cn/debian|g' \
+            -e 's|http://security.debian.org/debian-security|https://mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
+            -e 's|http://deb.debian.org/debian-security|https://mirrors.tuna.tsinghua.edu.cn/debian-security|g' \
+            "$f"; \
+    done
 
 RUN set -ex; \
     \

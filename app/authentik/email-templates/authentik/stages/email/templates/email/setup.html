@@ -1,0 +1,11 @@
+{% extends "email/base.html" %}
+
+{% load i18n %}
+
+{% block title %}测试邮件 / Test email{% endblock %}
+
+{% block content %}
+<h1>${BRAND_PREFIX} 测试邮件</h1>
+<p class="text-primary" style="margin-bottom:10px;">这是一封测试邮件，用于确认你已成功配置 ${BRAND_PREFIX} 邮件发送。</p>
+<p class="text-secondary">This is a test email to confirm that you have successfully configured ${BRAND_PREFIX} emails.</p>
+{% endblock %}

@@ -1,0 +1,315 @@
+ARG UBUNTU_VERSION=24.04
+FROM ubuntu:${UBUNTU_VERSION}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG APT_MIRROR=
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8 \
+    PATH=/home/coder/.local/bin:${PATH}
+
+# 使用清华 Ubuntu 源：
+# - amd64/i386 使用 ubuntu
+# - arm64 等其他架构使用 ubuntu-ports
+RUN set -eux; \
+    . /etc/os-release; \
+    arch="$(dpkg --print-architecture)"; \
+    case "${arch}" in \
+      amd64|i386) mirror="${APT_MIRROR:-http://mirrors.tuna.tsinghua.edu.cn/ubuntu}" ;; \
+      *) mirror="${APT_MIRROR:-http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports}" ;; \
+    esac; \
+    printf '%s\n' \
+      "Types: deb" \
+      "URIs: ${mirror}" \
+      "Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates ${VERSION_CODENAME}-backports ${VERSION_CODENAME}-security" \
+      "Components: main restricted universe multiverse" \
+      "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" \
+      > /etc/apt/sources.list.d/ubuntu.sources; \
+    rm -f /etc/apt/sources.list; \
+    apt-get clean; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      bash \
+      ca-certificates \
+      curl \
+      wget \
+      git \
+      git-lfs \
+      git-delta \
+      pre-commit \
+      jq \
+      locales \
+      sudo \
+      openssh-client \
+      iproute2 \
+      iputils-ping \
+      dnsutils \
+      net-tools \
+      unzip \
+      zip \
+      tar \
+      gzip \
+      xz-utils \
+      bzip2 \
+      rsync \
+      vim \
+      nano \
+      less \
+      bashtop \
+      eza \
+      duf \
+      tree \
+      procps \
+      psmisc \
+      lsof \
+      expect \
+      man-db \
+      manpages \
+      build-essential \
+      make \
+      cmake \
+      pkg-config \
+      file \
+      strace \
+      gdb \
+      bash-completion \
+      tzdata \
+      gnupg \
+      lsb-release \
+      software-properties-common \
+      openssl \
+      ripgrep \
+      fd-find \
+      fzf \
+      tmux \
+      shellcheck \
+      python3 \
+      python3-pip \
+      python3-venv \
+      python3-dev \
+      python3-setuptools \
+      python3-wheel \
+      pipx \
+    ; \
+    locale-gen en_US.UTF-8; \
+    update-ca-certificates; \
+    INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin curl -LsSf https://astral.sh/uv/install.sh | sh; \
+    git config --system core.pager delta; \
+    git config --system interactive.diffFilter 'delta --color-only'; \
+    git config --system delta.navigate true; \
+    git config --system merge.conflictStyle zdiff3; \
+    git config --system diff.colorMoved default; \
+    rm -rf /var/lib/apt/lists/*
+
+# 参考 Coder 官方镜像习惯：创建 coder 用户并默认使用非 root
+RUN set -eux; \
+    if id -u ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi; \
+    useradd coder \
+      --create-home \
+      --shell=/bin/bash \
+      --uid=1000 \
+      --user-group; \
+    echo "coder ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/coder; \
+    chmod 0440 /etc/sudoers.d/coder; \
+    mkdir -p /workspace; \
+    chown -R coder:coder /workspace /home/coder
+
+# 初始化系统级 bash 配置，避免 /home/coder 被 PVC 挂载后覆盖
+RUN <<EOF
+cat >> /etc/inputrc <<'INPUTRC'
+
+# Coder workspace readline defaults.
+set completion-ignore-case on
+set show-all-if-ambiguous on
+set show-all-if-unmodified on
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+INPUTRC
+
+cat > /etc/coder.bashrc <<'BASHRC'
+# Coder workspace common bash initialization.
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+function prompt_git_status() {
+    local GIT_BRANCH=""
+    local GIT_STATE=""
+    local GIT_STATUS=""
+    local STATUS_LINE=""
+    local INDEX_STATUS=""
+    local WORKTREE_STATUS=""
+    local HAS_STAGED=false
+    local HAS_UNSTAGED=false
+    local HAS_UNTRACKED=false
+
+    command -v git >/dev/null 2>&1 || return
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return
+
+    GIT_BRANCH=$(git branch --show-current 2>/dev/null || true)
+    if [ -z "$GIT_BRANCH" ]; then
+        GIT_BRANCH=$(git rev-parse --short HEAD 2>/dev/null || true)
+    fi
+    [ -n "$GIT_BRANCH" ] || return
+
+    GIT_STATUS=$(git status --porcelain 2>/dev/null || true)
+    while IFS= read -r STATUS_LINE; do
+        [ -n "$STATUS_LINE" ] || continue
+        if [[ "$STATUS_LINE" == "??"* ]]; then
+            HAS_UNTRACKED=true
+            continue
+        fi
+
+        INDEX_STATUS="${STATUS_LINE:0:1}"
+        WORKTREE_STATUS="${STATUS_LINE:1:1}"
+        case "$INDEX_STATUS" in
+            M|T|A|D|R|C|U) HAS_STAGED=true ;;
+        esac
+        case "$WORKTREE_STATUS" in
+            M|T|A|D|R|C|U) HAS_UNSTAGED=true ;;
+        esac
+    done <<< "$GIT_STATUS"
+
+    if [ "$HAS_STAGED" = true ]; then
+        GIT_STATE="${GIT_STATE}+"
+    fi
+    if [ "$HAS_UNSTAGED" = true ]; then
+        GIT_STATE="${GIT_STATE}!"
+    fi
+    if [ "$HAS_UNTRACKED" = true ]; then
+        GIT_STATE="${GIT_STATE}?"
+    fi
+    if [ -z "$GIT_STATE" ]; then
+        GIT_STATE="="
+    fi
+
+    printf ' [%s%s]' "$GIT_BRANCH" "$GIT_STATE"
+}
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+
+force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\e[31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[m\]\[\e[32m\]\[\e[1;32m\]\A\[\e[36m\] \w\[\e[35m\]$(prompt_git_status)\[\e[m\]\$\[\e[m\] '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w$(prompt_git_status)\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# colored GCC warnings and errors
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# some more aliases
+if command -v eza >/dev/null 2>&1; then
+    alias ll='eza -alF --group-directories-first --git'
+    alias la='eza -a --group-directories-first --git'
+    alias l='eza -F --group-directories-first --git'
+else
+    alias ll='ls -alF'
+    alias la='ls -A'
+    alias l='ls -CF'
+fi
+alias htop='bashtop'
+alias gs='git status -sb'
+alias ga='git add'
+alias gc='git commit'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate --all'
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features
+if ! shopt -oq posix; then
+    if [ -f /usr/share/bash-completion/bash_completion ]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [ -f /etc/bash_completion ]; then
+        . /etc/bash_completion
+    fi
+fi
+
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+BASHRC
+
+if ! grep -Fq '. /etc/coder.bashrc' /etc/bash.bashrc; then
+    printf '\n# Coder workspace common bash initialization\n[ -f /etc/coder.bashrc ] && . /etc/coder.bashrc\n' >> /etc/bash.bashrc
+fi
+EOF
+
+USER coder
+WORKDIR /home/coder
+
+CMD ["/bin/bash"]

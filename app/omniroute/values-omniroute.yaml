@@ -1,0 +1,127 @@
+global:
+  nameOverride: omniroute
+
+defaultPodOptions:
+  securityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+
+controllers:
+  main:
+    enabled: true
+    type: statefulset
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: diegosouzapw/omniroute
+          tag: 3.8.14
+          pullPolicy: IfNotPresent
+        env:
+          TZ: Asia/Shanghai
+          NODE_ENV: production
+          PORT: "20128"
+          HOSTNAME: "0.0.0.0"
+          DATA_DIR: /app/data
+          NEXT_PUBLIC_BASE_URL: https://api.${DOMAIN}
+          BASE_URL: https://api.${DOMAIN}
+          AUTH_COOKIE_SECURE: "true"
+          INITIAL_PASSWORD: "CHANGEME"
+          NODE_OPTIONS: "--max-old-space-size=512"
+          REQUEST_TIMEOUT_MS: "480000"
+          STREAM_IDLE_TIMEOUT_MS: "241000"
+          STREAM_READINESS_TIMEOUT_MS: "242000"
+          FETCH_TIMEOUT_MS: "481000"
+          FETCH_HEADERS_TIMEOUT_MS: "321000"
+          FETCH_CONNECT_TIMEOUT_MS: "6000"
+          FETCH_BODY_TIMEOUT_MS: "322000"
+          RATE_LIMIT_MAX_WAIT_MS: "303000"
+          REQUIRE_API_KEY: "true"
+          DISABLE_SQLITE_AUTO_BACKUP: "true"
+          APP_LOG_RETENTION_DAYS: "30"
+          CALL_LOG_RETENTION_DAYS: "90"
+          CALL_LOG_MAX_ENTRIES: "10000"
+          CALL_LOGS_TABLE_MAX_ROWS: "1000000"
+          CALL_LOG_PIPELINE_MAX_SIZE_KB: "10240"
+          PROXY_LOGS_TABLE_MAX_ROWS: "1000000"
+          JWT_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: omniroute
+                key: jwt-secret
+          API_KEY_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: omniroute
+                key: api-key-secret
+          REDIS_URL:
+            valueFrom:
+              secretKeyRef:
+                name: omniroute
+                key: redis-url
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              exec:
+                command:
+                  - node
+                  - healthcheck.mjs
+              initialDelaySeconds: 120
+              periodSeconds: 60
+              timeoutSeconds: 5
+              failureThreshold: 2
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        primary: true
+        port: 20128
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+    className: "nginx"
+    hosts:
+      - host: api.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: omniroute
+              port: 20128
+    tls:
+      - hosts:
+          - api.${DOMAIN}
+        secretName: api.${DOMAIN}-tls
+
+persistence:
+  data:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 200Gi
+    globalMounts:
+      - path: /app/data

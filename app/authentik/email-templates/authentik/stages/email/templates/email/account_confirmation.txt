@@ -1,0 +1,11 @@
+{% load i18n %}{% autoescape off %}欢迎！请确认你的账号
+
+欢迎使用 ${BRAND_PREFIX}。开始使用前，请打开下方链接完成账号确认。
+
+Welcome to ${BRAND_PREFIX}. Before getting started, please confirm your account by opening the link below.
+
+{{ url }}
+
+--
+Powered by ${BRAND_PREFIX}.
+{% endautoescape %}

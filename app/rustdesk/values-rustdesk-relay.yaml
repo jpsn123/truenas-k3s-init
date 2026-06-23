@@ -12,8 +12,8 @@ controllers:
     containers:
       hbbr:
         image:
-          repository: jutze/remote-desktop
-          tag: 1.1.15
+          repository: ${RUSTDESK_IMAGE_REPOSITORY}
+          tag: ${RUSTDESK_IMAGE_VERSION}
           pullPolicy: IfNotPresent
         command: ["hbbr"]
         env:

@@ -20,11 +20,11 @@ persistence:
 
 resources:
   requests:
-    cpu: 1
-    memory: 512Mi
+    cpu: 200m
+    memory: 1Gi
   limits:
-    cpu: 4
-    memory: 8Gi
+    cpu: 2
+    memory: 6Gi
 
 ingress:
   enabled: true
@@ -53,3 +53,9 @@ apiIngress:
     - hosts:
         - s3-api.git.${DOMAIN}
       secretName: gitlab-wildcard-tls
+
+livenessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 60
+readinessProbe:
+  periodSeconds: 30

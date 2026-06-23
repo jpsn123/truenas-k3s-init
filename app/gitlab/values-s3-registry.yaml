@@ -1,4 +1,4 @@
-# 弃用，使用bin.jutze.cn
+# 弃用
 s3:
   v4auth: true
   regionendpoint: "https://s3-api.git.${DOMAIN}"

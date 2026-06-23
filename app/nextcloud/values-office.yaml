@@ -71,6 +71,7 @@ controllers:
 service:
   draw:
     enabled: true
+    forceRename: office-draw
     controller: draw
     ports:
       http:
@@ -78,6 +79,7 @@ service:
         port: 8080
   documentserver:
     enabled: true
+    forceRename: office-documentserver
     controller: documentserver
     ports:
       http:
@@ -87,6 +89,7 @@ service:
 ingress:
   draw:
     enabled: true
+    forceRename: office-draw
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
@@ -107,6 +110,7 @@ ingress:
         secretName: nextcloud-tls
   documentserver:
     enabled: true
+    forceRename: office-documentserver
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"

@@ -1,0 +1,35 @@
+global:
+  defaultStorageClass: ${DEFAULT_STORAGE_CLASS}
+  postgresql:
+    auth:
+      username: authentik
+      database: authentik
+
+clusterDomain: "cluster.local"
+architecture: standalone
+
+primary:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+  extraEnvVars:
+    - name: TZ
+      value: Asia/Shanghai
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  service:
+    type: ClusterIP
+  persistence:
+    size: 100Gi
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/postgresql
+  tag: 17.6.0-debian-12-r4

@@ -1,0 +1,9 @@
+{% load i18n %}{% autoescape off %}${BRAND_PREFIX} 测试邮件
+
+这是一封测试邮件，用于确认你已成功配置 ${BRAND_PREFIX} 邮件发送。
+
+This is a test email to confirm that you have successfully configured ${BRAND_PREFIX} emails.
+
+--
+Powered by ${BRAND_PREFIX}.
+{% endautoescape %}

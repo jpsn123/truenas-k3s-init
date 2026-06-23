@@ -1,0 +1,183 @@
+global:
+  nameOverride: remnawave
+
+defaultPodOptions: {}
+
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: remnawave/backend
+          tag: "2"
+          pullPolicy: IfNotPresent
+        env:
+          TZ: ${TIMEZONE}
+          APP_PORT: "3000"
+          METRICS_PORT: "3001"
+          API_INSTANCES: "1"
+          PANEL_DOMAIN: fq.${DOMAIN}
+          FRONT_END_DOMAIN: fq.${DOMAIN}
+          SUB_PUBLIC_DOMAIN: fq.${DOMAIN}/api/sub
+          REDIS_SOCKET: /var/run/valkey/valkey.sock
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: remnawave-db
+                key: url
+          JWT_AUTH_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: remnawave-secrets
+                key: jwt-auth-secret
+          JWT_API_TOKENS_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: remnawave-secrets
+                key: jwt-api-tokens-secret
+          METRICS_USER: admin
+          METRICS_PASS:
+            valueFrom:
+              secretKeyRef:
+                name: remnawave-secrets
+                key: metrics-pass
+          WEBHOOK_SECRET_HEADER:
+            valueFrom:
+              secretKeyRef:
+                name: remnawave-secrets
+                key: webhook-secret-header
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 3001
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 5
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 3001
+              initialDelaySeconds: 10
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2
+            memory: 2Gi
+      valkey:
+        image:
+          repository: valkey/valkey
+          tag: 9-alpine
+          pullPolicy: IfNotPresent
+        command:
+          - valkey-server
+        args:
+          - --save
+          - ""
+          - --appendonly
+          - "no"
+          - --maxmemory-policy
+          - noeviction
+          - --loglevel
+          - warning
+          - --unixsocket
+          - /var/run/valkey/valkey.sock
+          - --unixsocketperm
+          - "777"
+          - --port
+          - "0"
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              exec:
+                command:
+                  - valkey-cli
+                  - -s
+                  - /var/run/valkey/valkey.sock
+                  - ping
+              initialDelaySeconds: 10
+              periodSeconds: 60
+              timeoutSeconds: 3
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              exec:
+                command:
+                  - valkey-cli
+                  - -s
+                  - /var/run/valkey/valkey.sock
+                  - ping
+              initialDelaySeconds: 5
+              periodSeconds: 30
+              timeoutSeconds: 3
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        primary: true
+        port: 3000
+      metrics:
+        enabled: true
+        port: 3001
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    className: "nginx"
+    hosts:
+      - host: fq.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: remnawave
+              port: 3000
+    tls:
+      - hosts:
+          - fq.${DOMAIN}
+        secretName: fq.${DOMAIN}-tls
+
+persistence:
+  valkey-socket:
+    enabled: true
+    type: emptyDir
+    globalMounts:
+      - path: /var/run/valkey

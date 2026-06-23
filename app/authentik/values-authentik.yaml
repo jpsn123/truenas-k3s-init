@@ -1,0 +1,212 @@
+authentik:
+  log_level: info
+  secret_key: ""
+  error_reporting:
+    enabled: false
+  postgresql:
+    host: postgresql
+    name: authentik
+    user: authentik
+    password: ""
+  email:
+    host: smtp.qiye.163.com
+    port: 994
+    username: ${EMAIL}
+    password: ""
+    use_tls: false
+    use_ssl: true
+    timeout: 30
+    from: ${EMAIL}
+
+postgresql:
+  enabled: false
+
+global:
+  deploymentStrategy:
+    type: RollingUpdate
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+  podSecurityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+  volumeMounts:
+    - name: authentik-cert
+      mountPath: /authentik/enterprise/public.pem
+      subPath: public.pem
+    - name: authentik-data
+      mountPath: /data
+  volumes:
+    - name: authentik-cert
+      configMap:
+        name: authentik-cert
+    - name: authentik-data
+      persistentVolumeClaim:
+        claimName: authentik-data
+
+additionalObjects:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: authentik-data
+    spec:
+      accessModes:
+        - ReadWriteMany
+      storageClassName: ${DEFAULT_SHARED_STORAGE_CLASS}
+      resources:
+        requests:
+          storage: 10Gi
+
+server:
+  replicas: 1
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+  volumeMounts:
+    - name: authentik-email-templates
+      mountPath: /authentik/stages/email/templates/email
+      readOnly: true
+    - name: authentik-email-otp-templates
+      mountPath: /authentik/stages/authenticator_email/templates/email
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/icons/icon_left_brand.png
+      subPath: icon_left_brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/brand.png
+      subPath: brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/brand.svg
+      subPath: brand.svg
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_left_brand.png
+      subPath: icon_left_brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_left_brand.svg
+      subPath: icon_left_brand.svg
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_pride_lgbt.png
+      subPath: icon_pride_lgbt.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_pride_lgbt.svg
+      subPath: icon_pride_lgbt.svg
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_top_brand.png
+      subPath: icon_top_brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_top_brand.svg
+      subPath: icon_top_brand.svg
+      readOnly: true
+  volumes:
+    - name: authentik-email-templates
+      configMap:
+        name: authentik-email-templates
+    - name: authentik-email-otp-templates
+      configMap:
+        name: authentik-email-otp-templates
+    - name: authentik-icons
+      configMap:
+        name: authentik-icons
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-body-size: 50m
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    hosts:
+      - auth.${DOMAIN}
+    tls:
+      - hosts:
+          - auth.${DOMAIN}
+          - "*.auth.${DOMAIN}"
+        secretName: auth.${DOMAIN}-tls
+
+worker:
+  replicas: 1
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+  volumeMounts:
+    - name: authentik-email-templates
+      mountPath: /authentik/stages/email/templates/email
+      readOnly: true
+    - name: authentik-email-otp-templates
+      mountPath: /authentik/stages/authenticator_email/templates/email
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/icons/icon_left_brand.png
+      subPath: icon_left_brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/brand.png
+      subPath: brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/brand.svg
+      subPath: brand.svg
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_left_brand.png
+      subPath: icon_left_brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_left_brand.svg
+      subPath: icon_left_brand.svg
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_pride_lgbt.png
+      subPath: icon_pride_lgbt.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_pride_lgbt.svg
+      subPath: icon_pride_lgbt.svg
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_top_brand.png
+      subPath: icon_top_brand.png
+      readOnly: true
+    - name: authentik-icons
+      mountPath: /web/dist/assets/icons/icon_top_brand.svg
+      subPath: icon_top_brand.svg
+      readOnly: true
+  volumes:
+    - name: authentik-email-templates
+      configMap:
+        name: authentik-email-templates
+    - name: authentik-email-otp-templates
+      configMap:
+        name: authentik-email-otp-templates
+    - name: authentik-icons
+      configMap:
+        name: authentik-icons
+  resources:
+    requests:
+      cpu: 100m
+      memory: 500Mi
+    limits:
+      cpu: 1
+      memory: 2Gi

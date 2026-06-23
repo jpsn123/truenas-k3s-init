@@ -1,7 +1,7 @@
 provider: AWS
 region: default
-aws_access_key_id:
-aws_secret_access_key:
+aws_access_key_id: "${RAILS_S3_ACCESS_KEY}"
+aws_secret_access_key: "${RAILS_S3_SECRET_KEY}"
 aws_signature_version: 4
 endpoint: "https://s3-api.git.${DOMAIN}"
 path_style: true

@@ -1,0 +1,103 @@
+global:
+  nameOverride: mgr-auth
+
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr
+          tag: 0.0.6
+          pullPolicy: IfNotPresent
+        env:
+          LOG_LEVEL: warn
+          NODE_ENV: production
+          SESSION_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: session-secret
+          AUTHENTIK_BASE_URL: https://auth.${DOMAIN}
+          AUTHENTIK_API_TOKEN:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: authentik-api-token
+          OAUTH_ISSUER: https://auth.${DOMAIN}/application/o/auth-mgr/
+          OAUTH_CLIENT_ID:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: oauth-client-id
+          OAUTH_CLIENT_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: oauth-client-secret
+          OAUTH_REDIRECT_URI: https://mgr.auth.${DOMAIN}/api/auth/callback
+          FRONTEND_URL: https://mgr.auth.${DOMAIN}
+          OAUTH_POST_LOGOUT_REDIRECT_URI: https://mgr.auth.${DOMAIN}/login
+          OAUTH_SCOPES: openid, profile
+          OA_APPLICATION_NAME: OA办公
+          OA_ENABLED:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: oa-enabled
+          OA_APP_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: oa-app-key
+          OA_APP_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: mgr-auth
+                key: oa-app-secret
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 1
+            memory: 512Mi
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        primary: true
+        port: 80
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    className: "nginx"
+    hosts:
+      - host: mgr.auth.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: mgr-auth
+              port: 80
+    tls:
+      - hosts:
+          - auth.${DOMAIN}
+          - "*.auth.${DOMAIN}"
+        secretName: auth.${DOMAIN}-tls

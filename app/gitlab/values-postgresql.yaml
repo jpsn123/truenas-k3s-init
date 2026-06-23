@@ -10,16 +10,21 @@ clusterDomain: "cluster.local"
 architecture: standalone
 
 primary:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
   extraEnvVars:
     - name: TZ
       value: Asia/Shanghai
   resources:
     requests:
-      cpu: 2
-      memory: 4Gi
+      cpu: 200m
+      memory: 2Gi
     limits:
-      cpu: 8
-      memory: 16Gi
+      cpu: 2
+      memory: 8Gi
   service:
     type: ClusterIP
   persistence:

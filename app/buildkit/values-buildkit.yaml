@@ -1,0 +1,79 @@
+global:
+  fullnameOverride: buildkit
+
+defaultPodOptions:
+  securityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+
+controllers:
+  main:
+    enabled: true
+    forceRename: buildkit
+    type: deployment
+    replicas: 1
+    strategy: Recreate
+    containers:
+      main:
+        image:
+          repository: ${BUILDKIT_IMAGE_REPOSITORY}
+          tag: ${BUILDKIT_IMAGE_TAG}
+          pullPolicy: IfNotPresent
+        args:
+          - --addr
+          - tcp://0.0.0.0:1234
+          - --oci-worker-no-process-sandbox
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          runAsNonRoot: true
+          seccompProfile:
+            type: Unconfined
+          appArmorProfile:
+            type: Unconfined
+        probes:
+          readiness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 5
+              periodSeconds: 30
+          liveness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 30
+              periodSeconds: 60
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            cpu: 4
+            memory: 8Gi
+
+service:
+  main:
+    enabled: true
+    forceRename: buildkit
+    controller: main
+    type: LoadBalancer
+    loadBalancerIP: ${BUILDKIT_LOAD_BALANCER_IP}
+    ports:
+      buildkit:
+        enabled: true
+        primary: true
+        port: 1234
+
+persistence:
+  cache:
+    enabled: true
+    forceRename: buildkit-cache
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_SHARED_STORAGE_CLASS}
+    accessMode: ReadWriteMany
+    size: 200Gi
+    retain: true
+    globalMounts:
+      - path: /home/user/.local/share/buildkit
+        readOnly: false

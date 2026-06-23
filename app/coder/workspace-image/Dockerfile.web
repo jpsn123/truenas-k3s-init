@@ -1,0 +1,35 @@
+ARG BASIC_IMAGE=""
+FROM ${BASIC_IMAGE}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+ENV GOPATH=/home/coder/go \
+    GOBIN=/home/coder/go/bin \
+    NPM_CONFIG_PREFIX=/home/coder/.npm-global \
+    PATH=/home/coder/.npm-global/bin:/home/coder/go/bin:/home/coder/.local/bin:${PATH}
+
+USER root
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      nodejs \
+      npm \
+      golang-go \
+    ; \
+    rm -rf /var/lib/apt/lists/*; \
+    mkdir -p /workspace "${GOPATH}" "${GOBIN}" "${NPM_CONFIG_PREFIX}"; \
+    chown -R coder:coder /workspace /home/coder
+
+USER coder
+WORKDIR /home/coder
+
+# 允许 coder 用户无 sudo 安装 npm 全局包，例如：
+# npm install -g pnpm
+RUN npm config set prefix "${NPM_CONFIG_PREFIX}" \
+    && npm config set fund false \
+    && npm config set audit false
+
+CMD ["/bin/bash"]

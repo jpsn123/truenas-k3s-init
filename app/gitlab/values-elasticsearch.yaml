@@ -38,24 +38,44 @@ plugins: "analysis-smartcn"
 
 # 先使用单节点模式，后面有需求可以再扩展
 master:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
   masterOnly: false
   replicaCount: 1
   resources:
     requests:
-      cpu: 1
-      memory: 2Gi
+      cpu: 200m
+      memory: 4Gi
     limits:
-      cpu: 2
+      cpu: 1
       memory: 10Gi
   persistence:
     size: 50Gi
 data:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
   replicaCount: 0
   # persistence:
   #   size: 50Gi
 coordinating:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
   replicaCount: 0
 ingest:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
   replicaCount: 0
 
 service:
@@ -106,10 +126,10 @@ kibana:
 
   resources:
     requests:
-      cpu: 500m
+      cpu: 200m
       memory: 1Gi
     limits:
-      cpu: 2
+      cpu: 1
       memory: 4Gi
 #
 # set es replicas to zero, index health check

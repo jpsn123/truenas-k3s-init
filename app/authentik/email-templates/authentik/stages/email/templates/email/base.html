@@ -1,0 +1,156 @@
+{% load authentik_stages_email %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}${BRAND_PREFIX}{% endblock %}</title>
+    <style type="text/css">
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f6f8fb;
+        color: #212124;
+        font-family: Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      a {
+        color: #0071ff;
+      }
+      .wrapper {
+        width: 100%;
+        background: #f6f8fb;
+      }
+      .container {
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #d9dde3;
+        border-radius: 12px;
+        padding: 34px 28px;
+        text-align: center;
+      }
+      .logo {
+        margin-bottom: 28px;
+        line-height: 0;
+      }
+      .logo-image {
+        width: 180px;
+        max-width: 100%;
+        height: auto;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 26px;
+        line-height: 1.25;
+        color: #111827;
+      }
+      p {
+        margin: 0 auto;
+        max-width: 390px;
+      }
+      .text-primary {
+        color: #374151;
+      }
+      .text-secondary {
+        color: #6b7280;
+      }
+      .btn-primary {
+        display: inline-block;
+        width: 100%;
+        max-width: 300px;
+        box-sizing: border-box;
+        background: #0071ff;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 8px;
+        padding: 12px 20px;
+        font-weight: 700;
+      }
+      .sub-content {
+        padding: 18px 20px;
+        text-align: center;
+        color: #6b7280;
+        font-size: 12px;
+      }
+      .break-word {
+        word-break: break-all;
+        overflow-wrap: break-word;
+      }
+      .token {
+        display: inline-block;
+        min-width: 220px;
+        background: #eef6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 14px 22px;
+        color: #111827;
+        font-size: 28px;
+        letter-spacing: 4px;
+        font-weight: 700;
+      }
+      .notification-body {
+        max-width: 430px;
+        margin: 0 auto 22px;
+        text-align: left;
+        color: #374151;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .properties-table {
+        width: 100%;
+        margin-top: 24px;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 13px;
+        color: #374151;
+      }
+      .properties-table td {
+        padding: 8px 10px;
+        border-top: 1px solid #eef2f7;
+        vertical-align: top;
+      }
+      .properties-table .td-right {
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+      }
+      .footer {
+        padding-top: 6px;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <center class="wrapper">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="container">
+        <tr>
+          <td class="card">
+            <div class="logo">
+              <img src="{% block logo_url %}cid:logo{% endblock %}" border="0" alt="${BRAND_PREFIX} logo" class="logo-image">
+            </div>
+            {% block content %}
+            {% endblock %}
+          </td>
+        </tr>
+        <tr>
+          <td>
+            {% block sub_content %}
+            {% endblock %}
+          </td>
+        </tr>
+        <tr>
+          <td class="footer">Powered by ${BRAND_PREFIX}.</td>
+        </tr>
+      </table>
+    </center>
+  </body>
+</html>

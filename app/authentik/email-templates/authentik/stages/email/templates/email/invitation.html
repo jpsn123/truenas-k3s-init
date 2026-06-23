@@ -1,0 +1,24 @@
+{% extends "email/base.html" %}
+
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}邀请加入 / Invitation{% endblock %}
+
+{% block content %}
+<h1>你收到一份邀请</h1>
+<p class="text-primary" style="margin-bottom:10px;">你已被邀请加入 {{ host }}。请点击下方按钮开始使用。</p>
+<p class="text-secondary" style="margin-bottom:18px;">You have been invited to join {{ host }}. Click the button below to get started.</p>
+{% if expires %}
+<p class="text-secondary" style="margin-bottom:28px;font-size:12px;">此邀请将于 {{ expires|naturaltime }} 过期。<br>This invitation expires {{ expires|naturaltime }}.</p>
+{% endif %}
+<a id="confirm" href="{{ url }}" rel="noopener noreferrer" target="_blank" class="btn-primary">接受邀请 / Accept Invitation</a>
+{% endblock %}
+
+{% block sub_content %}
+<div class="sub-content break-word">
+  如果按钮无法打开，请复制以下链接到浏览器：<br>
+  If the button does not work, copy and paste this link into your browser:<br>
+  <a href="{{ url }}" rel="noopener noreferrer" target="_blank">{{ url }}</a>
+</div>
+{% endblock %}

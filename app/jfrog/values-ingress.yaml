@@ -50,6 +50,12 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      set $ua_override $http_user_agent;
+      if ($http_user_agent ~* "(Mozilla|Chrome|Safari|Firefox|Edge)") {
+        set $ua_override "curl/7.88.1";
+      }
+      proxy_set_header User-Agent $ua_override;
   labels:
     app: artifactory
     release: jfrog-platform

@@ -1,5 +1,6 @@
 ##
 ## build license-server
+ARG BASE_IMAGE=rustdesk/rustdesk-server-pro:latest
 FROM rust:1.93-slim AS rust-builder
 WORKDIR /rust
 
@@ -11,8 +12,8 @@ COPY src /rust/src
 RUN cargo build --release && cp target/release/license-server license-server
 
 ##
-## 
-FROM rustdesk/rustdesk-server-pro:latest
+##
+FROM ${BASE_IMAGE}
 
 ENV LICENSE_SERVER_CRT=/certs/server.crt
 ENV LICENSE_SERVER_PRIV=/certs/server.key
@@ -49,7 +50,7 @@ RUN cp -f /tmp/assets/favicon.png /usr/share/rustdesk-server/static/web/icons/Ic
     rm -f /certs/original_ed25519.pub && \
     rm -f /usr/bin/hbbs-official
 
-# custom web client, use local resource and use jutze icon
+# custom web client, use local resource and use custom icon
 RUN apt update && \
     apt install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* && \

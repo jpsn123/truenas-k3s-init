@@ -1,0 +1,20 @@
+{% extends "email/base.html" %}
+
+{% load i18n %}
+
+{% block title %}确认你的账号 / Confirm your account{% endblock %}
+
+{% block content %}
+<h1>欢迎！请确认你的账号</h1>
+<p class="text-primary" style="margin-bottom:10px;">欢迎使用 ${BRAND_PREFIX}。开始使用前，请点击下方按钮完成账号确认。</p>
+<p class="text-secondary" style="margin-bottom:28px;">Welcome to ${BRAND_PREFIX}. Before getting started, please confirm your account by clicking the button below.</p>
+<a id="confirm" href="{{ url }}" rel="noopener noreferrer" target="_blank" class="btn-primary">确认账号 / Confirm Account</a>
+{% endblock %}
+
+{% block sub_content %}
+<div class="sub-content break-word">
+  如果按钮无法打开，请复制以下链接到浏览器：<br>
+  If the button does not work, copy and paste this link into your browser:<br>
+  <a href="{{ url }}" rel="noopener noreferrer" target="_blank">{{ url }}</a>
+</div>
+{% endblock %}

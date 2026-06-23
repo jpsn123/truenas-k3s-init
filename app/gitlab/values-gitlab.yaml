@@ -100,6 +100,25 @@ global:
     backups:
       bucket: gitlab-backups
       tmpBucket: gitlab-tmp
+    omniauth:
+      enabled: true
+      allowSingleSignOn:
+        - openid_connect
+      blockAutoCreatedUsers: false
+      autoLinkUser:
+        - openid_connect
+      autoLinkLdapUser:
+        - openid_connect
+      allowBypassTwoFactor:
+        - openid_connect
+      syncProfileFromProvider:
+        - openid_connect
+      syncProfileAttributes:
+        - email
+        - name
+      providers:
+        - secret: gitlab-oidc
+          key: provider
     ldap:
       preventSignin: false
       servers:
@@ -140,9 +159,9 @@ global:
         key: connection
   smtp:
     enabled: true
-    address: "smtp.qiye.163.com"
-    port: 994
-    user_name: "system@jutze.com.cn"
+    address: "${SMTP_ADDRESS}"
+    port: ${SMTP_PORT}
+    user_name: "${SMTP_USER_NAME}"
     password:
       secret: mail-password
       key: password
@@ -151,9 +170,9 @@ global:
     openssl_verify_mode: "peer"
     tls: true
   email:
-    from: "system@jutze.com.cn"
+    from: "${EMAIL_FROM}"
     display_name: GitLab
-    reply_to: "yiqin.li@jutze.com.cn"
+    reply_to: "${EMAIL_REPLY_TO}"
     subject_suffix: ""
   time_zone: Asia/Shanghai
   antiAffinity: soft
@@ -182,11 +201,21 @@ nginx-ingress:
 
 prometheus:
   install: true
+  configmapReload:
+    prometheus:
+      livenessProbe:
+        periodSeconds: 60
+        initialDelaySeconds: 120
+      readinessProbe:
+        periodSeconds: 30
   server:
     persistentVolume:
       enabled: false
       size: 20Gi
       storageClass: ${DEFAULT_STORAGE_CLASS}
+    readinessProbePeriodSeconds: 30
+    livenessProbeInitialDelay: 120
+    livenessProbePeriodSeconds: 60
 
 redis:
   install: false
@@ -223,13 +252,30 @@ gitlab:
     ingress:
       serviceUpstream: "false"
     trusted_proxies:
-      - 10.240.0.0/16
+      - ${CLUSTER_CIDR}
     minReplicas: 2
     maxReplicas: 2
+    deployment:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
+    workhorse:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
   sidekiq:
     enabled: true
     minReplicas: 1
     maxReplicas: 1
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 60
+    readinessProbe:
+      periodSeconds: 30
     hpa:
       cpu:
         targetAverageValue: 1
@@ -238,11 +284,32 @@ gitlab:
       storageClass: ${DEFAULT_STORAGE_CLASS}
       size: 200Gi
       annotations: {}
+    statefulset:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
   gitlab-shell:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 1
+    minReplicas: 2
+    maxReplicas: 2
+    deployment:
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 60
+      readinessProbe:
+        periodSeconds: 30
+    service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+      loadBalancerIP: ${GITLAB_SHELL_LOAD_BALANCER_IP}
+      externalIPs:
+        - 10.33.0.11 # 内网域名劫持到本地lb时和ingress共享ip，这样可以同时访问443和22端口
   gitlab-pages:
+    deployment:
+      readinessProbe:
+        periodSeconds: 30
     ingress:
       annotations:
         nginx.ingress.kubernetes.io/proxy-request-buffering: "off"

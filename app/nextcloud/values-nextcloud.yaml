@@ -1,6 +1,7 @@
 image:
-  repository: jutze/nextcloud
-  tag: 32.0.3-fpm
+  registry: ${NEXTCLOUD_REGISTRY_HOST}
+  repository: ${NEXTCLOUD_IMAGE_PATH}
+  tag: ${NEXTCLOUD_IMAGE_VERSION}
 
 replicaCount: 1
 

@@ -1,0 +1,141 @@
+coder:
+  initContainers:
+    - name: copy-coder-binary
+      image: ${CODER_IMAGE}
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sh
+        - -c
+        - cp /opt/coder /opt/coder-patch/coder && chmod 755 /opt/coder-patch/coder
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      volumeMounts:
+        - name: coder-patch-binary
+          mountPath: /opt/coder-patch
+    - name: patch-coder-binary
+      image: python:3.12-slim
+      imagePullPolicy: IfNotPresent
+      command:
+        - python3
+        - /tmp/coder-patch/patch.py
+        - /opt/coder-patch/coder
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      volumeMounts:
+        - name: coder-patch-binary
+          mountPath: /opt/coder-patch
+        - name: coder-patch-script
+          mountPath: /tmp/coder-patch
+          readOnly: true
+  volumes:
+    - name: coder-patch-binary
+      emptyDir: {}
+    - name: coder-patch-script
+      configMap:
+        name: coder-patch
+    - name: terraformrc
+      configMap:
+        name: coder-terraformrc
+  volumeMounts:
+    - name: coder-patch-binary
+      mountPath: /opt/coder
+      subPath: coder
+      readOnly: true
+    - name: terraformrc
+      mountPath: /home/coder/.terraformrc
+      subPath: .terraformrc
+      readOnly: true
+  env:
+    - name: CODER_ACCESS_URL
+      value: "https://dev.${DOMAIN}"
+    - name: CODER_WILDCARD_ACCESS_URL
+      value: "*.dev.${DOMAIN}"
+    - name: CODER_DISABLE_PASSWORD_AUTH
+      value: "true"
+    - name: CODER_OAUTH2_GITHUB_DEFAULT_PROVIDER_ENABLE
+      value: "false"
+    - name: CODER_HIDE_AI_TASKS
+      value: "true"
+    - name: CODER_OIDC_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: coder-oidc
+          key: client-id
+    - name: CODER_OIDC_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: coder-oidc
+          key: client-secret
+    - name: CODER_OIDC_ISSUER_URL
+      value: "https://auth.${DOMAIN}/application/o/coder/"
+    - name: CODER_OIDC_SCOPES
+      value: "openid,profile,offline_access"
+    - name: CODER_OIDC_EMAIL_DOMAIN
+      valueFrom:
+        secretKeyRef:
+          name: coder-oidc
+          key: email-domain
+    - name: CODER_OIDC_NAME_FIELD
+      value: "name"
+    - name: CODER_OIDC_EMAIL_FIELD
+      value: "email"
+    - name: CODER_OIDC_IGNORE_EMAIL_VERIFIED
+      value: "true"
+    - name: CODER_OIDC_USERNAME_FIELD
+      value: "preferred_username"
+    - name: CODER_OIDC_GROUP_FIELD
+      value: "groups"
+    - name: CODER_OIDC_GROUP_AUTO_CREATE
+      value: "true"
+    - name: CODER_OIDC_SIGN_IN_TEXT
+      valueFrom:
+        secretKeyRef:
+          name: coder-oidc
+          key: sign-in-text
+    - name: CODER_OIDC_ICON_URL
+      valueFrom:
+        secretKeyRef:
+          name: coder-oidc
+          key: icon-url
+    - name: CODER_PG_CONNECTION_URL
+      valueFrom:
+        secretKeyRef:
+          name: coder-db-url
+          key: url
+    - name: TF_VAR_code_server_mirror_url
+      valueFrom:
+        secretKeyRef:
+          name: coder-code-server-jfrog
+          key: mirror-url
+  envUseClusterAccessURL: false
+  readinessProbe:
+    periodSeconds: 30
+  serviceAccount:
+    workspacePerms: true
+    extraRules:
+      - apiGroups:
+          - "*"
+        resources:
+          - "*"
+        verbs:
+          - "*"
+  service:
+    enable: true
+    type: ClusterIP
+  ingress:
+    enable: true
+    className: nginx
+    host: dev.${DOMAIN}
+    wildcardHost: "*.dev.${DOMAIN}"
+    annotations:
+      helm.sh/resource-policy: keep
+      nginx.ingress.kubernetes.io/proxy-body-size: 512m
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    tls:
+      enable: true
+      secretName: dev.${DOMAIN}-tls
+      wildcardSecretName: dev.${DOMAIN}-tls
