@@ -27,20 +27,9 @@ log_header "initial"
 kubectl create namespace $NS 2>/dev/null || true
 load_secret_vars "$NS" "rustdesk-custom-image" \
     image-repository=RUSTDESK_IMAGE_REPOSITORY
-load_configmap_vars "$NS" "rustdesk-install-version" \
-    image-version=RUSTDESK_IMAGE_VERSION
 if install_mode_enabled "$INSTALL_MODE" rustdesk-relay; then
-    if [ "$INSTALL_MODE" == "reinstall" ]; then
-        if [ -z "$RUSTDESK_IMAGE_VERSION" ]; then
-            log_error "missing rustdesk version configmap, please run full or rustdesk-relay mode first."
-            exit 1
-        fi
-    else
-        DEFAULT_RUSTDESK_IMAGE_VERSION=$(get_latest_rustdesk_server_pro_version)
-        RUSTDESK_IMAGE_VERSION=$(prompt_with_default "" "rustdesk image version" "$DEFAULT_RUSTDESK_IMAGE_VERSION")
-        apply_configmap_vars "$NS" "rustdesk-install-version" \
-            image-version=RUSTDESK_IMAGE_VERSION
-    fi
+    DEFAULT_RUSTDESK_IMAGE_VERSION=$(get_latest_rustdesk_server_pro_version)
+    RUSTDESK_IMAGE_VERSION=$(prompt_with_default "" "rustdesk image version" "$DEFAULT_RUSTDESK_IMAGE_VERSION")
     [ -n "$RUSTDESK_IMAGE_REPOSITORY" ] || RUSTDESK_IMAGE_REPOSITORY="hub.bin.$DOMAIN/$BRAND_PREFIX/remote-desktop"
 fi
 render_values_file_to_temp values-*.yaml

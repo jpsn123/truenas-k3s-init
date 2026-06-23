@@ -26,7 +26,6 @@ function ensure_k10_image() {
             log_info "image is pullable: $IMAGE"
             return
         fi
-        kubectl -n "$NS" patch secret "k10-custom-images" --type=json -p='[{"op":"remove","path":"/data/version"}]' >/dev/null 2>&1 || true
         log_error "image $IMAGE for k10 version $VERSION does not exist. please build it manually, then rerun this script."
         exit 1
     fi
@@ -42,7 +41,6 @@ if [ -z "$PASSWD" ]; then
     PASSWD=$(derive_password_sha1 "$PASSWORD_SEED" "k10" 32)
 fi
 load_secret_vars "$NS" "k10-custom-images" \
-    version=VERSION \
     use-custom-registry=K10_USE_CUSTOM_REGISTRY \
     registry-url=K10_REGISTRY_URL \
     registry-username=K10_REGISTRY_USERNAME \
@@ -51,16 +49,15 @@ load_secret_vars "$NS" "k10-custom-images" \
     kanister-tools-image=K10_KANISTER_TOOLS_IMAGE \
     metering-image=K10_METERING_IMAGE \
     license=K10_LICENSE_VALUE
-if [ "$INSTALL_MODE" != "reinstall" ]; then
-    VERSION=""
-fi
-
-if [ -z "$VERSION" ]; then
+if [ "$INSTALL_MODE" == "reinstall" ]; then
+    ensure_helm_repo_chart "kasten" "https://charts.kasten.io/" "k10"
+    resolve_chart_app_version "k10" CHART_VERSION VERSION
+else
     read -r CHART_VERSION DEFAULT_VERSION <<<"$(get_helm_chart_versions "kasten" "https://charts.kasten.io/" "k10")"
     VERSION=$(prompt_with_default "please input k10 version." "version" "$DEFAULT_VERSION")
-fi
-if [ -z "$CHART_VERSION" ] || [ "$VERSION" != "$DEFAULT_VERSION" ]; then
-    read -r CHART_VERSION _ <<<"$(get_helm_chart_versions "kasten" "https://charts.kasten.io/" "k10" "$VERSION")"
+    if [ "$VERSION" != "$DEFAULT_VERSION" ]; then
+        read -r CHART_VERSION _ <<<"$(get_helm_chart_versions "kasten" "https://charts.kasten.io/" "k10" "$VERSION")"
+    fi
 fi
 if [ -z "$K10_USE_CUSTOM_REGISTRY" ]; then
     K10_USE_CUSTOM_REGISTRY=$(prompt_with_default "please select k10 custom registry config." "use custom registry? (y/n)" "n")
@@ -106,7 +103,6 @@ apply_secret_vars "$NS" "k10-cluster-passphrase" passphrase=PASSWD
 apply_secret_vars "$NS" "k10-dr-secret" key=PASSWD
 apply_secret_vars "$NS" "kopia-repo-password" password=PASSWD
 apply_secret_vars "$NS" "k10-custom-images" \
-    version=VERSION \
     use-custom-registry=K10_USE_CUSTOM_REGISTRY \
     registry-url=K10_REGISTRY_URL \
     registry-username=K10_REGISTRY_USERNAME \

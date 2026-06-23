@@ -95,23 +95,15 @@ EOF
     fi
     # coder patch script
     apply_configmap "$NS" "coder-patch" --from-file=patch.py=patch.py --from-file=public.key=public.key
-    load_configmap_vars "$NS" "coder-install-version" \
-        coder-chart-version=CODER_CHART_VERSION \
-        coder-app-version=CODER_APP_VERSION
-    if [ "$INSTALL_MODE" == "reinstall" ]; then
-        if [ -z "$CODER_CHART_VERSION" ] || [ -z "$CODER_APP_VERSION" ]; then
-            log_error "missing coder version configmap, please run full or coder mode first."
-            exit 1
-        fi
-    else
+    if [ "$INSTALL_MODE" != "reinstall" ]; then
         read -r CODER_CHART_VERSION DEFAULT_CODER_APP_VERSION <<<"$(get_helm_chart_versions "coder-v2" "https://helm.coder.com/v2" "coder")"
         CODER_APP_VERSION=$(prompt_with_default "" "coder app version" "$DEFAULT_CODER_APP_VERSION")
         if [ "$CODER_APP_VERSION" != "$DEFAULT_CODER_APP_VERSION" ]; then
             read -r CODER_CHART_VERSION _ <<<"$(get_helm_chart_versions "coder-v2" "https://helm.coder.com/v2" "coder" "$CODER_APP_VERSION")"
         fi
-        apply_configmap_vars "$NS" "coder-install-version" \
-            coder-chart-version=CODER_CHART_VERSION \
-            coder-app-version=CODER_APP_VERSION
+    else
+        ensure_helm_repo_chart "coder-v2" "https://helm.coder.com/v2" "coder"
+        resolve_chart_app_version "coder" CODER_CHART_VERSION CODER_APP_VERSION
     fi
     CODER_IMAGE=ghcr.io/coder/coder:v"$CODER_APP_VERSION"
 fi

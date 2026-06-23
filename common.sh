@@ -557,23 +557,66 @@ function install_mode_enabled() {
     [ "$INSTALL_MODE" == "full" ] || [ "$INSTALL_MODE" == "reinstall" ] || [ "$INSTALL_MODE" == "$COMPONENT" ]
 }
 
-## function ensure_helm_repo_chart. pull helm repo chart to temp with exact chart version.
-## $1: helm repo name
-## $2: helm repo url
+## function ensure_helm_repo_chart. pull helm chart to temp, reusing local cache when possible.
+## chart version ($4) is optional:
+##   - 未指定版本时，优先复用 temp/$CHART_NAME 本地缓存；缓存不存在才拉取最新版本。
+##   - 指定版本时，若缓存缺失或版本不一致，才按指定版本拉取。
+## reinstall 等无需固定版本的场景可不传 $4，直接走本地缓存或最新版本。
+## $1: helm repo name, ignored for OCI charts
+## $2: helm repo url or OCI registry url
 ## $3: chart name
-## $4: chart version
+## $4: chart version, optional
 function ensure_helm_repo_chart() {
     local REPO_NAME="$1"
     local REPO_URL="$2"
     local CHART_NAME="$3"
     local CHART_VERSION="$4"
+    local VERSION_FLAG=()
 
-    if [ ! -f "temp/$CHART_NAME/Chart.yaml" ] || ! grep -Eq "version:[[:space:]]*$CHART_VERSION" "temp/$CHART_NAME/Chart.yaml"; then
+    if [ -z "$CHART_VERSION" ]; then
+        if [ -f "temp/$CHART_NAME/Chart.yaml" ]; then
+            log_info "reuse cached chart $CHART_NAME."
+            return
+        fi
+    else
+        if [ -f "temp/$CHART_NAME/Chart.yaml" ] && grep -Eq "version:[[:space:]]*$CHART_VERSION" "temp/$CHART_NAME/Chart.yaml"; then
+            log_info "reuse cached chart $CHART_NAME $CHART_VERSION."
+            return
+        fi
+        rm -rf "temp/$CHART_NAME"
+        VERSION_FLAG=(--version="$CHART_VERSION")
+    fi
+    if [[ "$REPO_URL" == oci://* ]]; then
+        helm pull "$REPO_URL/$CHART_NAME" --untar --untardir temp "${VERSION_FLAG[@]}"
+    else
         helm repo add "$REPO_NAME" "$REPO_URL" >/dev/null 2>&1 || true
         helm repo update "$REPO_NAME"
-        rm -rf "temp/$CHART_NAME"
-        helm pull "$REPO_NAME/$CHART_NAME" --untar --untardir temp --version="$CHART_VERSION"
+        helm pull "$REPO_NAME/$CHART_NAME" --untar --untardir temp "${VERSION_FLAG[@]}"
     fi
+}
+
+## function resolve_chart_app_version. read chart version and appVersion from cached temp chart.
+## 用于 reinstall 等不再持久化版本的场景：从本地缓存的 Chart.yaml 反推 chart version 与 appVersion，
+## 避免重新查询 Helm repo 或依赖 ConfigMap。缓存不存在时返回失败。
+## $1: chart name in temp/
+## $2: variable name to receive chart version
+## $3: variable name to receive app version
+## return: 0 成功，1 缓存缺失
+function resolve_chart_app_version() {
+    local CHART_NAME="$1"
+    local CHART_VERSION_VAR="$2"
+    local APP_VERSION_VAR="$3"
+    local CHART_VERSION=""
+    local APP_VERSION=""
+
+    if [ ! -f "temp/$CHART_NAME/Chart.yaml" ]; then
+        log_error "cached chart $CHART_NAME not found, please run full mode first."
+        return 1
+    fi
+    CHART_VERSION=$(awk '/^version:/{print $2}' "temp/$CHART_NAME/Chart.yaml")
+    APP_VERSION=$(awk '/^appVersion:/{print $2}' "temp/$CHART_NAME/Chart.yaml")
+    printf -v "$CHART_VERSION_VAR" '%s' "$CHART_VERSION"
+    printf -v "$APP_VERSION_VAR" '%s' "$APP_VERSION"
 }
 
 ## function normalize_registry_host. normalize registry url to image registry host.

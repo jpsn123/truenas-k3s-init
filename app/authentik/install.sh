@@ -38,9 +38,6 @@ kubectl create namespace $NS 2>/dev/null || true
 load_secret_vars "$NS" "postgresql" password=DB_PW
 load_secret_vars "$NS" "authentik-secret-key" secret-key=SECRET_KEY
 load_secret_vars "$NS" "authentik-smtp" password=SMTP_PW
-load_configmap_vars "$NS" "authentik-install-version" \
-    chart-version=AUTHENTIK_CHART_VERSION \
-    app-version=AUTHENTIK_APP_VERSION
 load_secret_vars "$NS" "mgr-auth" \
     session-secret=MGR_AUTH_SESSION_SECRET \
     authentik-api-token=MGR_AUTH_AUTHENTIK_API_TOKEN \
@@ -94,20 +91,12 @@ if install_mode_enabled "$INSTALL_MODE" authentik && [ -z "$SECRET_KEY" ]; then
     SECRET_KEY=$(derive_password_sha256 "$PASSWORD_SEED" "$NS@secret" 50)
 fi
 if install_mode_enabled "$INSTALL_MODE" authentik; then
-    if [ "$INSTALL_MODE" == "reinstall" ]; then
-        if [ -z "$AUTHENTIK_CHART_VERSION" ] || [ -z "$AUTHENTIK_APP_VERSION" ]; then
-            log_error "missing authentik version configmap, please run full or authentik mode first."
-            exit 1
-        fi
-    else
+    if [ "$INSTALL_MODE" != "reinstall" ]; then
         read -r AUTHENTIK_CHART_VERSION DEFAULT_AUTHENTIK_APP_VERSION <<<"$(get_helm_chart_versions "authentik" "https://charts.goauthentik.io" "authentik")"
         AUTHENTIK_APP_VERSION=$(prompt_with_default "" "authentik app version" "$DEFAULT_AUTHENTIK_APP_VERSION")
         if [ "$AUTHENTIK_APP_VERSION" != "$DEFAULT_AUTHENTIK_APP_VERSION" ]; then
             read -r AUTHENTIK_CHART_VERSION _ <<<"$(get_helm_chart_versions "authentik" "https://charts.goauthentik.io" "authentik" "$AUTHENTIK_APP_VERSION")"
         fi
-        apply_configmap_vars "$NS" "authentik-install-version" \
-            chart-version=AUTHENTIK_CHART_VERSION \
-            app-version=AUTHENTIK_APP_VERSION
     fi
     apply_secret_vars "$NS" "authentik-secret-key" secret-key=SECRET_KEY
     apply_secret_vars "$NS" "authentik-db" password=DB_PW

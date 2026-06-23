@@ -17,9 +17,6 @@ load_secret_vars "$NS" "jfrog-platform-artifactory-unified-secret" \
     master-key=MASTER_PW \
     join-key=JOIN_PW \
     bootstrap.creds=BOOTSTRAP_CREDS
-load_configmap_vars "$NS" "jfrog-install-version" \
-    jfrog-platform-chart-version=JFROG_PLATFORM_CHART_VERSION \
-    jfrog-platform-app-version=JFROG_PLATFORM_APP_VERSION
 if [ -n "$BOOTSTRAP_CREDS" ]; then
     ARTIFACTORY_PW=${BOOTSTRAP_CREDS#*=}
 fi
@@ -57,20 +54,12 @@ render_values_file_to_temp values-*.yaml
 #####################################
 if install_mode_enabled "$INSTALL_MODE" jfrog; then
     log_info "install jfrog"
-    if [ "$INSTALL_MODE" == "reinstall" ]; then
-        if [ -z "$JFROG_PLATFORM_CHART_VERSION" ] || [ -z "$JFROG_PLATFORM_APP_VERSION" ]; then
-            log_error "missing jfrog version configmap, please run full or jfrog mode first."
-            exit 1
-        fi
-    else
+    if [ "$INSTALL_MODE" != "reinstall" ]; then
         read -r JFROG_PLATFORM_CHART_VERSION DEFAULT_JFROG_PLATFORM_APP_VERSION <<<"$(get_helm_chart_versions "jfrog" "https://charts.jfrog.io" "jfrog-platform")"
         JFROG_PLATFORM_APP_VERSION=$(prompt_with_default "" "jfrog app version" "$DEFAULT_JFROG_PLATFORM_APP_VERSION")
         if [ "$JFROG_PLATFORM_APP_VERSION" != "$DEFAULT_JFROG_PLATFORM_APP_VERSION" ]; then
             read -r JFROG_PLATFORM_CHART_VERSION _ <<<"$(get_helm_chart_versions "jfrog" "https://charts.jfrog.io" "jfrog-platform" "$JFROG_PLATFORM_APP_VERSION")"
         fi
-        apply_configmap_vars "$NS" "jfrog-install-version" \
-            jfrog-platform-chart-version=JFROG_PLATFORM_CHART_VERSION \
-            jfrog-platform-app-version=JFROG_PLATFORM_APP_VERSION
     fi
     ensure_helm_repo_chart "jfrog" "https://charts.jfrog.io" "jfrog-platform" "$JFROG_PLATFORM_CHART_VERSION"
     helm upgrade --install -n $NS jfrog-platform temp/jfrog-platform -f temp/values-jfrog.yaml \

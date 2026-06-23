@@ -46,10 +46,6 @@ load_secret_vars "$NS" "nextcloud-custom-image" \
     registry-token=NEXTCLOUD_REGISTRY_TOKEN \
     buildkit-addr=NEXTCLOUD_BUILDKIT_ADDR \
     image-repository=NEXTCLOUD_IMAGE_REPOSITORY
-load_configmap_vars "$NS" "nextcloud-install-version" \
-    chart-version=NEXTCLOUD_CHART_VERSION \
-    app-version=NEXTCLOUD_APP_VERSION \
-    image-version=NEXTCLOUD_IMAGE_VERSION
 if (install_mode_enabled "$INSTALL_MODE" redis && [ -z "$REDIS_PW" ]) \
     || (install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
     || (install_mode_enabled "$INSTALL_MODE" nextcloud && [ -z "$NEXTCLOUD_PW" ]); then
@@ -66,11 +62,6 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud && [ -z "$NEXTCLOUD_PW" ]; the
 fi
 
 if install_mode_enabled "$INSTALL_MODE" nextcloud; then
-    if [ "$INSTALL_MODE" != "reinstall" ]; then
-        NEXTCLOUD_IMAGE_VERSION=""
-        NEXTCLOUD_CHART_VERSION=""
-    fi
-
     if [ -z "$NEXTCLOUD_USE_CUSTOM_REGISTRY" ]; then
         NEXTCLOUD_USE_CUSTOM_REGISTRY=$(prompt_with_default "please select nextcloud custom registry config." "use custom registry? (y/n)" "n")
     fi
@@ -98,10 +89,9 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud; then
         NEXTCLOUD_IMAGE_PATH=$(prompt_with_default "please input nextcloud image config." "nextcloud image name" "$BRAND_PREFIX/nextcloud")
     fi
     if [ "$INSTALL_MODE" == "reinstall" ]; then
-        if [ -z "$NEXTCLOUD_IMAGE_VERSION" ] || [ -z "$NEXTCLOUD_CHART_VERSION" ]; then
-            log_error "missing nextcloud version configmap, please run full or nextcloud mode first."
-            exit 1
-        fi
+        ensure_helm_repo_chart "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud"
+        resolve_chart_app_version "nextcloud" NEXTCLOUD_CHART_VERSION NEXTCLOUD_APP_VERSION
+        NEXTCLOUD_IMAGE_VERSION="$NEXTCLOUD_APP_VERSION-fpm"
     else
         read -r NEXTCLOUD_CHART_VERSION DEFAULT_NEXTCLOUD_APP_VERSION <<<"$(get_helm_chart_versions "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud")"
         NEXTCLOUD_IMAGE_VERSION=$(prompt_with_default "" "nextcloud image version" "$DEFAULT_NEXTCLOUD_APP_VERSION-fpm")
@@ -109,10 +99,6 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud; then
         if [ "$NEXTCLOUD_APP_VERSION" != "$DEFAULT_NEXTCLOUD_APP_VERSION" ]; then
             read -r NEXTCLOUD_CHART_VERSION _ <<<"$(get_helm_chart_versions "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud" "$NEXTCLOUD_APP_VERSION")"
         fi
-        apply_configmap_vars "$NS" "nextcloud-install-version" \
-            chart-version=NEXTCLOUD_CHART_VERSION \
-            app-version=NEXTCLOUD_APP_VERSION \
-            image-version=NEXTCLOUD_IMAGE_VERSION
     fi
     NEXTCLOUD_IMAGE_REPOSITORY="$NEXTCLOUD_REGISTRY_HOST/${NEXTCLOUD_IMAGE_PATH#/}"
     NEXTCLOUD_FULL_IMAGE="$NEXTCLOUD_IMAGE_REPOSITORY:$NEXTCLOUD_IMAGE_VERSION"
@@ -135,9 +121,6 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud; then
     ensure_nextcloud_image "$NEXTCLOUD_FULL_IMAGE" "nextcloud-full-img" "nextcloud:$NEXTCLOUD_IMAGE_VERSION"
 fi
 
-if install_mode_enabled "$INSTALL_MODE" office && [ "$INSTALL_MODE" != "reinstall" ]; then
-    ensure_helm_repo_chart "bjw-s" "https://bjw-s-labs.github.io/helm-charts" "app-template" "$COMMON_CHART_VERSION"
-fi
 render_values_file_to_temp values-*.yaml
 if install_mode_enabled "$INSTALL_MODE" nextcloud; then
     kubectl -n $NS apply -f temp/values-configs.yaml
