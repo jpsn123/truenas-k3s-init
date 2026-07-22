@@ -17,7 +17,7 @@ fi
 apply_configmap_vars "$NS" "ingress-nginx" load-balancer-ip=INGRESS_IP
 render_values_file_to_temp values-ingress.yaml
 
-read CHART_VERSION APP_VERSION < <(get_helm_chart_versions "rke2-charts" "https://rancher.github.io/rke2-charts" "rke2-ingress-nginx")
+read -r CHART_VERSION APP_VERSION <<<"$(get_helm_chart_versions "rke2-charts" "https://rancher.github.io/rke2-charts" "rke2-ingress-nginx")"
 ensure_helm_repo_chart "rke2-charts" "https://rancher.github.io/rke2-charts" "rke2-ingress-nginx" "$CHART_VERSION"
 helm upgrade --install rke2-ingress-nginx temp/rke2-ingress-nginx -n $NS --wait --timeout 600s -f temp/values-ingress.yaml
 

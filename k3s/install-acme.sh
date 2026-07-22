@@ -10,14 +10,14 @@ load_secret_vars "cert-manager" "${DOMAIN}-alidns-secret" \
     access-key=ALI_ACCESS_KEY \
     secret-key=ALI_SECRET_KEY
 
-[ -n "$ACME_EMAIL" ] || ACME_EMAIL=$(prompt_required "please input acme email." "acme email" "")
+[ -n "$ACME_EMAIL" ] || ACME_EMAIL=$(prompt_with_default "please input acme email." "acme email" "${EMAIL}")
 [ -n "$ALI_ACCESS_KEY" ] || ALI_ACCESS_KEY=$(prompt_required "please input aliyun access key." "aliyun access key" "")
 [ -n "$ALI_SECRET_KEY" ] || ALI_SECRET_KEY=$(prompt_required "please input aliyun secret key." "aliyun secret key" -s)
 
 # install alidns-webhook for geting certificate automatically
 #####################################
 log_header "install alidns-webhook"
-read CHART_VERSION APP_VERSION < <(get_helm_chart_versions "cert-manager-alidns-webhook" "https://devmachine-fr.github.io/cert-manager-alidns-webhook" "alidns-webhook")
+read -r CHART_VERSION APP_VERSION <<<"$(get_helm_chart_versions "cert-manager-alidns-webhook" "https://devmachine-fr.github.io/cert-manager-alidns-webhook" "alidns-webhook")"
 ensure_helm_repo_chart "cert-manager-alidns-webhook" "https://devmachine-fr.github.io/cert-manager-alidns-webhook" "alidns-webhook" "$CHART_VERSION"
 helm upgrade --install alidns-webhook temp/alidns-webhook -n cert-manager --wait --timeout 600s --set groupName="acme.${DOMAIN}"
 ALIDNS_SECRET_YAML=$(

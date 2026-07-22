@@ -10,6 +10,7 @@ source ../parameter.sh
 # init
 #####################################
 log_header "Truenas init"
+mkdir -p ./temp
 
 # sysctl
 apply_sysctl_patch net.core.default_qdisc=fq
@@ -22,7 +23,9 @@ sysctl --system
 ## make you can use apt command and self download package
 ## IMPORTANT: do not run 'apt autoremove' and do not upgrade by apt commands.
 log_info "    making apt usable"
-zfs set readonly=off $(zfs list | grep '/usr' | awk '{print $1}')
+zfs set readonly=off $(zfs list | grep 'boot-pool/ROOT/' | awk '{print $1}')
+systemctl daemon-reload
+mount -o remount,rw /
 rm /usr/local/bin/apt* /usr/local/bin/dpkg 2>/dev/null || true
 export PATH="/usr/bin:$PATH"
 chmod +x /usr/bin/*
@@ -31,16 +34,6 @@ cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d || true
 apt update
 swapoff -a
 sed -i '/^\/swap/s/^/# /' /etc/fstab
-
-# improve vm running performance
-log_info "    improve vm running performance"
-sed -i 's/##COMMENT//g' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
-sed -i '/##PATCH/d' /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
-sed -i -e "s/create_element('tlbflush',/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
-sed -i -e "s/create_element('frequencies',/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
-sed -i -e "s/.*vm_data\['command_line_args'\]/##COMMENT\0/g" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
-sed -i -e "/'commandline'/a 'children': [create_element('arg', value='-cpu'),create_element('arg', value='host,hv_ipi,hv_relaxed,hv_reset,hv_runtime,hv_spinlocks=0x1fff,hv_stimer,hv_synic,hv_time,hv_vapic,hv_vendor_id=proxmox,hv_vpindex,kvm=off,+kvm_pv_eoi,+kvm_pv_unhalt')] ##PATCH" /usr/lib/python3/dist-packages/middlewared/plugins/vm/supervisor/domain_xml.py
-service middlewared restart
 
 # some patch on profile
 log_info "    some patch on profile"
@@ -121,9 +114,12 @@ if [ -z "$RES" ]; then
 fi
 
 # install helm
-curl -fsSL -o ./temp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 ./temp/get_helm.sh
-./temp/get_helm.sh
+RES=$(helm version 2>/dev/null || true)
+if [ -z "$RES" ]; then
+    curl -fsSL -o ./temp/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 ./temp/get_helm.sh
+    ./temp/get_helm.sh
+fi
 
 # auto refresh k3s certificate and cleanup
 log_info "    making k3s certification auto refresh"

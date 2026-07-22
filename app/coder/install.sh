@@ -95,15 +95,16 @@ EOF
     fi
     # coder patch script
     apply_configmap "$NS" "coder-patch" --from-file=patch.py=patch.py --from-file=public.key=public.key
-    if [ "$INSTALL_MODE" != "reinstall" ]; then
+    if [ "$INSTALL_MODE" == "reinstall" ]; then
+        ensure_helm_repo_chart "coder-v2" "https://helm.coder.com/v2" "coder"
+        resolve_chart_app_version "coder" _ CODER_APP_VERSION
+    else
         read -r CODER_CHART_VERSION DEFAULT_CODER_APP_VERSION <<<"$(get_helm_chart_versions "coder-v2" "https://helm.coder.com/v2" "coder")"
         CODER_APP_VERSION=$(prompt_with_default "" "coder app version" "$DEFAULT_CODER_APP_VERSION")
         if [ "$CODER_APP_VERSION" != "$DEFAULT_CODER_APP_VERSION" ]; then
             read -r CODER_CHART_VERSION _ <<<"$(get_helm_chart_versions "coder-v2" "https://helm.coder.com/v2" "coder" "$CODER_APP_VERSION")"
         fi
-    else
-        ensure_helm_repo_chart "coder-v2" "https://helm.coder.com/v2" "coder"
-        resolve_chart_app_version "coder" CODER_CHART_VERSION CODER_APP_VERSION
+        ensure_helm_repo_chart "coder-v2" "https://helm.coder.com/v2" "coder" "$CODER_CHART_VERSION"
     fi
     CODER_IMAGE=ghcr.io/coder/coder:v"$CODER_APP_VERSION"
 fi
@@ -133,7 +134,6 @@ fi
 if install_mode_enabled "$INSTALL_MODE" coder; then
     log_header "install coder"
     kubectl apply -n "$NS" -f temp/values-tls.yaml
-    ensure_helm_repo_chart "coder-v2" "https://helm.coder.com/v2" "coder" "$CODER_CHART_VERSION"
     helm upgrade --install -n "$NS" coder temp/coder --wait --timeout 600s -f temp/values-coder.yaml
 fi
 

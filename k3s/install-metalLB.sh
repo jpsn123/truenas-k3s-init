@@ -8,7 +8,7 @@ source ../parameter.sh
 # install metalLB
 #####################################
 log_header "install metalLB"
-read CHART_VERSION APP_VERSION < <(get_helm_chart_versions "metallb" "https://metallb.github.io/metallb"" "metallb")
+read CHART_VERSION APP_VERSION <<<"$(get_helm_chart_versions "metallb" "https://metallb.github.io/metallb" "metallb")"
 ensure_helm_repo_chart "metallb" "https://metallb.github.io/metallb" "metallb" "$CHART_VERSION"
 helm upgrade --install metallb temp/metallb -n kube-system --wait --timeout 600s #--set loadBalancerClass="metallb-lbc"
 

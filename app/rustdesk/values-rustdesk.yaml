@@ -166,6 +166,26 @@ ingress:
           - rd.${DOMAIN}
           - rd-mgr.${DOMAIN}
         secretName: rustdesk-tls
+  mgr-oidc:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    className: "nginx"
+    hosts:
+      - host: rd-mgr.${DOMAIN}
+        paths:
+          - path: /api/oidc
+            pathType: Prefix
+            service:
+              name: rustdesk
+              port: 21114
+    tls:
+      - hosts:
+          - rd.${DOMAIN}
+          - rd-mgr.${DOMAIN}
+        secretName: rustdesk-tls
 
 persistence:
   data:

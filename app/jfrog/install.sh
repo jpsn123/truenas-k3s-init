@@ -54,14 +54,16 @@ render_values_file_to_temp values-*.yaml
 #####################################
 if install_mode_enabled "$INSTALL_MODE" jfrog; then
     log_info "install jfrog"
-    if [ "$INSTALL_MODE" != "reinstall" ]; then
+    if [ "$INSTALL_MODE" == "reinstall" ]; then
+        ensure_helm_repo_chart "jfrog" "https://charts.jfrog.io" "jfrog-platform"
+    else
         read -r JFROG_PLATFORM_CHART_VERSION DEFAULT_JFROG_PLATFORM_APP_VERSION <<<"$(get_helm_chart_versions "jfrog" "https://charts.jfrog.io" "jfrog-platform")"
         JFROG_PLATFORM_APP_VERSION=$(prompt_with_default "" "jfrog app version" "$DEFAULT_JFROG_PLATFORM_APP_VERSION")
         if [ "$JFROG_PLATFORM_APP_VERSION" != "$DEFAULT_JFROG_PLATFORM_APP_VERSION" ]; then
             read -r JFROG_PLATFORM_CHART_VERSION _ <<<"$(get_helm_chart_versions "jfrog" "https://charts.jfrog.io" "jfrog-platform" "$JFROG_PLATFORM_APP_VERSION")"
         fi
+        ensure_helm_repo_chart "jfrog" "https://charts.jfrog.io" "jfrog-platform" "$JFROG_PLATFORM_CHART_VERSION"
     fi
-    ensure_helm_repo_chart "jfrog" "https://charts.jfrog.io" "jfrog-platform" "$JFROG_PLATFORM_CHART_VERSION"
     helm upgrade --install -n $NS jfrog-platform temp/jfrog-platform -f temp/values-jfrog.yaml \
         --set global.masterKey=$MASTER_PW \
         --set global.joinKey=$JOIN_PW \

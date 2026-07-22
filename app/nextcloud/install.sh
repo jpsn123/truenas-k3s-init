@@ -90,7 +90,7 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud; then
     fi
     if [ "$INSTALL_MODE" == "reinstall" ]; then
         ensure_helm_repo_chart "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud"
-        resolve_chart_app_version "nextcloud" NEXTCLOUD_CHART_VERSION NEXTCLOUD_APP_VERSION
+        resolve_chart_app_version "nextcloud" _ NEXTCLOUD_APP_VERSION
         NEXTCLOUD_IMAGE_VERSION="$NEXTCLOUD_APP_VERSION-fpm"
     else
         read -r NEXTCLOUD_CHART_VERSION DEFAULT_NEXTCLOUD_APP_VERSION <<<"$(get_helm_chart_versions "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud")"
@@ -99,6 +99,7 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud; then
         if [ "$NEXTCLOUD_APP_VERSION" != "$DEFAULT_NEXTCLOUD_APP_VERSION" ]; then
             read -r NEXTCLOUD_CHART_VERSION _ <<<"$(get_helm_chart_versions "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud" "$NEXTCLOUD_APP_VERSION")"
         fi
+        ensure_helm_repo_chart "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud" "$NEXTCLOUD_CHART_VERSION"
     fi
     NEXTCLOUD_IMAGE_REPOSITORY="$NEXTCLOUD_REGISTRY_HOST/${NEXTCLOUD_IMAGE_PATH#/}"
     NEXTCLOUD_FULL_IMAGE="$NEXTCLOUD_IMAGE_REPOSITORY:$NEXTCLOUD_IMAGE_VERSION"
@@ -153,7 +154,6 @@ fi
 #####################################
 if install_mode_enabled "$INSTALL_MODE" nextcloud; then
     log_header "install nextcloud"
-    ensure_helm_repo_chart "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud" "$NEXTCLOUD_CHART_VERSION"
     helm upgrade --install -n $NS nextcloud temp/nextcloud --wait --timeout 1200s -f temp/values-nextcloud.yaml --set replicaCount=1
 fi
 

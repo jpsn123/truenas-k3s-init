@@ -15,7 +15,7 @@ controllers:
       main:
         image:
           repository: diegosouzapw/omniroute
-          tag: 3.8.14
+          tag: 3.8.35
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
@@ -123,5 +123,6 @@ persistence:
     storageClass: ${DEFAULT_STORAGE_CLASS}
     accessMode: ReadWriteOnce
     size: 200Gi
+    retain: true
     globalMounts:
       - path: /app/data

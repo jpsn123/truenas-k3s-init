@@ -193,14 +193,16 @@ fi
 #####################################
 if install_mode_enabled "$INSTALL_MODE" gitlab; then
     log_header "install gitlab"
-    if [ "$INSTALL_MODE" != "reinstall" ]; then
+    if [ "$INSTALL_MODE" == "reinstall" ]; then
+        ensure_helm_repo_chart "gitlab" "https://charts.gitlab.io" "gitlab"
+    else
         read -r GITLAB_CHART_VERSION DEFAULT_GITLAB_APP_VERSION <<<"$(get_helm_chart_versions "gitlab" "https://charts.gitlab.io" "gitlab")"
         GITLAB_APP_VERSION=$(prompt_with_default "" "gitlab app version" "$DEFAULT_GITLAB_APP_VERSION")
         if [ "$GITLAB_APP_VERSION" != "$DEFAULT_GITLAB_APP_VERSION" ]; then
             read -r GITLAB_CHART_VERSION _ <<<"$(get_helm_chart_versions "gitlab" "https://charts.gitlab.io" "gitlab" "$GITLAB_APP_VERSION")"
         fi
+        ensure_helm_repo_chart "gitlab" "https://charts.gitlab.io" "gitlab" "$GITLAB_CHART_VERSION"
     fi
-    ensure_helm_repo_chart "gitlab" "https://charts.gitlab.io" "gitlab" "$GITLAB_CHART_VERSION"
     helm upgrade --install -n $NS gitlab temp/gitlab -f temp/values-gitlab.yaml
 fi
 

@@ -1,4 +1,4 @@
-databaseUpgradeReady: false
+databaseUpgradeReady: true
 global:
   imageRegistry: ""
   jfrogUrl: https://bin.${DOMAIN}

@@ -91,12 +91,15 @@ if install_mode_enabled "$INSTALL_MODE" authentik && [ -z "$SECRET_KEY" ]; then
     SECRET_KEY=$(derive_password_sha256 "$PASSWORD_SEED" "$NS@secret" 50)
 fi
 if install_mode_enabled "$INSTALL_MODE" authentik; then
-    if [ "$INSTALL_MODE" != "reinstall" ]; then
+    if [ "$INSTALL_MODE" == "reinstall" ]; then
+        ensure_helm_repo_chart "authentik" "https://charts.goauthentik.io" "authentik"
+    else
         read -r AUTHENTIK_CHART_VERSION DEFAULT_AUTHENTIK_APP_VERSION <<<"$(get_helm_chart_versions "authentik" "https://charts.goauthentik.io" "authentik")"
         AUTHENTIK_APP_VERSION=$(prompt_with_default "" "authentik app version" "$DEFAULT_AUTHENTIK_APP_VERSION")
         if [ "$AUTHENTIK_APP_VERSION" != "$DEFAULT_AUTHENTIK_APP_VERSION" ]; then
             read -r AUTHENTIK_CHART_VERSION _ <<<"$(get_helm_chart_versions "authentik" "https://charts.goauthentik.io" "authentik" "$AUTHENTIK_APP_VERSION")"
         fi
+        ensure_helm_repo_chart "authentik" "https://charts.goauthentik.io" "authentik" "$AUTHENTIK_CHART_VERSION"
     fi
     apply_secret_vars "$NS" "authentik-secret-key" secret-key=SECRET_KEY
     apply_secret_vars "$NS" "authentik-db" password=DB_PW
@@ -125,7 +128,6 @@ fi
 #####################################
 if install_mode_enabled "$INSTALL_MODE" authentik; then
     log_header "install authentik"
-    ensure_helm_repo_chart "authentik" "https://charts.goauthentik.io" "authentik" "$AUTHENTIK_CHART_VERSION"
     helm upgrade --install -n $NS authentik temp/authentik --wait --timeout 600s -f temp/values-authentik.yaml \
         --set-string authentik.secret_key=$SECRET_KEY \
         --set-string authentik.postgresql.password=$DB_PW \
