@@ -70,9 +70,9 @@ persistence:
     enabled: true
     forceRename: buildkit-cache
     type: persistentVolumeClaim
-    storageClass: ${DEFAULT_SHARED_STORAGE_CLASS}
-    accessMode: ReadWriteMany
-    size: 200Gi
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 300Gi
     retain: true
     globalMounts:
       - path: /home/user/.local/share/buildkit

@@ -1,0 +1,143 @@
+global:
+  nameOverride: ai-gateway
+
+defaultPodOptions:
+  # data PVC 为 ReadWriteOnce；滚动升级期间让临时新旧 Pod 落在同一节点，避免跨节点多重挂载失败
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ai-gateway
+              app.kubernetes.io/controller: main
+          topologyKey: kubernetes.io/hostname
+  securityContext:
+    fsGroup: 101
+    fsGroupChangePolicy: OnRootMismatch
+  # /drainz 会阻塞到在途请求归零；需大于最长单请求时长(MODEL_REQUEST_TIMEOUT=10m)+收尾缓冲
+  terminationGracePeriodSeconds: 660
+
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    strategy: RollingUpdate
+    rollingUpdate:
+      unavailable: "0"
+      surge: 1
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: ${IMAGE_REPOSITORY}
+          tag: ${IMAGE_TAG}
+          pullPolicy: IfNotPresent
+        env:
+          TZ: ${TIMEZONE}
+          APP_ENV: production
+          PORT: "8080"
+          DASHBOARD_DIR: /app/frontend/dist
+          PGSQL_IP: postgresql
+          PGSQL_PORT: "5432"
+          PGSQL_USER: ai-gateway
+          PGSQL_DB: ai-gateway
+          PGSQL_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: postgresql
+                key: password
+          AUTH_TOKEN_SIGNING_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: ai-gateway
+                key: auth-token-signing-key
+          CONFIG_ENCRYPTION_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: ai-gateway
+                key: config-encryption-key
+          LOG_LEVEL: info
+          DB_LOG_LEVEL: warn
+          REQUEST_LOG_RETENTION_DAYS: "30"
+          REQUEST_FILE_RETENTION_DAYS: "7"
+          REQUEST_FILE_COMPRESSION: "true"
+          MODEL_REQUEST_TIMEOUT: 10m
+          DEFAULT_PROVIDER_TIMEOUT: 30s
+          STREAM_FIRST_EVENT_TIMEOUT: 30s
+          PROVIDER_ERROR_RETRY_INTERVAL: 1m
+          PROVIDER_PROBE_BACKOFF_AFTER_FAILURES: "3"
+          PROVIDER_PROBE_DISABLE_AFTER_FAILURES: "10"
+        probes:
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /readyz
+                port: 8080
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 3
+              failureThreshold: 3
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8080
+              initialDelaySeconds: 60
+              periodSeconds: 60
+              timeoutSeconds: 5
+              failureThreshold: 2
+        lifecycle:
+          preStop:
+            httpGet:
+              path: /drainz
+              port: 8080
+
+service:
+  main:
+    enabled: true
+    primary: true
+    controller: main
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        primary: true
+        port: 8080
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    className: "nginx"
+    hosts:
+      - host: ${SUB_DOMAIN}.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              identifier: main
+              port: http
+    tls:
+      - hosts:
+          - ${SUB_DOMAIN}.${DOMAIN}
+        secretName: ${SUB_DOMAIN}.${DOMAIN}-tls
+
+persistence:
+  data:
+    enabled: true
+    forceRename: ai-gateway-data
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    retain: true
+    globalMounts:
+      - path: /app/data
+        readOnly: false

@@ -21,7 +21,7 @@ controllers:
           API_INSTANCES: "1"
           PANEL_DOMAIN: fq.${DOMAIN}
           FRONT_END_DOMAIN: fq.${DOMAIN}
-          SUB_PUBLIC_DOMAIN: fq.${DOMAIN}/api/sub
+          SUB_PUBLIC_DOMAIN: sub.${DOMAIN}
           REDIS_SOCKET: /var/run/valkey/valkey.sock
           DATABASE_URL:
             valueFrom:
@@ -137,11 +137,56 @@ controllers:
           limits:
             cpu: 500m
             memory: 512Mi
+  subscription-page:
+    enabled: true
+    type: deployment
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: remnawave/subscription-page
+          tag: latest
+          pullPolicy: IfNotPresent
+        env:
+          TZ: ${TIMEZONE}
+          APP_PORT: "3010"
+          REMNAWAVE_PANEL_URL: http://remnawave:3000
+          REMNAWAVE_API_TOKEN:
+            valueFrom:
+              secretKeyRef:
+                name: remnawave-secrets
+                key: remnawave-api-token
+          TRUST_PROXY: "1"
+        probes:
+          liveness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 30
+              periodSeconds: 60
+              timeoutSeconds: 3
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            type: TCP
+            spec:
+              initialDelaySeconds: 10
+              periodSeconds: 30
+              timeoutSeconds: 3
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
 
 service:
   main:
     enabled: true
     primary: true
+    forceRename: remnawave
     controller: main
     type: ClusterIP
     ports:
@@ -152,6 +197,15 @@ service:
       metrics:
         enabled: true
         port: 3001
+  subscription-page:
+    enabled: true
+    forceRename: subscription-page
+    controller: subscription-page
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        port: 3010
 
 ingress:
   main:
@@ -174,6 +228,26 @@ ingress:
       - hosts:
           - fq.${DOMAIN}
         secretName: fq.${DOMAIN}-tls
+  subscription-page:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    className: "nginx"
+    hosts:
+      - host: sub.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: subscription-page
+              port: 3010
+    tls:
+      - hosts:
+          - sub.${DOMAIN}
+        secretName: sub.${DOMAIN}-tls
 
 persistence:
   valkey-socket:

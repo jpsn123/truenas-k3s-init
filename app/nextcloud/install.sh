@@ -96,9 +96,6 @@ if install_mode_enabled "$INSTALL_MODE" nextcloud; then
         read -r NEXTCLOUD_CHART_VERSION DEFAULT_NEXTCLOUD_APP_VERSION <<<"$(get_helm_chart_versions "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud")"
         NEXTCLOUD_IMAGE_VERSION=$(prompt_with_default "" "nextcloud image version" "$DEFAULT_NEXTCLOUD_APP_VERSION-fpm")
         NEXTCLOUD_APP_VERSION="${NEXTCLOUD_IMAGE_VERSION%%-*}"
-        if [ "$NEXTCLOUD_APP_VERSION" != "$DEFAULT_NEXTCLOUD_APP_VERSION" ]; then
-            read -r NEXTCLOUD_CHART_VERSION _ <<<"$(get_helm_chart_versions "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud" "$NEXTCLOUD_APP_VERSION")"
-        fi
         ensure_helm_repo_chart "nextcloud" "https://nextcloud.github.io/helm/" "nextcloud" "$NEXTCLOUD_CHART_VERSION"
     fi
     NEXTCLOUD_IMAGE_REPOSITORY="$NEXTCLOUD_REGISTRY_HOST/${NEXTCLOUD_IMAGE_PATH#/}"

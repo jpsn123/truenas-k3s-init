@@ -70,6 +70,23 @@ function prompt_required() {
     printf '%s' "$INPUT_VALUE"
 }
 
+## function prompt_yes_no_with_default. prompt and normalize yes/no input to true/false.
+## $1: reminder text
+## $2: prompt text
+## $3: default value
+function prompt_yes_no_with_default() {
+    local INPUT_VALUE=""
+
+    INPUT_VALUE=$(prompt_with_default "$1" "$2" "$3")
+    if [[ "$INPUT_VALUE" =~ ^([Yy]|[Yy][Ee][Ss]|[Tt][Rr][Uu][Ee])$ ]]; then
+        printf 'true'
+    elif [[ "$INPUT_VALUE" =~ ^([Nn]|[Nn][Oo]|[Ff][Aa][Ll][Ss][Ee])$ ]]; then
+        printf 'false'
+    else
+        printf '%s' "$INPUT_VALUE"
+    fi
+}
+
 ## function apply_secret_generic. create or update secret safely without deleting first.
 ## $1: namespace
 ## $2: secret name
@@ -291,6 +308,13 @@ function derive_password_sha256_hex() {
     echo -n "$SEED@$PURPOSE" | sha256sum | awk '{print $1}' | head -c "$LENGTH"
 }
 
+## function derive_random_passwd. generate random password.
+## $1: length
+function derive_random_passwd() {
+    local LENGTH="$1"
+    openssl rand -base64 "$LENGTH" | tr -d '\n' | head -c "$LENGTH"
+}
+
 ## function run_command can execute command on every node.
 ## $1: node list
 ## $2: the command
@@ -395,7 +419,7 @@ function render_values_file_to_temp() {
             while [[ $line =~ ^([^$]*)(\$\{[A-Z_][A-Z0-9_]*\})(.*)$ ]]; do
                 out+="${BASH_REMATCH[1]}"
                 token="${BASH_REMATCH[2]}"
-                var="${token:2:-1}"
+                var="${token:2:${#token}-3}"
                 val="${!var}"
                 if [[ -n "$val" ]]; then
                     out+="$val"
@@ -557,6 +581,28 @@ function install_mode_enabled() {
     [ "$INSTALL_MODE" == "full" ] || [ "$INSTALL_MODE" == "reinstall" ] || [ "$INSTALL_MODE" == "$COMPONENT" ]
 }
 
+## function _chart_yaml_field. read a top-level scalar field from cached Chart.yaml.
+## 用于 ensure_helm_repo_chart / resolve_chart_app_version 等内部场景，从 temp/<chart>/Chart.yaml
+## 读取顶层标量字段（version、appVersion 等），并去掉包裹的引号，避免引号污染版本号。
+## 仅匹配行首顶层的字段，忽略缩进的依赖项等同名字段。
+## $1: chart name in temp/
+## $2: field name
+## stdout: field value without surrounding quotes
+function _chart_yaml_field() {
+    local CHART_NAME="$1"
+    local FIELD="$2"
+
+    awk -v field="$FIELD" '
+        $0 ~ "^" field ":[[:space:]]" {
+            val = $2
+            gsub(/^"/, "", val)
+            gsub(/"$/, "", val)
+            print val
+            exit
+        }
+    ' "temp/$CHART_NAME/Chart.yaml"
+}
+
 ## function ensure_helm_repo_chart. pull helm chart to temp, reusing local cache when possible.
 ## chart version ($4) is optional:
 ##   - 未指定版本时，优先复用 temp/$CHART_NAME 本地缓存；缓存不存在才拉取最新版本。
@@ -571,6 +617,7 @@ function ensure_helm_repo_chart() {
     local REPO_URL="$2"
     local CHART_NAME="$3"
     local CHART_VERSION="$4"
+    local CACHED_VERSION=""
     local VERSION_FLAG=()
 
     if [ -z "$CHART_VERSION" ]; then
@@ -579,7 +626,10 @@ function ensure_helm_repo_chart() {
             return
         fi
     else
-        if [ -f "temp/$CHART_NAME/Chart.yaml" ] && grep -Eq "version:[[:space:]]*$CHART_VERSION" "temp/$CHART_NAME/Chart.yaml"; then
+        if [ -f "temp/$CHART_NAME/Chart.yaml" ]; then
+            CACHED_VERSION=$(_chart_yaml_field "$CHART_NAME" version)
+        fi
+        if [ "$CACHED_VERSION" == "$CHART_VERSION" ]; then
             log_info "reuse cached chart $CHART_NAME $CHART_VERSION."
             return
         fi
@@ -613,8 +663,8 @@ function resolve_chart_app_version() {
         log_error "cached chart $CHART_NAME not found, please run full mode first."
         return 1
     fi
-    CHART_VERSION=$(awk '/^version:/{print $2}' "temp/$CHART_NAME/Chart.yaml")
-    APP_VERSION=$(awk '/^appVersion:/{print $2}' "temp/$CHART_NAME/Chart.yaml")
+    CHART_VERSION=$(_chart_yaml_field "$CHART_NAME" version)
+    APP_VERSION=$(_chart_yaml_field "$CHART_NAME" appVersion)
     printf -v "$CHART_VERSION_VAR" '%s' "$CHART_VERSION"
     printf -v "$APP_VERSION_VAR" '%s' "$APP_VERSION"
 }
@@ -636,6 +686,45 @@ function normalize_registry_host() {
     REGISTRY_HOST="${REGISTRY_HOST#https://}"
     REGISTRY_HOST="${REGISTRY_HOST%%/*}"
     printf '%s' "$REGISTRY_HOST"
+}
+
+## function get_latest_image_tag. get latest matching tag from Docker Registry HTTP API v2.
+## 默认使用 JFrog anonymous 用户访问，避免私有 registry 裸 curl 返回 401。
+## $1: full image repository without tag, e.g. hub.example.com/ns/app
+## $2: tag regex, optional, default matches version-like tags starting with digit
+## $3: registry username, optional, default anonymous
+## $4: registry password or token, optional
+## stdout: latest tag sorted by sort -V
+function get_latest_image_tag() {
+    local IMAGE_REPOSITORY="$1"
+    local TAG_PATTERN="${2:-^[0-9][0-9A-Za-z._-]*$}"
+    local USERNAME="${3:-anonymous}"
+    local PASSWORD="$4"
+    local REGISTRY_HOST=""
+    local IMAGE_PATH=""
+    local RESPONSE=""
+    local IMAGE_TAGS=""
+
+    REGISTRY_HOST=$(normalize_registry_host "$IMAGE_REPOSITORY")
+    IMAGE_PATH="${IMAGE_REPOSITORY#http://}"
+    IMAGE_PATH="${IMAGE_PATH#https://}"
+    IMAGE_PATH="${IMAGE_PATH#"$REGISTRY_HOST"/}"
+    IMAGE_PATH="${IMAGE_PATH%:*}"
+    if [ -z "$REGISTRY_HOST" ] || [ -z "$IMAGE_PATH" ] || [ "$REGISTRY_HOST" == "$IMAGE_PATH" ]; then
+        log_error "invalid image repository: $IMAGE_REPOSITORY" >&2
+        return 1
+    fi
+
+    RESPONSE=$(curl -fsSL -u "$USERNAME:$PASSWORD" "https://$REGISTRY_HOST/v2/$IMAGE_PATH/tags/list") || {
+        log_error "failed to get image tags: $IMAGE_REPOSITORY" >&2
+        return 1
+    }
+    IMAGE_TAGS=$(printf '%s' "$RESPONSE" | tr ',' '\n' | grep -oE '"[^"]+"' | tr -d '"' | grep -E "$TAG_PATTERN" || true)
+    if [ -z "$IMAGE_TAGS" ]; then
+        log_error "failed to match image tags: $IMAGE_REPOSITORY" >&2
+        return 1
+    fi
+    printf '%s\n' "$IMAGE_TAGS" | sort -V | tail -n 1
 }
 
 ## function strip_image_registry. strip registry host from an image repository.

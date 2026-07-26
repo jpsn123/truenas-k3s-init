@@ -1,0 +1,30 @@
+global:
+  defaultStorageClass: ${DEFAULT_STORAGE_CLASS}
+  postgresql:
+    auth:
+      username: ai-gateway
+      database: ai-gateway
+
+clusterDomain: "cluster.local"
+architecture: standalone
+
+primary:
+  extraEnvVars:
+    - name: TZ
+      value: Asia/Shanghai
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 3
+      memory: 8Gi
+  service:
+    type: ClusterIP
+  persistence:
+    size: 100Gi
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/postgresql
+  tag: 17.6.0-debian-12-r4

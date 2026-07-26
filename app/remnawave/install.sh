@@ -18,10 +18,14 @@ load_secret_vars "$NS" "remnawave-secrets" \
     jwt-auth-secret=JWT_AUTH_SECRET \
     jwt-api-tokens-secret=JWT_API_TOKENS_SECRET \
     metrics-pass=METRICS_PASS \
-    webhook-secret-header=WEBHOOK_SECRET_HEADER
+    webhook-secret-header=WEBHOOK_SECRET_HEADER \
+    remnawave-api-token=REMNAWAVE_API_TOKEN
 if (install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
     || (install_mode_enabled "$INSTALL_MODE" remnawave && ([ -z "$DB_PW" ] || [ -z "$JWT_AUTH_SECRET" ] || [ -z "$JWT_API_TOKENS_SECRET" ] || [ -z "$METRICS_PASS" ] || [ -z "$WEBHOOK_SECRET_HEADER" ])); then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
+fi
+if install_mode_enabled "$INSTALL_MODE" remnawave && [ -z "$REMNAWAVE_API_TOKEN" ]; then
+    REMNAWAVE_API_TOKEN=$(prompt_required "please input Remnawave API token. Create it in Remnawave Dashboard -> Remnawave Settings -> API Tokens." "Remnawave API token" -s)
 fi
 if (install_mode_enabled "$INSTALL_MODE" postgresql || install_mode_enabled "$INSTALL_MODE" remnawave) && [ -z "$DB_PW" ]; then
     DB_PW=$(derive_password_sha1 "$PASSWORD_SEED" "$NS@db" 32)
@@ -47,7 +51,8 @@ if install_mode_enabled "$INSTALL_MODE" remnawave; then
         jwt-auth-secret=JWT_AUTH_SECRET \
         jwt-api-tokens-secret=JWT_API_TOKENS_SECRET \
         metrics-pass=METRICS_PASS \
-        webhook-secret-header=WEBHOOK_SECRET_HEADER
+        webhook-secret-header=WEBHOOK_SECRET_HEADER \
+        remnawave-api-token=REMNAWAVE_API_TOKEN
 fi
 
 # render
