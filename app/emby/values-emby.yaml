@@ -1,7 +1,8 @@
 global:
   nameOverride: emby
 
-defaultPodOptions: {}
+defaultPodOptions:
+  automountServiceAccountToken: false
 
 controllers:
   main:
@@ -12,7 +13,7 @@ controllers:
       emby:
         image:
           repository: amilys/embyserver
-          tag: 4.9.0.30
+          tag: 4.9.5.0
           pullPolicy: IfNotPresent
         env:
           TZ: Asia/Shanghai
