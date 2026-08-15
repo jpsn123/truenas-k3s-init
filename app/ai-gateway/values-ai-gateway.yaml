@@ -115,6 +115,9 @@ ingress:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
       cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "660"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "660"
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
     className: "nginx"
     hosts:
       - host: ${SUB_DOMAIN}.${DOMAIN}
@@ -136,7 +139,7 @@ persistence:
     type: persistentVolumeClaim
     storageClass: ${DEFAULT_STORAGE_CLASS}
     accessMode: ReadWriteOnce
-    size: 10Gi
+    size: 300Gi
     retain: true
     globalMounts:
       - path: /app/data

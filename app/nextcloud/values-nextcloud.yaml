@@ -87,9 +87,9 @@ nextcloud:
               'OC\Preview\Image',
               'OC\Preview\Photoshop',
           ],
-        'preview_max_x' => 2048,
-        'preview_max_y' => 2048,
-        'preview_max_scale_factor' => 2,
+        'preview_max_x' => 1024,
+        'preview_max_y' => 1024,
+        'preview_max_scale_factor' => 1,
         'preview_max_filesize_image' => 100,
         'default_language' => 'zh_CN',
         'default_locale' => 'zh',
@@ -121,7 +121,79 @@ nextcloud:
         ),
       );
 
-  hooks: {}
+  hooks:
+    before-starting: |-
+      cd /var/www/html
+
+      FILE="apps/viewer/js/viewer-init.mjs"
+
+      FILE="$FILE" php -r '
+      $file = getenv("FILE");
+
+      $old = ":this.fallback?this.src:this.previewPath}}";
+      $new = ":[\"image/jpeg\",\"image/png\",\"image/webp\"].includes(this.mime)?this.src:this.fallback?this.src:this.previewPath}}";
+
+      $data = file_get_contents($file);
+      if ($data === false) {
+          fwrite(STDERR, "ERROR: failed to read $file\n");
+          exit(1);
+      }
+
+      /*
+       * 已经 Patch：
+       * 直接成功返回，支持重复执行。
+       */
+      $newCount = substr_count($data, $new);
+
+      if ($newCount === 1) {
+          echo "OK: viewer already patched, nothing to do.\n";
+          exit(0);
+      }
+
+      if ($newCount > 1) {
+          fwrite(STDERR, "ERROR: patched pattern found $newCount times, unexpected state.\n");
+          exit(1);
+      }
+
+      /*
+       * 尚未 Patch：
+       * 原始代码必须恰好存在一次。
+       */
+      $oldCount = substr_count($data, $old);
+
+      if ($oldCount !== 1) {
+          fwrite(
+              STDERR,
+              "ERROR: original pattern expected exactly 1 match, found $oldCount. File not modified.\n"
+          );
+          exit(1);
+      }
+
+      /*
+       * 只有真正需要修改时才创建备份。
+       */
+      $backup = $file . ".bak-" . date("Ymd-His");
+
+      if (!copy($file, $backup)) {
+          fwrite(STDERR, "ERROR: failed to create backup: $backup\n");
+          exit(1);
+      }
+
+      $data = str_replace($old, $new, $data, $replaced);
+
+      if ($replaced !== 1) {
+          fwrite(STDERR, "ERROR: replacement count is $replaced.\n");
+          exit(1);
+      }
+
+      if (file_put_contents($file, $data) === false) {
+          fwrite(STDERR, "ERROR: failed to write $file\n");
+          exit(1);
+      }
+
+      echo "OK: viewer patched successfully.\n";
+      echo "Backup: $backup\n";
+      '
 
   podSecurityContext:
     fsGroup: 33

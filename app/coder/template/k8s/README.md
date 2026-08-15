@@ -15,6 +15,7 @@
 - 通过 Coder 参数选择 CPU、内存和 home 目录磁盘大小。
 - 创建工作区时可选择 Basic Ubuntu、C++ 开发环境或 Web 开发环境。
 - 可填写额外 apt 包；填写后会先在集群内构建新镜像、推送到镜像仓库，再用该镜像启动工作区。
+- GitLens 固定为 18.3.0，并从市场更新检查中排除；工作区每次启动时会恢复固定版本，其他扩展仍可正常自动更新。
 - 为每个工作区创建独立 PVC，挂载到 `/home/coder`。
 - 工作区启动时将 code-server 安装到持久化的 `/home/coder/.local`，并以 `--auth none --port 13337` 启动。
 - 在 Coder 中暴露 `code-server` 应用入口，默认打开 `/home/coder`。

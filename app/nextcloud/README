@@ -12,8 +12,20 @@ runuser --user www-data -- php occ maintenance:mode --off
 
 runuser --user www-data -- php /var/www/html/occ files:scan-app-data
 runuser --user www-data -- php /var/www/html/occ files:scan --all
-runuser --user www-data -- php /var/www/html/occ preview:generate-all -vvv
+
 runuser --user www-data -- php occ maintenance:mimetype:update-db --repair-filecache
+
+runuser --user www-data -- php occ preview:cleanup
+runuser --user www-data -- php occ config:system:set preview_max_x --value="1024" --type=integer
+runuser --user www-data -- php occ config:system:set preview_max_y --value="1024" --type=integer
+runuser --user www-data -- php occ config:system:set jpeg_quality --value="68" --type=integer
+runuser --user www-data -- php occ config:app:set preview jpeg_quality --value="68" --type=integer
+runuser --user www-data -- php occ config:app:set --value="64 1024" previewgenerator squareSizes
+runuser --user www-data -- php occ config:app:set --value="1024" previewgenerator fillWidthHeightSizes
+runuser --user www-data -- php occ config:app:set --value="" previewgenerator widthSizes
+runuser --user www-data -- php occ config:app:set --value="" previewgenerator heightSizes
+runuser --user www-data -- php occ config:app:set --value="1024" previewgenerator coverWidthHeightSizes
+runuser --user www-data -- php /var/www/html/occ preview:generate-all -vvv
 
 ### ldap 用户运维
 
