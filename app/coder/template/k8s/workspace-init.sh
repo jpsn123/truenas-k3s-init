@@ -389,7 +389,7 @@ init_codex_settings() {
 }
 EOF
   cat > "$CODEX_CONFIG" <<EOF
-model = "gpt-5.5-high"
+model = "gpt-5.6-sol"
 model_provider = "__BRAND_PREFIX__"
 
 [model_providers.__BRAND_PREFIX__]

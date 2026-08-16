@@ -11,6 +11,9 @@ config.json
 .idea
 .devcontainer/
 
+**/.DS_Stores
+**/.DS_Store
+
 charts/*/Chart.lock
 charts/*/charts
 
