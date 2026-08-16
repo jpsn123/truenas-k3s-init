@@ -131,7 +131,7 @@ nextcloud:
       $file = getenv("FILE");
 
       $old = ":this.fallback?this.src:this.previewPath}}";
-      $new = ':this.mime?.startsWith("image/")?this.src:this.fallback?this.src:this.previewPath}}';
+      $new = ":this.mime?.startsWith(\"image/\")?this.src:this.fallback?this.src:this.previewPath}}";
 
       $data = file_get_contents($file);
       if ($data === false) {
