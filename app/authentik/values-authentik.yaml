@@ -9,8 +9,8 @@ authentik:
     user: authentik
     password: ""
   email:
-    host: smtp.qiye.163.com
-    port: 994
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
     username: ${EMAIL}
     password: ""
     use_tls: false
@@ -27,7 +27,7 @@ global:
   env:
     - name: TZ
       value: Asia/Shanghai
-  podSecurityContext:
+  securityContext:
     fsGroup: 1000
     fsGroupChangePolicy: OnRootMismatch
   volumeMounts:

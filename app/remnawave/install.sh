@@ -15,13 +15,12 @@ log_header "initial"
 kubectl create namespace $NS 2>/dev/null || true
 load_secret_vars "$NS" "remnawave-db" password=DB_PW
 load_secret_vars "$NS" "remnawave-secrets" \
-    jwt-auth-secret=JWT_AUTH_SECRET \
-    jwt-api-tokens-secret=JWT_API_TOKENS_SECRET \
+    jwt-auth-secret=APP_SECRET \
     metrics-pass=METRICS_PASS \
     webhook-secret-header=WEBHOOK_SECRET_HEADER \
     remnawave-api-token=REMNAWAVE_API_TOKEN
 if (install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
-    || (install_mode_enabled "$INSTALL_MODE" remnawave && ([ -z "$DB_PW" ] || [ -z "$JWT_AUTH_SECRET" ] || [ -z "$JWT_API_TOKENS_SECRET" ] || [ -z "$METRICS_PASS" ] || [ -z "$WEBHOOK_SECRET_HEADER" ])); then
+    || (install_mode_enabled "$INSTALL_MODE" remnawave && ([ -z "$DB_PW" ] || [ -z "$APP_SECRET" ] || [ -z "$METRICS_PASS" ] || [ -z "$WEBHOOK_SECRET_HEADER" ])); then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
 fi
 if install_mode_enabled "$INSTALL_MODE" remnawave && [ -z "$REMNAWAVE_API_TOKEN" ]; then
@@ -30,11 +29,8 @@ fi
 if (install_mode_enabled "$INSTALL_MODE" postgresql || install_mode_enabled "$INSTALL_MODE" remnawave) && [ -z "$DB_PW" ]; then
     DB_PW=$(derive_password_sha1 "$PASSWORD_SEED" "$NS@db" 32)
 fi
-if install_mode_enabled "$INSTALL_MODE" remnawave && [ -z "$JWT_AUTH_SECRET" ]; then
-    JWT_AUTH_SECRET=$(derive_password_sha256 "$PASSWORD_SEED" "$NS@jwt-auth" 50)
-fi
-if install_mode_enabled "$INSTALL_MODE" remnawave && [ -z "$JWT_API_TOKENS_SECRET" ]; then
-    JWT_API_TOKENS_SECRET=$(derive_password_sha256 "$PASSWORD_SEED" "$NS@jwt-api" 50)
+if install_mode_enabled "$INSTALL_MODE" remnawave && [ -z "$APP_SECRET" ]; then
+    APP_SECRET=$(derive_password_sha256 "$PASSWORD_SEED" "$NS@jwt-auth" 50)
 fi
 if install_mode_enabled "$INSTALL_MODE" remnawave && [ -z "$METRICS_PASS" ]; then
     METRICS_PASS=$(derive_password_sha1 "$PASSWORD_SEED" "$NS@metrics" 32)
@@ -48,8 +44,7 @@ if install_mode_enabled "$INSTALL_MODE" remnawave; then
         password=DB_PW \
         url=DATABASE_URL
     apply_secret_vars "$NS" "remnawave-secrets" \
-        jwt-auth-secret=JWT_AUTH_SECRET \
-        jwt-api-tokens-secret=JWT_API_TOKENS_SECRET \
+        jwt-auth-secret=APP_SECRET \
         metrics-pass=METRICS_PASS \
         webhook-secret-header=WEBHOOK_SECRET_HEADER \
         remnawave-api-token=REMNAWAVE_API_TOKEN

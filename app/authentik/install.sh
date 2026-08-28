@@ -38,6 +38,9 @@ kubectl create namespace $NS 2>/dev/null || true
 load_secret_vars "$NS" "postgresql" password=DB_PW
 load_secret_vars "$NS" "authentik-secret-key" secret-key=SECRET_KEY
 load_secret_vars "$NS" "authentik-smtp" password=SMTP_PW
+load_configmap_vars "$NS" "authentik-smtp-config" \
+    host=SMTP_HOST \
+    port=SMTP_PORT
 load_secret_vars "$NS" "mgr-auth" \
     session-secret=MGR_AUTH_SESSION_SECRET \
     authentik-api-token=MGR_AUTH_AUTHENTIK_API_TOKEN \
@@ -50,8 +53,16 @@ if (install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
     || (install_mode_enabled "$INSTALL_MODE" authentik && [ -z "$SECRET_KEY" ]); then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
 fi
-if install_mode_enabled "$INSTALL_MODE" authentik && [ -z "$SMTP_PW" ]; then
-    SMTP_PW=$(prompt_required "please input smtp password." "smtp password" -s)
+if install_mode_enabled "$INSTALL_MODE" authentik; then
+    if [ -z "$SMTP_HOST" ]; then
+        SMTP_HOST=$(prompt_required "please input smtp config." "smtp host" "")
+    fi
+    if [ -z "$SMTP_PORT" ]; then
+        SMTP_PORT=$(prompt_required "" "smtp port" "")
+    fi
+    if [ -z "$SMTP_PW" ]; then
+        SMTP_PW=$(prompt_required "" "smtp password" -s)
+    fi
 fi
 if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
     if [ -z "$MGR_AUTH_SESSION_SECRET" ]; then
@@ -104,6 +115,9 @@ if install_mode_enabled "$INSTALL_MODE" authentik; then
     apply_secret_vars "$NS" "authentik-secret-key" secret-key=SECRET_KEY
     apply_secret_vars "$NS" "authentik-db" password=DB_PW
     apply_secret_vars "$NS" "authentik-smtp" password=SMTP_PW
+    apply_configmap_vars "$NS" "authentik-smtp-config" \
+        host=SMTP_HOST \
+        port=SMTP_PORT
     render_email_template_dir_to_temp email-templates/authentik/stages/email/templates/email
     render_email_template_dir_to_temp email-templates/authentik/stages/authenticator_email/templates/email
     apply_configmap "$NS" "authentik-cert" --from-file=public.pem=public.pem

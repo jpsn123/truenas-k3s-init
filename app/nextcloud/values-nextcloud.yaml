@@ -169,16 +169,6 @@ nextcloud:
           exit(1);
       }
 
-      /*
-       * 只有真正需要修改时才创建备份。
-       */
-      $backup = $file . ".bak-" . date("Ymd-His");
-
-      if (!copy($file, $backup)) {
-          fwrite(STDERR, "ERROR: failed to create backup: $backup\n");
-          exit(1);
-      }
-
       $data = str_replace($old, $new, $data, $replaced);
 
       if ($replaced !== 1) {
@@ -192,7 +182,6 @@ nextcloud:
       }
 
       echo "OK: viewer patched successfully.\n";
-      echo "Backup: $backup\n";
       '
 
   podSecurityContext:

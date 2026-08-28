@@ -2,15 +2,6 @@ global:
   nameOverride: ai-gateway
 
 defaultPodOptions:
-  # data PVC 为 ReadWriteOnce；滚动升级期间让临时新旧 Pod 落在同一节点，避免跨节点多重挂载失败
-  affinity:
-    podAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ai-gateway
-              app.kubernetes.io/controller: main
-          topologyKey: kubernetes.io/hostname
   securityContext:
     fsGroup: 101
     fsGroupChangePolicy: OnRootMismatch
@@ -18,14 +9,26 @@ defaultPodOptions:
   terminationGracePeriodSeconds: 660
 
 controllers:
-  main:
+  ai-gateway:
     enabled: true
+    # 多 controller 时 chart 会给资源名追加 -<identifier> 后缀，forceRename 固定资源名
+    forceRename: ai-gateway
     type: deployment
     strategy: RollingUpdate
     rollingUpdate:
       unavailable: "0"
       surge: 1
     replicas: 1
+    # data PVC 为 ReadWriteOnce；滚动升级期间让临时新旧 Pod 落在同一节点，避免跨节点多重挂载失败
+    pod:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: ai-gateway
+                  app.kubernetes.io/controller: ai-gateway
+              topologyKey: kubernetes.io/hostname
     containers:
       main:
         image:
@@ -96,17 +99,75 @@ controllers:
               path: /drainz
               port: 8080
 
+  chat-agent:
+    enabled: true
+    forceRename: chat-agent
+    type: deployment
+    strategy: RollingUpdate
+    rollingUpdate:
+      unavailable: "0"
+      surge: 1
+    replicas: 1
+    pod:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: ai-gateway
+                  app.kubernetes.io/controller: chat-agent
+              topologyKey: kubernetes.io/hostname
+    containers:
+      main:
+        image:
+          repository: ${CHAT_AGENT_IMAGE_REPOSITORY}
+          tag: ${CHAT_AGENT_IMAGE_TAG}
+          pullPolicy: IfNotPresent
+        env:
+          TZ: ${TIMEZONE}
+          APP_ENV: production
+          PORT: "8081"
+          PGSQL_IP: postgresql
+          PGSQL_PORT: "5432"
+          PGSQL_USER: ai-gateway
+          PGSQL_DB: chat
+          PGSQL_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: postgresql
+                key: password
+          # Gateway Service 名称由 forceRename 固定为 ai-gateway
+          GATEWAY_URL: http://ai-gateway:8080
+          LOG_LEVEL: info
+          DB_LOG_LEVEL: warn
+          CHAT_MAX_TOOL_ROUNDS: "12"
+          MODEL_REQUEST_TIMEOUT: 10m
+          TOOL_REQUEST_TIMEOUT: 2m
+          HTTP_READ_HEADER_TIMEOUT: 10s
+          HTTP_IDLE_TIMEOUT: 2m
+          HTTP_SHUTDOWN_TIMEOUT: 30s
+
 service:
-  main:
+  ai-gateway:
     enabled: true
     primary: true
-    controller: main
+    forceRename: ai-gateway
+    controller: ai-gateway
     type: ClusterIP
     ports:
       http:
         enabled: true
         primary: true
         port: 8080
+  chat-agent:
+    enabled: true
+    forceRename: chat-agent
+    controller: chat-agent
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        port: 8081
 
 ingress:
   main:
@@ -125,7 +186,14 @@ ingress:
           - path: /
             pathType: Prefix
             service:
-              identifier: main
+              identifier: ai-gateway
+              port: http
+      - host: ${SUB_DOMAIN}.${DOMAIN}
+        paths:
+          - path: /chat
+            pathType: Prefix
+            service:
+              identifier: chat-agent
               port: http
     tls:
       - hosts:
@@ -133,7 +201,7 @@ ingress:
         secretName: ${SUB_DOMAIN}.${DOMAIN}-tls
 
 persistence:
-  data:
+  ai-gateway-data:
     enabled: true
     forceRename: ai-gateway-data
     type: persistentVolumeClaim
@@ -141,6 +209,21 @@ persistence:
     accessMode: ReadWriteOnce
     size: 300Gi
     retain: true
-    globalMounts:
-      - path: /app/data
-        readOnly: false
+    advancedMounts:
+      ai-gateway:
+        main:
+          - path: /app/data
+            readOnly: false
+  chat-agent-data:
+    enabled: true
+    forceRename: chat-agent-data
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 500Gi
+    retain: true
+    advancedMounts:
+      chat-agent:
+        main:
+          - path: /app/data
+            readOnly: false

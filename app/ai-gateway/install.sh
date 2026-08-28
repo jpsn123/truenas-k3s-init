@@ -8,6 +8,7 @@ source ../../parameter.sh
 NS=ai-gateway
 SUB_DOMAIN=llm
 IMAGE_REPOSITORY=hub.bin.jutze.cn/jutze/ai-gateway
+CHAT_AGENT_IMAGE_REPOSITORY=hub.bin.jutze.cn/jutze/chat-agent
 
 ## initial
 #####################################
@@ -35,6 +36,7 @@ apply_secret_vars "$NS" "ai-gateway" \
     config-encryption-key=CONFIG_ENCRYPTION_KEY
 
 IMAGE_TAG=$(prompt_with_default "please input ai-gateway image config." "ai-gateway image tag" "$(get_latest_image_tag "$IMAGE_REPOSITORY")")
+CHAT_AGENT_IMAGE_TAG=$(prompt_with_default "please input chat-agent image config." "chat-agent image tag" "$(get_latest_image_tag "$CHAT_AGENT_IMAGE_REPOSITORY")")
 render_values_file_to_temp values-*.yaml
 
 ## install postgresql

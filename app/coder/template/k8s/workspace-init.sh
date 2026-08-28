@@ -360,10 +360,9 @@ init_claude_code_settings() {
     "ANTHROPIC_BASE_URL": "https://llm.__DOMAIN__/v1",
     "ANTHROPIC_DEFAULT_FABLE_MODEL": "gpt-5.6-sol",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-5-turbo",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5.3",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gpt-5.5-high",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ENABLE_TOOL_SEARCH": "true"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-5.3",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gpt-5.5-high",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "model": "fable"
 }
