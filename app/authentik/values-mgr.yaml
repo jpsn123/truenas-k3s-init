@@ -9,7 +9,7 @@ controllers:
     containers:
       main:
         image:
-          repository: hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr
+          repository: ${MGR_AUTH_IMAGE_REPOSITORY}
           tag: 0.0.12
           pullPolicy: IfNotPresent
         env:

@@ -65,6 +65,7 @@ if install_mode_enabled "$INSTALL_MODE" authentik; then
     fi
 fi
 if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
+    MGR_AUTH_IMAGE_REPOSITORY=$(prompt_with_default "please input mgr-auth image config." "mgr-auth image repository" "hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr")
     if [ -z "$MGR_AUTH_SESSION_SECRET" ]; then
         MGR_AUTH_SESSION_SECRET=$(prompt_required "please input mgr-auth secret." "session secret" -s)
     fi
