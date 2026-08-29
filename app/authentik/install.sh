@@ -41,6 +41,8 @@ load_secret_vars "$NS" "authentik-smtp" password=SMTP_PW
 load_configmap_vars "$NS" "authentik-smtp-config" \
     host=SMTP_HOST \
     port=SMTP_PORT
+load_configmap_vars "$NS" "mgr-auth" \
+    image-repository=MGR_AUTH_IMAGE_REPOSITORY
 load_secret_vars "$NS" "mgr-auth" \
     session-secret=MGR_AUTH_SESSION_SECRET \
     authentik-api-token=MGR_AUTH_AUTHENTIK_API_TOKEN \
@@ -65,7 +67,9 @@ if install_mode_enabled "$INSTALL_MODE" authentik; then
     fi
 fi
 if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
-    MGR_AUTH_IMAGE_REPOSITORY=$(prompt_with_default "please input mgr-auth image config." "mgr-auth image repository" "hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr")
+    if [ -z "$MGR_AUTH_IMAGE_REPOSITORY" ]; then
+        MGR_AUTH_IMAGE_REPOSITORY=$(prompt_with_default "please input mgr-auth image config." "mgr-auth image repository" "hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr")
+    fi
     if [ -z "$MGR_AUTH_SESSION_SECRET" ]; then
         MGR_AUTH_SESSION_SECRET=$(prompt_required "please input mgr-auth secret." "session secret" -s)
     fi
@@ -95,6 +99,8 @@ if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
         oa-enabled=MGR_AUTH_OA_ENABLED \
         oa-app-key=MGR_AUTH_OA_APP_KEY \
         oa-app-secret=MGR_AUTH_OA_APP_SECRET
+    apply_configmap_vars "$NS" "mgr-auth" \
+        image-repository=MGR_AUTH_IMAGE_REPOSITORY
 fi
 if install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]; then
     DB_PW=$(derive_password_sha1 "$PASSWORD_SEED" "$NS@db" 32)

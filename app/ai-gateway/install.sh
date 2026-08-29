@@ -16,6 +16,9 @@ load_secret_vars "$NS" "postgresql" password=DB_PW
 load_secret_vars "$NS" "ai-gateway" \
     auth-token-signing-key=AUTH_TOKEN_SIGNING_KEY \
     config-encryption-key=CONFIG_ENCRYPTION_KEY
+load_configmap_vars "$NS" "ai-gateway" \
+    image-repository=IMAGE_REPOSITORY \
+    chat-agent-image-repository=CHAT_AGENT_IMAGE_REPOSITORY
 if [ -z "$DB_PW" ] || [ -z "$AUTH_TOKEN_SIGNING_KEY" ] || [ -z "$CONFIG_ENCRYPTION_KEY" ]; then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
 fi
@@ -32,10 +35,17 @@ apply_secret_vars "$NS" "ai-gateway" \
     auth-token-signing-key=AUTH_TOKEN_SIGNING_KEY \
     config-encryption-key=CONFIG_ENCRYPTION_KEY
 
-IMAGE_REPOSITORY=$(prompt_with_default "please input ai-gateway image config." "ai-gateway image repository" "hub.bin.jutze.cn/jutze/ai-gateway")
+if [ -z "$IMAGE_REPOSITORY" ]; then
+    IMAGE_REPOSITORY=$(prompt_with_default "please input ai-gateway image config." "ai-gateway image repository" "hub.bin.jutze.cn/jutze/ai-gateway")
+fi
 IMAGE_TAG=$(prompt_with_default "" "ai-gateway image tag" "$(get_latest_image_tag "$IMAGE_REPOSITORY")")
-CHAT_AGENT_IMAGE_REPOSITORY=$(prompt_with_default "please input chat-agent image config." "chat-agent image repository" "hub.bin.jutze.cn/jutze/chat-agent")
+if [ -z "$CHAT_AGENT_IMAGE_REPOSITORY" ]; then
+    CHAT_AGENT_IMAGE_REPOSITORY=$(prompt_with_default "please input chat-agent image config." "chat-agent image repository" "hub.bin.jutze.cn/jutze/chat-agent")
+fi
 CHAT_AGENT_IMAGE_TAG=$(prompt_with_default "" "chat-agent image tag" "$(get_latest_image_tag "$CHAT_AGENT_IMAGE_REPOSITORY")")
+apply_configmap_vars "$NS" "ai-gateway" \
+    image-repository=IMAGE_REPOSITORY \
+    chat-agent-image-repository=CHAT_AGENT_IMAGE_REPOSITORY
 render_values_file_to_temp values-*.yaml
 
 ## install postgresql
