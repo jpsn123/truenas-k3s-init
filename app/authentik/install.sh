@@ -43,14 +43,6 @@ load_configmap_vars "$NS" "authentik-smtp-config" \
     port=SMTP_PORT
 load_configmap_vars "$NS" "mgr-auth" \
     image-repository=MGR_AUTH_IMAGE_REPOSITORY
-load_secret_vars "$NS" "mgr-auth" \
-    session-secret=MGR_AUTH_SESSION_SECRET \
-    authentik-api-token=MGR_AUTH_AUTHENTIK_API_TOKEN \
-    oauth-client-id=MGR_AUTH_OAUTH_CLIENT_ID \
-    oauth-client-secret=MGR_AUTH_OAUTH_CLIENT_SECRET \
-    oa-enabled=MGR_AUTH_OA_ENABLED \
-    oa-app-key=MGR_AUTH_OA_APP_KEY \
-    oa-app-secret=MGR_AUTH_OA_APP_SECRET
 if (install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
     || (install_mode_enabled "$INSTALL_MODE" authentik && [ -z "$SECRET_KEY" ]); then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
@@ -70,35 +62,7 @@ if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
     if [ -z "$MGR_AUTH_IMAGE_REPOSITORY" ]; then
         MGR_AUTH_IMAGE_REPOSITORY=$(prompt_with_default "please input mgr-auth image config." "mgr-auth image repository" "hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr")
     fi
-    if [ -z "$MGR_AUTH_SESSION_SECRET" ]; then
-        MGR_AUTH_SESSION_SECRET=$(prompt_required "please input mgr-auth secret." "session secret" -s)
-    fi
-    if [ -z "$MGR_AUTH_AUTHENTIK_API_TOKEN" ]; then
-        MGR_AUTH_AUTHENTIK_API_TOKEN=$(prompt_required "" "authentik api token" -s)
-    fi
-    if [ -z "$MGR_AUTH_OAUTH_CLIENT_ID" ]; then
-        MGR_AUTH_OAUTH_CLIENT_ID=$(prompt_required "" "oauth client id" "")
-    fi
-    if [ -z "$MGR_AUTH_OAUTH_CLIENT_SECRET" ]; then
-        MGR_AUTH_OAUTH_CLIENT_SECRET=$(prompt_required "" "oauth client secret" -s)
-    fi
-    if [ -z "$MGR_AUTH_OA_ENABLED" ]; then
-        MGR_AUTH_OA_ENABLED=$(prompt_with_default "" "enable oa? (true/false)" "true")
-    fi
-    if [ -z "$MGR_AUTH_OA_APP_KEY" ]; then
-        MGR_AUTH_OA_APP_KEY=$(prompt_required "" "oa app key" -s)
-    fi
-    if [ -z "$MGR_AUTH_OA_APP_SECRET" ]; then
-        MGR_AUTH_OA_APP_SECRET=$(prompt_required "" "oa app secret" -s)
-    fi
-    apply_secret_vars "$NS" "mgr-auth" \
-        session-secret=MGR_AUTH_SESSION_SECRET \
-        authentik-api-token=MGR_AUTH_AUTHENTIK_API_TOKEN \
-        oauth-client-id=MGR_AUTH_OAUTH_CLIENT_ID \
-        oauth-client-secret=MGR_AUTH_OAUTH_CLIENT_SECRET \
-        oa-enabled=MGR_AUTH_OA_ENABLED \
-        oa-app-key=MGR_AUTH_OA_APP_KEY \
-        oa-app-secret=MGR_AUTH_OA_APP_SECRET
+    MGR_AUTH_IMAGE_TAG=$(prompt_with_default "" "mgr-auth image tag" "$(get_latest_image_tag "$MGR_AUTH_IMAGE_REPOSITORY")")
     apply_configmap_vars "$NS" "mgr-auth" \
         image-repository=MGR_AUTH_IMAGE_REPOSITORY
 fi

@@ -10,7 +10,7 @@ controllers:
       main:
         image:
           repository: ${MGR_AUTH_IMAGE_REPOSITORY}
-          tag: 0.0.14
+          tag: ${MGR_AUTH_IMAGE_TAG}
           pullPolicy: IfNotPresent
         env:
           LOG_LEVEL: warn
