@@ -15,11 +15,12 @@ kubectl create namespace $NS 2>/dev/null || true
 load_secret_vars "$NS" "postgresql" password=DB_PW
 load_secret_vars "$NS" "ai-gateway" \
     auth-token-signing-key=AUTH_TOKEN_SIGNING_KEY \
-    config-encryption-key=CONFIG_ENCRYPTION_KEY
+    config-encryption-key=CONFIG_ENCRYPTION_KEY \
+    chat-oauth-bridge-token=CHAT_OAUTH_BRIDGE_TOKEN
 load_configmap_vars "$NS" "ai-gateway" \
     image-repository=IMAGE_REPOSITORY \
     chat-agent-image-repository=CHAT_AGENT_IMAGE_REPOSITORY
-if [ -z "$DB_PW" ] || [ -z "$AUTH_TOKEN_SIGNING_KEY" ] || [ -z "$CONFIG_ENCRYPTION_KEY" ]; then
+if [ -z "$DB_PW" ] || [ -z "$AUTH_TOKEN_SIGNING_KEY" ] || [ -z "$CONFIG_ENCRYPTION_KEY" ] || [ -z "$CHAT_OAUTH_BRIDGE_TOKEN" ]; then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
 fi
 if [ -z "$DB_PW" ]; then
@@ -31,9 +32,13 @@ fi
 if [ -z "$CONFIG_ENCRYPTION_KEY" ]; then
     CONFIG_ENCRYPTION_KEY=$(echo -n "$PASSWORD_SEED@$NS" | openssl dgst -sha256 -binary | base64)
 fi
+if [ -z "$CHAT_OAUTH_BRIDGE_TOKEN" ]; then
+    CHAT_OAUTH_BRIDGE_TOKEN=$(derive_password_sha256_hex "$PASSWORD_SEED" "$NS@chat-oauth-bridge-token" 32)
+fi
 apply_secret_vars "$NS" "ai-gateway" \
     auth-token-signing-key=AUTH_TOKEN_SIGNING_KEY \
-    config-encryption-key=CONFIG_ENCRYPTION_KEY
+    config-encryption-key=CONFIG_ENCRYPTION_KEY \
+    chat-oauth-bridge-token=CHAT_OAUTH_BRIDGE_TOKEN
 
 if [ -z "$IMAGE_REPOSITORY" ]; then
     IMAGE_REPOSITORY=$(prompt_with_default "please input ai-gateway image config." "ai-gateway image repository" "hub.bin.jutze.cn/jutze/ai-gateway")

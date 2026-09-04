@@ -70,6 +70,11 @@ controllers:
           PROVIDER_ERROR_RETRY_INTERVAL: 1m
           PROVIDER_PROBE_BACKOFF_AFTER_FAILURES: "3"
           PROVIDER_PROBE_DISABLE_AFTER_FAILURES: "10"
+          CHAT_OAUTH_BRIDGE_TOKEN:
+            valueFrom:
+              secretKeyRef:
+                name: ai-gateway
+                key: chat-oauth-bridge-token
         probes:
           readiness:
             enabled: true

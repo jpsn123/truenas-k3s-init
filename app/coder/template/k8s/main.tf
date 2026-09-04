@@ -168,24 +168,10 @@ data "coder_parameter" "workspace_image" {
   }
 }
 
-data "coder_parameter" "ai_connector_token" {
-  name         = "ai_connector_token"
-  display_name = "__AI_CONNECTOR_DISPLAY_NAME__"
-  order        = 5
-  description  = "可选。用于初始化 Claude Code 和 Codex 的访问令牌。"
-  default      = ""
-  icon         = "/emojis/1f511.png"
-  mutable      = true
-  validation {
-    regex = "^$|^[A-Za-z0-9._~:/+=-]+$"
-    error = "令牌可以为空；如果填写，只能包含字母、数字和 . _ ~ : / + = -。"
-  }
-}
-
 data "coder_parameter" "workspace_packages" {
   name         = "workspace_packages"
   display_name = "额外 apt 包"
-  order        = 6
+  order        = 5
   description  = "可选。工作区重启会重置除Home目录以外的数据，故apt包只能通过这里预装，多个包用空格分隔。如需更复杂系统环境配置，请使用下方‘自定义镜像RUN命令’。"
   default      = ""
   icon         = "/emojis/1f4e6.png"
@@ -199,7 +185,7 @@ data "coder_parameter" "workspace_packages" {
 data "coder_parameter" "workspace_custom_run_script" {
   name         = "workspace_custom_run_script"
   display_name = "自定义镜像RUN命令"
-  order        = 7
+  order        = 6
   description  = <<-EOF
     可选。这个功能用于构建你自己的持久化工作区镜像，让你的所有配置不被重置。
     
@@ -323,9 +309,13 @@ ${file("${path.module}/workspace-init.sh")}
 WORKSPACE_INIT_SH
     chmod +x /tmp/workspace-init.sh
 
-    # Install code-server and initialize workspace defaults (code-server settings/extensions + AI tools).
+    cat > /tmp/code-server-default-settings.json <<'CODE_SERVER_DEFAULT_SETTINGS'
+${file("${path.module}/settings.json")}
+CODE_SERVER_DEFAULT_SETTINGS
+
+    # Install code-server and initialize workspace defaults (settings and extensions).
     CODE_SERVER_MIRROR_URL="$${CODE_SERVER_MIRROR_URL:-${var.code_server_mirror_url}}" \
-    AI_CONNECTOR_TOKEN="$${AI_CONNECTOR_TOKEN:-${data.coder_parameter.ai_connector_token.value}}" \
+      CODE_SERVER_DEFAULT_SETTINGS_FILE=/tmp/code-server-default-settings.json \
       /tmp/workspace-init.sh
     export PATH="$${HOME}/.local/bin:$${PATH}"
 

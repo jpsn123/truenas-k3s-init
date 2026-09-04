@@ -1,0 +1,53 @@
+{
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.experimental.modernUI": true,
+    "workbench.statusBar.visible": true,
+    "workbench.startupEditor": "none",
+    "workbench.colorTheme": "Better Selenized Light",
+    "workbench.secondarySideBar.showLabels": false,
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+    "editor.formatOnType": true,
+    "editor.fontSize": 13,
+    "editor.codeActionsOnSave": {},
+    "editor.fontWeight": "normal",
+    "editor.formatOnSave": true,
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "files.eol": "\n",
+    "github.gitAuthentication": false,
+    "git.useIntegratedAskPass": false,
+    "git.confirmSync": false,
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    "cmake.options.statusBarVisibility": "visible",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "diffEditor.maxComputationTime": 0,
+    "claudeCode.allowDangerouslySkipPermissions": true,
+    "claudeCode.initialPermissionMode": "bypassPermissions",
+    "claudeCode.preferredLocation": "panel",
+    "remote.autoForwardPortsSource": "hybrid",
+    "gitlens.graph.layout": "editor",
+    "gitlens.gitCommands.skipConfirmations": [
+        "fetch:command",
+        "stash-push:command",
+        "switch:command"
+    ],
+    "gitlens.views.commitDetails.files.layout": "tree",
+    "gitlens.views.contributors.showAllBranches": true,
+    "gitlens.views.scm.grouped.views": {
+        "commits": false,
+        "branches": false,
+        "remotes": false,
+        "stashes": false,
+        "tags": false,
+        "worktrees": false,
+        "contributors": false,
+        "fileHistory": false,
+        "repositories": false,
+        "searchAndCompare": false,
+        "launchpad": false
+    },
+    "terminal.integrated.initialHint": false
+}

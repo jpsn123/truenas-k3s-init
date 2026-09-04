@@ -7,7 +7,8 @@
 | 文件 | 说明 |
 |---|---|
 | `main.tf` | Coder 模板的 Terraform 配置，定义工作区参数、PVC、Deployment、Coder Agent 和 code-server 应用入口。 |
-| `workspace-init.sh` | 工作区初始化脚本。模板启动时会把该脚本写入 Debian-like 工作区 Pod，从 JFrog mirror 下载安装 code-server standalone 包，并初始化 code-server 默认配置（设置、扩展）和 Claude Code 配置（`~/.claude/settings.json`）。 |
+| `workspace-init.sh` | 工作区初始化脚本。模板启动时会把该脚本写入 Debian-like 工作区 Pod，从 JFrog mirror 下载安装 code-server standalone 包、初始化默认设置和扩展，并创建 `$HOME/.local/bin/claude` 启动器，在执行时动态定位 Claude Code 插件内置 CLI。 |
+| `settings.json` | 新工作区首次初始化时写入 code-server `User/settings.json` 的默认用户设置；已存在的用户设置不会被覆盖。 |
 | `Dockerfile.custom` | 当用户填写额外 apt 包时，BuildKit 使用该 Dockerfile 基于所选工作区镜像构建新镜像并推送到 JFrog Docker 仓库。 |
 
 ## 主要能力
@@ -87,11 +88,11 @@ base64 kubeconfig.yaml | tr -d '\r\n'
 
 ## code-server mirror
 
-`main.tf` 会在 Coder Agent 的启动脚本中执行：
+`main.tf` 会把 `workspace-init.sh` 和 `settings.json` 分别写入工作区 Pod 的 `/tmp`，然后在 Coder Agent 的启动脚本中执行：
 
 ```sh
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-<code_server_mirror_url>}" \
-AI_CONNECTOR_TOKEN="${AI_CONNECTOR_TOKEN:-<ai_connector_token>}" \
+  CODE_SERVER_DEFAULT_SETTINGS_FILE=/tmp/code-server-default-settings.json \
   /tmp/workspace-init.sh
 ```
 
@@ -107,7 +108,9 @@ code-server-<version>-linux-amd64.tar.gz
 |---|---|---|
 | `CODE_SERVER_MIRROR_URL` | `__CODE_SERVER_MIRROR_URL__` | code-server 下载 mirror 地址。 |
 | `CODE_SERVER_PREFIX_DIR` | `$HOME/.local` | code-server 安装目录。 |
-| `AI_CONNECTOR_TOKEN` | 空 | 非空时在首次启动写入 AI 工具配置；为空则跳过初始化。 |
+| `CODE_SERVER_DEFAULT_SETTINGS_FILE` | 无 | 首次初始化时复制到 code-server `User/settings.json` 的默认设置文件，由 `main.tf` 提供。 |
+
+脚本不会生成 Claude Code 或 Codex 的认证文件；`settings.json` 中包含的扩展设置会作为新工作区的默认用户设置。
 
 ## 自定义 apt 包镜像构建
 

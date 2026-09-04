@@ -1,17 +1,16 @@
 #!/bin/sh
 # Workspace initialization script. Written into Debian-like workspace Pods by the
 # Coder template. Installs code-server from a mirror and initializes
-# code-server defaults and AI tool settings.
+# code-server defaults.
 set -eu
 
 # Defaults. Each may be overridden by the environment.
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-__CODE_SERVER_MIRROR_URL__}"
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL%/}"
 CODE_SERVER_PREFIX_DIR="${CODE_SERVER_PREFIX_DIR:-$HOME/.local}"
-# When non-empty, AI tool settings are initialized on first start.
-AI_CONNECTOR_TOKEN="${AI_CONNECTOR_TOKEN:-}"
 
 DEFAULT_EXTENSIONS_GALLERY='{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","itemUrl":"https://marketplace.visualstudio.com/items","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","controlUrl":""}'
+CLAUDE_CODE_EXTENSION_ID="anthropic.claude-code"
 GITLENS_EXTENSION_ID="eamodio.gitlens"
 GITLENS_PINNED_VERSION="18.3.0"
 
@@ -31,8 +30,7 @@ main() {
   init_code_server_defaults
   pin_extension "$GITLENS_EXTENSION_ID" "$GITLENS_PINNED_VERSION"
   mark_extension_resource "$GITLENS_EXTENSION_ID"
-  init_claude_code_settings
-  init_codex_settings
+  ensure_claude_code_cli_launcher
 }
 
 check_debian_like() {
@@ -144,6 +142,29 @@ ensure_code_server_link() {
   "$sh_c" ln -sf "$REMOTE_CLI_DIR/code-server" "$REMOTE_CLI_DIR/code"
 }
 
+ensure_claude_code_cli_launcher() {
+  CLAUDE_CODE_LAUNCHER="$HOME/.local/bin/claude"
+
+  "$sh_c" mkdir -p "$HOME/.local/bin"
+  "$sh_c" rm -f "$CLAUDE_CODE_LAUNCHER"
+  cat > "$CLAUDE_CODE_LAUNCHER" <<'EOF'
+#!/bin/sh
+set -eu
+
+CLAUDE_CODE_EXTENSION_DIR="$(find "$HOME/.local/share/code-server/extensions" -maxdepth 1 -type d -name 'anthropic.claude-code-*-linux-*' -print 2>/dev/null | sort -V | tail -n 1)"
+CLAUDE_CODE_CLI="$CLAUDE_CODE_EXTENSION_DIR/resources/native-binary/claude"
+
+if [ ! -x "$CLAUDE_CODE_CLI" ]; then
+  echo "Claude Code bundled CLI is missing from installed extension." >&2
+  exit 1
+fi
+
+exec "$CLAUDE_CODE_CLI" "$@"
+EOF
+  chmod +x "$CLAUDE_CODE_LAUNCHER"
+  echoh "Claude Code bundled CLI is available as: claude"
+}
+
 init_code_server_defaults() {
   CODE_SERVER_DATA_DIR="$HOME/.local/share/code-server"
   CODE_SERVER_USER_DIR="$CODE_SERVER_DATA_DIR/User"
@@ -156,38 +177,17 @@ init_code_server_defaults() {
   mkdir -p "$CODE_SERVER_USER_DIR"
 
   if [ ! -e "$CODE_SERVER_USER_DIR/settings.json" ]; then
-    cat > "$CODE_SERVER_USER_DIR/settings.json" <<'EOF'
-{
-  "workbench.iconTheme": "material-icon-theme",
-  "explorer.confirmDelete": false,
-  "editor.formatOnType": true,
-  "files.eol": "\n",
-  "git.confirmSync": false,
-  "editor.fontSize": 13,
-  "workbench.statusBar.visible": true,
-  "git.autofetch": true,
-  "git.enableSmartCommit": true,
-  "[json]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "cmake.options.statusBarVisibility": "visible",
-  "diffEditor.ignoreTrimWhitespace": false,
-  "editor.codeActionsOnSave": {},
-  "editor.formatOnSave": true,
-  "diffEditor.maxComputationTime": 0,
-  "editor.fontWeight": "normal",
-  "claudeCode.allowDangerouslySkipPermissions": true,
-  "claudeCode.initialPermissionMode": "bypassPermissions",
-  "workbench.colorTheme": "Solarized Light",
-  "workbench.startupEditor": "none"
-}
-EOF
+    if [ ! -f "${CODE_SERVER_DEFAULT_SETTINGS_FILE-}" ]; then
+      echoerr "Default code-server settings file is missing: ${CODE_SERVER_DEFAULT_SETTINGS_FILE-}"
+      exit 1
+    fi
+    cp "$CODE_SERVER_DEFAULT_SETTINGS_FILE" "$CODE_SERVER_USER_DIR/settings.json"
   fi
 
   echoh "Installing default code-server extensions. This may take a while."
   for extension in \
     ginfuru.ginfuru-better-solarized-dark-theme \
-    anthropic.claude-code \
+    "$CLAUDE_CODE_EXTENSION_ID" \
     donjayamanne.githistory \
     "$GITLENS_EXTENSION_ID@$GITLENS_PINNED_VERSION" \
     pkief.material-icon-theme \
@@ -335,68 +335,6 @@ mark_extension_resource() {
   ' "$EXTENSIONS_JSON" "$EXTENSION_ID"; then
     echoerr "Failed to mark $EXTENSION_ID as a resource extension in $EXTENSIONS_JSON, skip."
   fi
-}
-
-init_claude_code_settings() {
-  CLAUDE_DIR="$HOME/.claude"
-  CLAUDE_SETTINGS="$CLAUDE_DIR/settings.json"
-
-  if [ -z "${AI_CONNECTOR_TOKEN-}" ]; then
-    return
-  fi
-  if [ -e "$CLAUDE_SETTINGS" ]; then
-    return
-  fi
-
-  mkdir -p "$CLAUDE_DIR"
-  cat > "$CLAUDE_SETTINGS" <<EOF
-{
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  },
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "$AI_CONNECTOR_TOKEN",
-    "ANTHROPIC_BASE_URL": "https://llm.__DOMAIN__/v1",
-    "ANTHROPIC_DEFAULT_FABLE_MODEL": "gpt-5.6-sol",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-5-turbo",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-5.3",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gpt-5.5-high",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
-  "model": "fable"
-}
-EOF
-}
-
-init_codex_settings() {
-  CODEX_DIR="$HOME/.codex"
-  CODEX_AUTH="$CODEX_DIR/auth.json"
-  CODEX_CONFIG="$CODEX_DIR/config.toml"
-
-  if [ -z "${AI_CONNECTOR_TOKEN-}" ]; then
-    return
-  fi
-  if [ -e "$CODEX_AUTH" ] || [ -e "$CODEX_CONFIG" ]; then
-    return
-  fi
-
-  mkdir -p "$CODEX_DIR"
-  cat > "$CODEX_AUTH" <<EOF
-{
-  "OPENAI_API_KEY": "$AI_CONNECTOR_TOKEN"
-}
-EOF
-  cat > "$CODEX_CONFIG" <<EOF
-model = "gpt-5.6-sol"
-model_provider = "__BRAND_PREFIX__"
-
-[model_providers.__BRAND_PREFIX__]
-name = "__BRAND_DISPLAY_NAME__"
-base_url = "https://llm.__DOMAIN__/v1"
-env_key = "OPENAI_API_KEY"
-wire_api = "chat"
-EOF
 }
 
 fetch() {

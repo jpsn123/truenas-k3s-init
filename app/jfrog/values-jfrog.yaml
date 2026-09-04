@@ -92,16 +92,9 @@ artifactory:
           name: jfrog-patch
       - name: jfrog-patch-jars
         emptyDir: {}
-      - name: jfrog-frontend-custom
-        configMap:
-          name: jfrog-frontend-custom
-          defaultMode: 0755
     customVolumeMounts: |
       - name: jfrog-patch-jars
         mountPath: /jfrog-patch
-      - name: jfrog-frontend-custom
-        mountPath: /jfrog-custom
-        readOnly: true
     customInitContainers: |
       - name: copy-artifactory-jars
         image: {{ include "artifactory.getImageInfoByValue" (list . "artifactory") }}
@@ -151,6 +144,19 @@ artifactory:
     readinessProbe:
       enabled: false
   frontend:
+    # 7.154.0 起 frontend.asPod 默认 true：前端从 StatefulSet 容器拆为独立 Deployment，
+    # 不再继承 artifactory.artifactory.customVolumes/customVolumeMounts，品牌化卷需挂在 frontend 自己名下
+    asPod: true
+    replicaCount: 1
+    customVolumes: |
+      - name: jfrog-frontend-custom
+        configMap:
+          name: jfrog-frontend-custom
+          defaultMode: 0755
+    customVolumeMounts: |
+      - name: jfrog-frontend-custom
+        mountPath: /jfrog-custom
+        readOnly: true
     extraEnvironmentVariables:
       - name: BRAND_PREFIX
         value: ${BRAND_PREFIX}

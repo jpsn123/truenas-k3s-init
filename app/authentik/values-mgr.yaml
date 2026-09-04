@@ -10,53 +10,14 @@ controllers:
       main:
         image:
           repository: ${MGR_AUTH_IMAGE_REPOSITORY}
-          tag: 0.0.12
+          tag: 0.0.14
           pullPolicy: IfNotPresent
         env:
           LOG_LEVEL: warn
           NODE_ENV: production
-          SESSION_SECRET:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: session-secret
-          AUTHENTIK_BASE_URL: https://auth.${DOMAIN}
-          AUTHENTIK_API_TOKEN:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: authentik-api-token
-          OAUTH_ISSUER: https://auth.${DOMAIN}/application/o/auth-mgr/
-          OAUTH_CLIENT_ID:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: oauth-client-id
-          OAUTH_CLIENT_SECRET:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: oauth-client-secret
-          OAUTH_REDIRECT_URI: https://mgr.auth.${DOMAIN}/api/auth/callback
-          FRONTEND_URL: https://mgr.auth.${DOMAIN}
-          OAUTH_POST_LOGOUT_REDIRECT_URI: https://mgr.auth.${DOMAIN}/login
-          OAUTH_SCOPES: openid, profile
-          OA_APPLICATION_NAME: OA办公
-          OA_ENABLED:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: oa-enabled
-          OA_APP_KEY:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: oa-app-key
-          OA_APP_SECRET:
-            valueFrom:
-              secretKeyRef:
-                name: mgr-auth
-                key: oa-app-secret
+          DATA_DIR: /opt/auth-mgr/
+          PUBLIC_ORIGIN: https://mgr.auth.${DOMAIN}
+          TRUSTED_PROXY_CIDRS: ${CLUSTER_CIDR}
         resources:
           requests:
             cpu: 100m
@@ -76,6 +37,20 @@ service:
         enabled: true
         primary: true
         port: 80
+        targetPort: 3004
+
+persistence:
+  data:
+    enabled: true
+    forceRename: mgr-auth-data
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 20Gi
+    retain: true
+    globalMounts:
+      - path: /opt/auth-mgr/
+        readOnly: false
 
 ingress:
   main:
