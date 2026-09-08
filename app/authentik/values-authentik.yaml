@@ -135,6 +135,16 @@ server:
       nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
       nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
       nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-buffering: "on"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set $authentik_accept_encoding $http_accept_encoding;
+        if ($http_accept ~* "text/html") {
+          set $authentik_accept_encoding "";
+        }
+        proxy_set_header Accept-Encoding $authentik_accept_encoding;
+        sub_filter_types text/html;
+        sub_filter_once on;
+        sub_filter '</head>' '<script>(function(){if(typeof URL.canParse!=="function"){URL.canParse=function(input,base){try{new URL(input,base);return true}catch(e){return false}}}})();</script></head>';
     hosts:
       - auth.${DOMAIN}
     tls:

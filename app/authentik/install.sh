@@ -7,7 +7,7 @@ source ../../parameter.sh
 
 NS=authentik
 INSTALL_MODE="${1:-full}"
-validate_install_mode "$INSTALL_MODE" postgresql authentik mgr-auth
+validate_install_mode "$INSTALL_MODE" postgresql authentik auth-mgr
 
 # functions
 function render_email_template_dir_to_temp() {
@@ -41,8 +41,8 @@ load_secret_vars "$NS" "authentik-smtp" password=SMTP_PW
 load_configmap_vars "$NS" "authentik-smtp-config" \
     host=SMTP_HOST \
     port=SMTP_PORT
-load_configmap_vars "$NS" "mgr-auth" \
-    image-repository=MGR_AUTH_IMAGE_REPOSITORY
+load_configmap_vars "$NS" "auth-mgr" \
+    image-repository=AUTH_MGR_IMAGE_REPOSITORY
 if (install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]) \
     || (install_mode_enabled "$INSTALL_MODE" authentik && [ -z "$SECRET_KEY" ]); then
     PASSWORD_SEED=$(prompt_required "please input seed for password." "password seed" "")
@@ -58,13 +58,13 @@ if install_mode_enabled "$INSTALL_MODE" authentik; then
         SMTP_PW=$(prompt_required "" "smtp password" -s)
     fi
 fi
-if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
-    if [ -z "$MGR_AUTH_IMAGE_REPOSITORY" ]; then
-        MGR_AUTH_IMAGE_REPOSITORY=$(prompt_with_default "please input mgr-auth image config." "mgr-auth image repository" "hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr")
+if install_mode_enabled "$INSTALL_MODE" auth-mgr; then
+    if [ -z "$AUTH_MGR_IMAGE_REPOSITORY" ]; then
+        AUTH_MGR_IMAGE_REPOSITORY=$(prompt_with_default "please input auth-mgr image config." "auth-mgr image repository" "hub.bin.${DOMAIN}/${BRAND_PREFIX}/auth-mgr")
     fi
-    MGR_AUTH_IMAGE_TAG=$(prompt_with_default "" "mgr-auth image tag" "$(get_latest_image_tag "$MGR_AUTH_IMAGE_REPOSITORY")")
-    apply_configmap_vars "$NS" "mgr-auth" \
-        image-repository=MGR_AUTH_IMAGE_REPOSITORY
+    AUTH_MGR_IMAGE_TAG=$(prompt_with_default "" "auth-mgr image tag" "$(get_latest_image_tag "$AUTH_MGR_IMAGE_REPOSITORY")")
+    apply_configmap_vars "$NS" "auth-mgr" \
+        image-repository=AUTH_MGR_IMAGE_REPOSITORY
 fi
 if install_mode_enabled "$INSTALL_MODE" postgresql && [ -z "$DB_PW" ]; then
     DB_PW=$(derive_password_sha1 "$PASSWORD_SEED" "$NS@db" 32)
@@ -119,12 +119,12 @@ if install_mode_enabled "$INSTALL_MODE" authentik; then
         --set-string authentik.email.password=$SMTP_PW
 fi
 
-## install mgr-auth
+## install auth-mgr
 #####################################
-if install_mode_enabled "$INSTALL_MODE" mgr-auth; then
-    log_header "install mgr-auth"
+if install_mode_enabled "$INSTALL_MODE" auth-mgr; then
+    log_header "install auth-mgr"
     ensure_helm_repo_chart "bjw-s" "https://bjw-s-labs.github.io/helm-charts" "app-template" "$COMMON_CHART_VERSION"
-    helm upgrade --install -n $NS mgr-auth temp/app-template --wait --timeout 600s -f temp/values-mgr.yaml
+    helm upgrade --install -n $NS auth-mgr temp/app-template --wait --timeout 600s -f temp/values-auth-mgr.yaml
 fi
 
 ## done
