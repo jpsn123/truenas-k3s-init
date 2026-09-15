@@ -51,6 +51,21 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/configuration-snippet: |
+      # 直链目录页已使用 UTF-8，但未声明 charset；只为 HTML 补充响应头。
+      charset utf-8;
+      charset_types text/html;
+      # 仅对以 / 结尾的目录页插入时区提示，普通文件下载不做正文替换。
+      # 空匹配让非目录请求跳过 sub_filter，保留文件正文及缓存响应头。
+      set $artifactory_listing_marker "";
+      set $artifactory_accept_encoding $http_accept_encoding;
+      if ($uri ~ "/$") {
+        set $artifactory_listing_marker "<pre>Name";
+        set $artifactory_accept_encoding "";
+      }
+      proxy_set_header Accept-Encoding $artifactory_accept_encoding;
+      # 提示文案须与 values-jfrog.yaml 的 Java/TZ 时区保持一致。
+      sub_filter $artifactory_listing_marker '<p>时间显示时区：Asia/Shanghai（UTC+08:00，东八区）</p><pre>Name';
+      sub_filter_once on;
       set $ua_override $http_user_agent;
       if ($http_user_agent ~* "(Mozilla|Chrome|Safari|Firefox|Edge)") {
         set $ua_override "curl/7.88.1";

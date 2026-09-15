@@ -13,6 +13,10 @@ global:
     pages:
       name: pages.${DOMAIN}
       https: true
+  gatewayApi:
+    enabled: false
+    installEnvoy: false
+    configureCertmanager: false
   ingress:
     class: nginx
     annotations:
@@ -102,13 +106,13 @@ global:
       tmpBucket: gitlab-tmp
     omniauth:
       enabled: true
+      autoSignInWithProvider: openid_connect
       allowSingleSignOn:
         - openid_connect
       blockAutoCreatedUsers: false
       autoLinkUser:
         - openid_connect
-      autoLinkLdapUser:
-        - openid_connect
+      autoLinkLdapUser: false
       allowBypassTwoFactor:
         - openid_connect
       syncProfileFromProvider:
@@ -119,29 +123,6 @@ global:
       providers:
         - secret: gitlab-oidc
           key: provider
-    ldap:
-      preventSignin: false
-      servers:
-        main:
-          label: "Jutze R&D Department Account"
-          host: "ldap.openldap.svc"
-          port: 389
-          encryption: "plain" #'simple_tls'
-          uid: "uid"
-          allow_username_or_email_login: true
-          bind_dn: "cn=readonly,dc=juzi,dc=jutze,dc=cn"
-          base: "ou=users,dc=juzi,dc=jutze,dc=cn"
-          user_filter: "authorizedService=git"
-          attributes:
-            username: "uid"
-            email: mail
-            name: cn
-            first_name: givenName
-            last_name: sn
-          password:
-            secret: ldap-password
-            key: password
-          group_base: "ou=groups,dc=juzi,dc=jutze,dc=cn"
     gitlab_kas: {}
     initialDefaults: {}
   kas:

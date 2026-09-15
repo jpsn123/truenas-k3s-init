@@ -84,6 +84,12 @@ artifactory:
       registry: releases-docker.jfrog.io
       repository: jfrog/artifactory-pro
     replicaCount: 1
+    # 直链目录时间由 Java 生成，显式使用东八区，不依赖宿主机时区。
+    javaOpts:
+      other: "-Duser.timezone=Asia/Shanghai"
+    extraEnvironmentVariables:
+      - name: TZ
+        value: Asia/Shanghai
     migration:
       enabled: false
     customVolumes: |

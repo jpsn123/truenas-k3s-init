@@ -18,7 +18,6 @@ load_secret_vars "$NS" "postgresql" password=DB_PW
 load_secret_vars "$NS" "elasticsearch" elasticsearch-password=ELASTICSEARCH_PW
 load_secret_vars "$NS" "gitlab-gitlab-initial-root-password" password=GITLAB_PW
 load_secret_vars "$NS" "mail-password" password=SMTP_PW
-load_secret_vars "$NS" "ldap-password" password=LDAP_PW
 load_secret_vars "$NS" "gitlab-oidc" \
     client-id=OIDC_CLIENT_ID \
     client-secret=OIDC_CLIENT_SECRET \
@@ -55,9 +54,6 @@ if install_mode_enabled "$INSTALL_MODE" gitlab && [ -z "$GITLAB_PW" ]; then
     GITLAB_PW=$(derive_password_sha1 "$PASSWORD_SEED" "$NS@gitlab" 32)
 fi
 if install_mode_enabled "$INSTALL_MODE" gitlab; then
-    if [ -z "$LDAP_PW" ]; then
-        LDAP_PW=$(prompt_required "please input ldap password." "password" "")
-    fi
     if [ -z "$OIDC_CLIENT_ID" ]; then
         OIDC_CLIENT_ID=$(prompt_required "please input gitlab oauth config, redirect URI: https://git.${DOMAIN}/users/auth/openid_connect/callback." "oidc client id" "")
     fi
@@ -98,7 +94,6 @@ render_values_file_to_temp values-*.yaml
 render_values_file_to_temp values-*.ini
 if install_mode_enabled "$INSTALL_MODE" gitlab; then
     apply_secret_vars "$NS" "mail-password" password=SMTP_PW
-    apply_secret_vars "$NS" "ldap-password" password=LDAP_PW
     apply_configmap_vars "$NS" "mail-config" \
         smtp-address=SMTP_ADDRESS \
         smtp-port=SMTP_PORT \
