@@ -26,6 +26,8 @@ ingress:
 
 nextcloud:
   host: pan.${DOMAIN}
+  trustedDomains:
+    - pan.${DOMAIN}
   existingSecret:
     enabled: true
     secretName: nextcloud
@@ -124,6 +126,28 @@ nextcloud:
   hooks:
     before-starting: |-
       cd /var/www/html
+
+      TARGET_TRUSTED_DOMAIN="pan.${DOMAIN}"
+
+      if php occ status 2>/dev/null | grep -q "installed: true"; then
+          if php occ config:system:get trusted_domains | grep -Fxq "$TARGET_TRUSTED_DOMAIN"; then
+              echo "OK: trusted domain $TARGET_TRUSTED_DOMAIN already exists."
+          else
+              TRUSTED_DOMAIN_INDEX=0
+              while php occ config:system:get trusted_domains "$TRUSTED_DOMAIN_INDEX" >/dev/null 2>&1; do
+                  TRUSTED_DOMAIN_INDEX=$((TRUSTED_DOMAIN_INDEX + 1))
+              done
+
+              if php occ config:system:set trusted_domains "$TRUSTED_DOMAIN_INDEX" --value="$TARGET_TRUSTED_DOMAIN"; then
+                  echo "OK: trusted domain $TARGET_TRUSTED_DOMAIN added at index $TRUSTED_DOMAIN_INDEX."
+              else
+                  echo "ERROR: failed to add trusted domain $TARGET_TRUSTED_DOMAIN." >&2
+                  exit 1
+              fi
+          fi
+      else
+          echo "WARN: Nextcloud is not installed; skip trusted domain update."
+      fi
 
       FILE="apps/viewer/js/viewer-init.mjs"
 
