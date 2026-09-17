@@ -204,7 +204,6 @@ redis:
 postgresql:
   install: false
 
-# registry 以后统一使用bin.jutze.cn
 registry:
   enabled: false
 #  storage:
