@@ -86,6 +86,20 @@ persistence:
         emby:
           - path: /config
             readOnly: false
+  # embyLaunchPotplayer v1.2.1 外部挂载：镜像内置 1.1.0，不改镜像直接覆盖 web 根目录下的同名文件
+  # ext.js(ext.sh 注入)仍按模块名 require("embyLaunchPotplayer")，加载的即是此处挂载的文件
+  ext-launchpotplayer:
+    enabled: true
+    type: custom
+    volumeSpec:
+      configMap:
+        name: emby-ext
+    advancedMounts:
+      main:
+        emby:
+          - path: /system/dashboard-ui/embyLaunchPotplayer.js
+            subPath: embyLaunchPotplayer.js
+            readOnly: true
 #  media:
 #    enabled: true
 #    type: hostPath
