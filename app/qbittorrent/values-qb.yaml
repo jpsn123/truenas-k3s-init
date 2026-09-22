@@ -83,7 +83,6 @@ service:
 ingress:
   main:
     enabled: true
-    primary: true
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"

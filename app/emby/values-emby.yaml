@@ -25,7 +25,7 @@ controllers:
             enabled: true
             type: TCP
             spec:
-              initialDelaySeconds: 30
+              initialDelaySeconds: 120
               periodSeconds: 60
               timeoutSeconds: 1
               failureThreshold: 3
@@ -33,7 +33,7 @@ controllers:
             enabled: true
             type: TCP
             spec:
-              initialDelaySeconds: 0
+              initialDelaySeconds: 30
               periodSeconds: 60
               timeoutSeconds: 1
               failureThreshold: 3
@@ -53,7 +53,6 @@ service:
 ingress:
   main:
     enabled: true
-    primary: true
     annotations:
       helm.sh/resource-policy: keep
       kubernetes.io/tls-acme: "true"
@@ -75,19 +74,18 @@ ingress:
 persistence:
   config:
     enabled: true
+    forceRename: emby-config
     type: persistentVolumeClaim
     storageClass: ${DEFAULT_STORAGE_CLASS}
     accessMode: ReadWriteOnce
-    size: 10Gi
+    size: 100Gi
     retain: true
     globalMounts: []
     advancedMounts:
-      main: # the controller with the "main"
+      main:
         emby:
           - path: /config
             readOnly: false
-  # embyLaunchPotplayer v1.2.1 外部挂载：镜像内置 1.1.0，不改镜像直接覆盖 web 根目录下的同名文件
-  # ext.js(ext.sh 注入)仍按模块名 require("embyLaunchPotplayer")，加载的即是此处挂载的文件
   ext-launchpotplayer:
     enabled: true
     type: custom
