@@ -7,7 +7,7 @@ EMAIL='system@example.com'
 TIMEZONE='Asia/Shanghai'
 
 ## k8s
-K3S_VERSION='v1.35'
+K3S_VERSION='v1.36'
 CLUSTER_CIDR='172.30.0.0/16'
 SERVICE_CIDR='172.31.0.0/16'
 DATA_DIR='/opt/k3s'

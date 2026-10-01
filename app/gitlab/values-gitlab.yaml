@@ -233,8 +233,8 @@ gitlab:
       serviceUpstream: "false"
     trusted_proxies:
       - ${CLUSTER_CIDR}
-    minReplicas: 2
-    maxReplicas: 2
+    minReplicas: 1
+    maxReplicas: 1
     deployment:
       livenessProbe:
         initialDelaySeconds: 120
@@ -272,8 +272,8 @@ gitlab:
         periodSeconds: 30
   gitlab-shell:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 2
+    minReplicas: 1
+    maxReplicas: 1
     deployment:
       livenessProbe:
         initialDelaySeconds: 120
