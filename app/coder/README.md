@@ -11,7 +11,6 @@
 | `values-postgresql.yaml` | Bitnami PostgreSQL values。 |
 | `values-tls.yaml` | `dev.${DOMAIN}` 和 `*.dev.${DOMAIN}` 的 cert-manager Certificate。 |
 | `patch.py` / `public.key` | Coder 服务端运行时补丁文件，通过 ConfigMap 挂载到 Pod。 |
-| `workspace-image/` | Basic / C++ / Web 工作区基础镜像构建文件。 |
 | `template/k8s/` | Coder Kubernetes workspace template。 |
 
 ## 安装
@@ -45,29 +44,26 @@ Coder 服务端不再维护本地自定义镜像目录。`install.sh` 会从 `ht
 
 服务端镜像使用上游 `ghcr.io/coder/coder:v${CODER_APP_VERSION}`，无需提前手工构建。运行时定制通过 `patch.py` 和 `public.key` 生成 `coder-patch` ConfigMap 后挂载到 Pod。
 
-## 工作区基础镜像
+## 工作区镜像
 
-基础工作区镜像位于 `workspace-image/`：
+本仓库不再维护 `workspace-image/` 目录和 `build-workspace-image.sh` 构建脚本。工作区镜像统一由 `template/k8s/Dockerfile` 定义：单一 Ubuntu 26.04 基础镜像，通过 `INSTALL_CPP`、`INSTALL_WEB` 构建参数决定是否安装 C++（Clang、LLVM、Ninja、ccache 等）和 Web（Node.js、npm、Go）工具链。
 
-| 文件 | 说明 |
-|---|---|
-| `Dockerfile.basic` | 基础 Ubuntu 工作区镜像。 |
-| `Dockerfile.cpp` | C++ 开发环境镜像。 |
-| `Dockerfile.web` | Web 开发环境镜像。 |
-| `build.sh` | 按 basic、cpp、web 顺序构建并推送镜像。 |
+镜像不需要提前手工构建。工作区启动时由模板在集群内通过 BuildKit 按需构建并推送到 `workspace_image_registry_repo`：
 
-构建示例：
+- 共享镜像 tag：`<version>-basic` / `<version>-cpp` / `<version>-web` / `<version>-all`，由 CPP / WEB 两个复选框组合出的 variant 决定。
+- 填写了自定义 Dockerfile 指令的工作区会构建个人镜像，tag 为 `<version>-<variant>-<owner>-<workspace>-<hash>`。
 
-```bash
-cd app/coder/workspace-image
-bash build.sh
-```
+镜像版本记录在 `template/k8s/workspace-image.version`（初始 `1.0.0`）。修改内置 Dockerfile 后必须递增该版本，否则已存在的同名 tag 会被跳过构建，工作区继续使用旧镜像。
+
+参数定义、构建流程和迁移说明见 `app/coder/template/k8s/README.md`。
 
 ## Workspace registry Secret
 
-Workspace image registry repository、Secret 名称、BuildKit 镜像和 BuildKit 地址都由 `template/k8s/main.tf` 中的模板变量提供默认值；需要调整时，在 Coder 模板变量中修改即可，`install.sh` 不再提示输入这些值。
+Workspace image registry repository、Secret 名称、BuildKit 镜像、BuildKit 地址和镜像检查镜像都由 `template/k8s/main.tf` 中的模板变量提供默认值；需要调整时，在 Coder 模板变量中修改即可，`install.sh` 不提示输入这些值。
 
-如果使用 `workspace_packages` 构建自定义工作区镜像，目标 namespace 中仍需要存在 `workspace_image_registry_secret_name` 指向的 docker registry Secret，供 BuildKit Job 推送镜像和 workspace Pod 拉取镜像。
+现在所有工作区镜像都存放在私有仓库，目标 namespace 中必须始终存在 `workspace_image_registry_secret_name` 指向的 `kubernetes.io/dockerconfigjson` 类型 Secret，供 BuildKit Job 推送镜像和 workspace Pod 拉取镜像。该 Secret 由 `template/render.sh` 生成的 `result/k8s/helper.sh` 创建；使用其它集群时按 helper 输出的 kubeconfig 配置模板，本地默认集群不需要 kubeconfig 输出，但同样要在 `coder` namespace 中创建该 Secret。
+
+旧版 `build-workspace-image.sh` 会用 `registry-url` / `registry-username` / `registry-token` key 创建同名 opaque Secret，与 docker-registry 类型不兼容。如果目标 namespace 中还存在这种旧 Secret，先备份内容，再通过 helper.sh 或手动 `kubectl create secret docker-registry` 有意识地重建或迁移。
 
 ## code-server mirror
 
@@ -92,5 +88,6 @@ app/coder/template/k8s/README.md
 - 运行 `install.sh` 前必须先编辑根目录 `parameter.sh`。
 - `values-*.yaml` 中的 `${VAR}` 会由 `scripts/deploy/values.sh` 的 `deploy_render_values` 渲染到 `temp/` 后再使用。
 - `template/render.sh` 生成的 `result/k8s/helper.sh` 是独立工具，可单文件复制到目标集群管理机运行，不依赖本仓库或 `lib/`。
-- 如果更换 workspace 镜像 registry，需要同步更新 `workspace-image/build.sh` 和 `template/k8s/main.tf` 中的默认镜像地址或模板变量。
+- `template/render.sh` 只提示 mirror、StorageClass 和 workspace image registry repository，不再提示镜像 tag；渲染时会把 `template/k8s/` 下所有文件（含 `Dockerfile` 和 `workspace-image.version`）输出到 `result/k8s/`。
+- 如果更换 workspace 镜像 registry，修改 Coder 模板的 `workspace_image_registry_repo` 变量，并更新目标 namespace 的 docker registry Secret；如果使用渲染默认值，先更新 `coder-template-render-config` ConfigMap 中缓存的 repository 再运行 `template/render.sh`。`install.sh` 无需改动。
 - `temp/` 是运行时目录，已被 git 忽略。

@@ -8,11 +8,12 @@ set -eu
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-__CODE_SERVER_MIRROR_URL__}"
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL%/}"
 CODE_SERVER_PREFIX_DIR="${CODE_SERVER_PREFIX_DIR:-$HOME/.local}"
+GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL:-__GITLENS_MIRROR_URL__}"
+GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL%/}"
 
 DEFAULT_EXTENSIONS_GALLERY='{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","itemUrl":"https://marketplace.visualstudio.com/items","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","controlUrl":""}'
 CLAUDE_CODE_EXTENSION_ID="anthropic.claude-code"
-GITLENS_EXTENSION_ID="eamodio.gitlens"
-GITLENS_PINNED_VERSION="18.3.0"
+GITLENS_EXTENSION_ID="jutze.gitlens"
 
 ARTIFACTORY_BASE="${CODE_SERVER_MIRROR_URL%%/artifactory/*}/artifactory"
 ARTIFACTORY_REPO_PATH="${CODE_SERVER_MIRROR_URL#*/artifactory/}"
@@ -28,7 +29,7 @@ main() {
 
   install_standalone
   init_code_server_defaults
-  pin_extension "$GITLENS_EXTENSION_ID" "$GITLENS_PINNED_VERSION"
+  update_gitlens
   mark_extension_resource "$GITLENS_EXTENSION_ID"
   ensure_claude_code_cli_launcher
 }
@@ -189,7 +190,6 @@ init_code_server_defaults() {
     ginfuru.ginfuru-better-solarized-dark-theme \
     "$CLAUDE_CODE_EXTENSION_ID" \
     donjayamanne.githistory \
-    "$GITLENS_EXTENSION_ID@$GITLENS_PINNED_VERSION" \
     pkief.material-icon-theme \
     foxundermoon.shell-format \
     redhat.vscode-yaml
@@ -247,39 +247,61 @@ EOF
   CODE_CLI_BOOTSTRAPPED=1
 }
 
-pin_extension() {
-  EXTENSION_ID="$1"
-  PINNED_VERSION="$2"
-  ACTIVE_VERSION=""
-
-  for extension_dir in "$CODE_SERVER_DATA_DIR/extensions/$EXTENSION_ID"-*; do
-    if [ -d "$extension_dir" ]; then
-      ACTIVE_VERSION="${extension_dir##*/"$EXTENSION_ID"-}"
-      break
-    fi
-  done
-
-  if [ "$ACTIVE_VERSION" != "$PINNED_VERSION" ]; then
-    if [ -n "$ACTIVE_VERSION" ]; then
-      echoh "$EXTENSION_ID v$ACTIVE_VERSION is installed, forcing pinned v$PINNED_VERSION."
-    fi
-    if code_cli --install-extension "$EXTENSION_ID@$PINNED_VERSION" --force; then
-      echoh "$EXTENSION_ID pinned to v$PINNED_VERSION."
-    else
-      echoerr "Failed to pin $EXTENSION_ID to v$PINNED_VERSION."
-    fi
+update_gitlens() {
+  if [ "${GITLENS_MIRROR_URL#*/artifactory/}" = "$GITLENS_MIRROR_URL" ]; then
+    echoerr "GITLENS_MIRROR_URL must contain /artifactory/: $GITLENS_MIRROR_URL"
+    return
   fi
 
-  for stale in "$CODE_SERVER_DATA_DIR/extensions/$EXTENSION_ID"-*; do
-    if [ ! -d "$stale" ]; then
-      continue
+  echoh "Checking the latest GitLens version from JFrog mirror."
+  if ! GITLENS_PROPERTIES="$(curl -fsSL --connect-timeout 10 --max-time 60 \
+    "${GITLENS_MIRROR_URL%%/artifactory/*}/artifactory/api/storage/${GITLENS_MIRROR_URL#*/artifactory/}?properties")"; then
+    echoerr "Failed to query GitLens mirror, keeping the installed extension."
+    return
+  fi
+  if ! GITLENS_VERSION="$(printf '%s' "$GITLENS_PROPERTIES" | "$CODE_SERVER_ROOT/lib/node" -e '
+    const fs = require("fs");
+    const version = JSON.parse(fs.readFileSync(0, "utf8"))?.properties?.last_version?.[0];
+    if (typeof version !== "string" || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) {
+      console.error("GitLens mirror last_version is missing or invalid.");
+      process.exit(1);
+    }
+    process.stdout.write(version);
+  ')"; then
+    echoerr "Failed to read GitLens mirror version, keeping the installed extension."
+    return
+  fi
+
+  if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)"; then
+    echoerr "Failed to list installed extensions, skipping GitLens update."
+    return
+  fi
+  if printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -Fxq "$GITLENS_EXTENSION_ID@$GITLENS_VERSION"; then
+    echoh "$GITLENS_EXTENSION_ID v$GITLENS_VERSION is already installed, skip downloading."
+  else
+    GITLENS_VSIX="$CACHE_DIR/$GITLENS_EXTENSION_ID-$GITLENS_VERSION.vsix"
+    if ! fetch "$GITLENS_MIRROR_URL/$GITLENS_EXTENSION_ID-$GITLENS_VERSION.vsix" "$GITLENS_VSIX"; then
+      echoerr "Failed to download GitLens v$GITLENS_VERSION, keeping the installed extension."
+      return
     fi
-    if [ "$stale" = "$CODE_SERVER_DATA_DIR/extensions/$EXTENSION_ID-$PINNED_VERSION" ]; then
-      continue
+    if ! code_cli --install-extension "$GITLENS_VSIX" --force; then
+      echoerr "Failed to install GitLens v$GITLENS_VERSION, keeping the installed extension."
+      return
     fi
-    echoh "Removing stale extension directory: $stale"
-    rm -rf "$stale"
-  done
+    if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)" ||
+      ! printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -Fxq "$GITLENS_EXTENSION_ID@$GITLENS_VERSION"; then
+      echoerr "GitLens v$GITLENS_VERSION was not registered after installation, keeping existing extensions."
+      return
+    fi
+    echoh "$GITLENS_EXTENSION_ID updated to v$GITLENS_VERSION from JFrog mirror."
+  fi
+
+  # Remove the marketplace edition only after the mirror edition is available.
+  if printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -q '^eamodio\.gitlens@'; then
+    if ! code_cli --uninstall-extension eamodio.gitlens; then
+      echoerr "Failed to uninstall eamodio.gitlens; both GitLens editions may remain installed."
+    fi
+  fi
 }
 
 # Resource extensions are excluded from marketplace update checks. Remove the
@@ -346,8 +368,8 @@ fetch() {
     return
   fi
 
-  sh_c mkdir -p "$CACHE_DIR"
-  sh_c curl -#fL -o "$FILE.incomplete" -C - "$URL"
+  sh_c mkdir -p "$CACHE_DIR" || return $?
+  sh_c curl -#fL -o "$FILE.incomplete" -C - "$URL" || return $?
   sh_c mv "$FILE.incomplete" "$FILE"
 }
 

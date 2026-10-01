@@ -80,7 +80,7 @@ code-server、gitlens 和 openclash 使用稳定版制品编排：解析上游�
 - 下载官方最新稳定版 VSIX，校验后仅调整 Commit Graph 的账号/欢迎入口，保留 Pro access 检查、原作者及许可证信息，输出 `<publisher>.gitlens-<version>.vsix`。
 - 补丁后执行 Node 语法检查与 ZIP 回读校验；验证失败或上游结构变化时直接失败，不发布、不更新版本属性、不清理旧版本。
 - 远端只保存补丁 VSIX；原版、报告与解包临时文件不上传。
-- 工作区当前仍使用官方 GitLens（模板固定 18.3.0）；补丁 VSIX 位于 `general/mirrors/gitlens/`，供手动下载安装，模板未接入。
+- Coder 工作区每次启动时读取 `general/mirrors/gitlens/` 的 `last_version` 属性，已安装的 `jutze.gitlens` 版本不一致或未安装时下载对应 VSIX 并安装；安装成功后移除旧的官方 `eamodio.gitlens`，不再从市场更新 GitLens。
 
 ### openclash
 

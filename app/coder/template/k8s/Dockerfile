@@ -1,15 +1,26 @@
-ARG UBUNTU_VERSION=24.04
+ARG UBUNTU_VERSION=26.04
 FROM ubuntu:${UBUNTU_VERSION}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG APT_MIRROR=
+# 可选工具链安装开关：构建时传 false 跳过对应工具链，只保留基础环境。
+ARG INSTALL_CPP=true
+ARG INSTALL_WEB=true
 
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8 \
     PATH=/home/coder/.local/bin:${PATH}
+
+# Web 工具链路径无条件声明在镜像 ENV 层：/home/coder 会被 PVC 覆盖，
+# GOPATH/GOBIN/NPM_CONFIG_PREFIX 与对应 PATH 只有来自 ENV 才始终可用；
+# 未安装 Web 工具链（INSTALL_WEB=false）时这些 ENV 无害。
+ENV GOPATH=/home/coder/go \
+    GOBIN=/home/coder/go/bin \
+    NPM_CONFIG_PREFIX=/home/coder/.npm-global \
+    PATH=/home/coder/.npm-global/bin:/home/coder/go/bin:/home/coder/.local/bin:${PATH}
 
 # 使用清华 Ubuntu 源：
 # - amd64/i386 使用 ubuntu
@@ -96,7 +107,7 @@ RUN set -eux; \
     ; \
     locale-gen en_US.UTF-8; \
     update-ca-certificates; \
-    INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin curl -LsSf https://astral.sh/uv/install.sh | sh; \
+    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh; \
     git config --system core.pager delta; \
     git config --system interactive.diffFilter 'delta --color-only'; \
     git config --system delta.navigate true; \
@@ -308,6 +319,44 @@ if ! grep -Fq '. /etc/coder.bashrc' /etc/bash.bashrc; then
     printf '\n# Coder workspace common bash initialization\n[ -f /etc/coder.bashrc ] && . /etc/coder.bashrc\n' >> /etc/bash.bashrc
 fi
 EOF
+
+# 可选 C++ 工具链，INSTALL_CPP=true 时安装
+RUN set -eux; \
+    if [ "${INSTALL_CPP}" = "true" ]; then \
+        apt-get update; \
+        apt-get install -y --no-install-recommends \
+          ninja-build \
+          clang \
+          clangd \
+          clang-format \
+          clang-tidy \
+          llvm \
+          lld \
+          lldb \
+          gdbserver \
+          valgrind \
+          ccache \
+          libc++-dev \
+          libc++abi-dev \
+        ; \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# 可选 Web 工具链，INSTALL_WEB=true 时安装。
+# npm 配置写入全局 /etc/npmrc：/home/coder 会被 PVC 覆盖，用户级 ~/.npmrc 不可靠。
+RUN set -eux; \
+    if [ "${INSTALL_WEB}" = "true" ]; then \
+        apt-get update; \
+        apt-get install -y --no-install-recommends \
+          nodejs \
+          npm \
+          golang-go \
+        ; \
+        rm -rf /var/lib/apt/lists/*; \
+        mkdir -p "${GOPATH}" "${GOBIN}" "${NPM_CONFIG_PREFIX}"; \
+        chown -R coder:coder "${GOPATH}" "${NPM_CONFIG_PREFIX}"; \
+        printf 'prefix=%s\nfund=false\naudit=false\n' "${NPM_CONFIG_PREFIX}" > /etc/npmrc; \
+    fi
 
 USER coder
 WORKDIR /home/coder

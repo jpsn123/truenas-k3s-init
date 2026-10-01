@@ -18,3 +18,4 @@ notes:
   4. auto-install.sh keeps the TrueNAS Flannel, OpenEBS ZFS, Intel GPU and MetalLB stack. It does not switch to the upstream multi-node Cilium/Ceph topology.
   5. Envoy Gateway is optional: run "bash k3s/install-envoy-gateway.sh" separately. It is not enabled by auto-install.sh and does not replace ingress-nginx.
   6. "bash k3s/auto-install.sh reinstall" still runs TrueNAS initialization; use individual component scripts if only reinstalling a Helm release.
+  7. Coder workspace images are no longer pre-built locally: the template builds them in-cluster via BuildKit from app/coder/template/k8s/Dockerfile (version tracked in template/k8s/workspace-image.version). The registry Secret in the coder namespace must be of type kubernetes.io/dockerconfigjson — migrate the old opaque registry Secret before upgrading (see app/coder/README.md).

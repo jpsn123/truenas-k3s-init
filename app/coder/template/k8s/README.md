@@ -9,14 +9,15 @@
 | `main.tf` | Coder 模板的 Terraform 配置，定义工作区参数、PVC、Deployment、Coder Agent 和 code-server 应用入口。 |
 | `workspace-init.sh` | 工作区初始化脚本。模板启动时会把该脚本写入 Debian-like 工作区 Pod，从 JFrog mirror 下载安装 code-server standalone 包、初始化默认设置和扩展，并创建 `$HOME/.local/bin/claude` 启动器，在执行时动态定位 Claude Code 插件内置 CLI。 |
 | `settings.json` | 新工作区首次初始化时写入 code-server `User/settings.json` 的默认用户设置；已存在的用户设置不会被覆盖。 |
-| `Dockerfile.custom` | 当用户填写额外 apt 包时，BuildKit 使用该 Dockerfile 基于所选工作区镜像构建新镜像并推送到 JFrog Docker 仓库。 |
+| `Dockerfile` | 内置工作区镜像 Dockerfile：单一 Ubuntu 26.04 基础镜像，`INSTALL_CPP`、`INSTALL_WEB` 构建参数控制是否安装 C++ / Web 工具链。 |
+| `workspace-image.version` | 内置工作区镜像版本号，初始 `1.0.0`；修改内置 Dockerfile 后必须递增。 |
 
 ## 主要能力
 
 - 通过 Coder 参数选择 CPU、内存和 home 目录磁盘大小。
-- 创建工作区时可选择 Basic Ubuntu、C++ 开发环境或 Web 开发环境。
-- 可填写额外 apt 包；填写后会先在集群内构建新镜像、推送到镜像仓库，再用该镜像启动工作区。
-- GitLens 固定为 18.3.0，并从市场更新检查中排除；工作区每次启动时会恢复固定版本，其他扩展仍可正常自动更新。
+- 创建工作区时通过 CPP / WEB 复选框选择 C++ 和 Web 工具链，两个选择组合出 basic / cpp / web / all 四种共享镜像 variant。
+- 可填写自定义 Dockerfile 指令；填写后会先在集群内构建个人镜像、推送到镜像仓库，再用该镜像启动工作区。
+- GitLens 使用 mirror-jobs 同步的 `jutze.gitlens`；工作区每次启动检查 mirror 最新版本，版本不同或未安装时下载安装，并从市场更新检查中排除，其他扩展仍可正常自动更新。
 - 为每个工作区创建独立 PVC，挂载到 `/home/coder`。
 - 工作区启动时将 code-server 安装到持久化的 `/home/coder/.local`，并以 `--auth none --port 13337` 启动。
 - 在 Coder 中暴露 `code-server` 应用入口，默认打开 `/home/coder`。
@@ -28,10 +29,10 @@
 - Coder 已部署完成。
 - `namespace` 指定的 Kubernetes namespace 已提前创建。
 - Coder 有权限在该 namespace 中创建 PVC、Deployment、Pod 等资源。
-- 目标 namespace 中存在 `workspace_image_registry_secret_name` 指向的 docker registry Secret。
+- 目标 namespace 中存在 `workspace_image_registry_secret_name` 指向的 `kubernetes.io/dockerconfigjson` 类型 Secret（本地默认集群即 `coder` namespace），可由 `result/k8s/helper.sh` 创建。
 - 集群中存在管理员在 `storage_class_name` 模板变量中配置的 StorageClass。
-- code-server mirror 已可用，并且 mirror 目录上存在 `last_version` property。
-- 使用自定义 apt 包构建工作区镜像前，集群内 BuildKit 服务已可用。
+- code-server 和 GitLens mirror 已可用，允许工作区匿名只读访问，并且各 mirror 目录上存在 `last_version` property。
+- 首次启动某个新镜像 tag（版本号、variant 或自定义指令变化）前，集群内 BuildKit 服务已可用。
 
 ## 模板变量
 
@@ -41,11 +42,13 @@
 | `namespace` | `coder` | 工作区资源所在 namespace。默认安装所在本地集群只能使用 `coder`；选择其它集群时可自定义，且必须提前存在。 |
 | `kubeconfig` | 空 | `use_kubeconfig=true` 时使用的 base64 编码 kubeconfig，支持 token 或 client certificate 凭据。 |
 | `code_server_mirror_url` | `__CODE_SERVER_MIRROR_URL__` | 用于下载 code-server release 包的 mirror 地址。 |
+| `gitlens_mirror_url` | `__GITLENS_MIRROR_URL__` | 用于检查版本和下载 `jutze.gitlens` VSIX 的 mirror 地址。 |
 | `storage_class_name` | `__STORAGE_CLASS_NAME__` | 管理员为工作区 home PVC 指定的 Kubernetes StorageClass。 |
-| `workspace_image_registry_repo` | `__WORKSPACE_IMAGE_REGISTRY_REPO__` | 用户填写额外 apt 包时，生成镜像推送到的 Docker repository。 |
+| `workspace_image_registry_repo` | `__WORKSPACE_IMAGE_REGISTRY_REPO__` | 工作区镜像构建后推送的 Docker repository。 |
 | `workspace_image_registry_secret_name` | `coder-workspace-image-registry` | BuildKit 推送镜像和工作区 Pod 拉取镜像时使用的 docker registry Secret。 |
 | `workspace_image_buildctl_image` | `moby/buildkit:rootless` | 用于执行 `buildctl` 客户端的 BuildKit 镜像。 |
 | `workspace_image_buildkit_addr` | `tcp://buildkit.buildkit.svc.cluster.local:1234` | 集群内 BuildKit 服务地址。 |
+| `workspace_image_registry_check_image` | `quay.io/skopeo/stable:latest` | 检查目标镜像 tag 是否已存在时使用的 skopeo 镜像。 |
 
 ## 工作区参数
 
@@ -53,16 +56,19 @@
 |---|---|---|
 | `cpu` | `2` | 工作区容器 CPU limit，可选 2 / 4 / 8 cores。 |
 | `memory` | `4` | 工作区容器内存 limit，可选 4 / 8 / 16 GB。 |
-| `home_disk_size` | `100` | `/home/coder` PVC 容量，范围 50-200 GB。该参数不可变。 |
-| `workspace_image` | `__WORKSPACE_IMAGE_BASIC__` | 工作区基础镜像，可选 Basic Ubuntu、C++ 开发环境或 Web 开发环境。 |
-| `workspace_packages` | 空 | 可选的额外 apt 包，使用空格分隔；不为空时会触发 BuildKit 构建并自动使用生成镜像启动工作区。 |
+| `home_disk_size` | `100` | `/home/coder` PVC 容量，范围 50-500 GB。该参数不可变。 |
+| `workspace_enable_cpp` | `true` | 是否安装 C++ 开发工具（Clang、LLVM、Ninja、ccache 等）。bool 复选框，创建后仍可修改。 |
+| `workspace_enable_web` | `true` | 是否安装 Web 开发工具（Node.js、npm、Go）。bool 复选框，创建后仍可修改。 |
+| `workspace_custom_dockerfile` | 空 | 可选的自定义 Dockerfile 指令，原样追加到内置 Dockerfile 最后；留空或仅有注释时使用共享镜像。 |
 
 ## 使用方式
 
-在 Coder 中创建或更新模板时，模板目录选择本目录：
+先运行上一级的 `render.sh` 填充默认配置：脚本只提示 mirror、StorageClass 和 workspace image registry repository，不再提示镜像 tag，并把 `Dockerfile` 和 `workspace-image.version` 随其余模板文件一起输出到 `result/k8s/`。
+
+在 Coder 中创建或更新模板时，模板目录选择渲染后的结果：
 
 ```text
-app/coder/template/k8s
+app/coder/template/result/k8s
 ```
 
 导入模板后，默认使用 Coder 默认安装所在的本地 Kubernetes 集群，工作区 namespace 固定为 `coder`：
@@ -80,7 +86,7 @@ namespace      = "workspace"
 kubeconfig     = "<base64-kubeconfig>"
 ```
 
-先运行上一级的 `render.sh` 填充默认配置，再使用生成的 `result/k8s/helper.sh` 输出目标集群的 base64 kubeconfig。helper 可单文件复制到目标集群管理机运行，仅需 Bash、kubectl 和基础系统工具，不依赖本仓库、`scripts/`、`lib/` 或 jq。运行前需配置可管理目标 namespace 和 RBAC 的 kubeconfig；stdout 只输出 base64 kubeconfig，日志写 stderr。
+再使用生成的 `result/k8s/helper.sh` 输出目标集群的 base64 kubeconfig，helper 同时会创建 docker registry Secret。helper 可单文件复制到目标集群管理机运行，仅需 Bash、kubectl 和基础系统工具，不依赖本仓库、`scripts/`、`lib/` 或 jq。运行前需配置可管理目标 namespace 和 RBAC 的 kubeconfig；stdout 只输出 base64 kubeconfig，日志写 stderr。
 
 已有 kubeconfig 时，也可以手动编码：
 
@@ -94,6 +100,7 @@ base64 kubeconfig.yaml | tr -d '\r\n'
 
 ```sh
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-<code_server_mirror_url>}" \
+  GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL:-<gitlens_mirror_url>}" \
   CODE_SERVER_DEFAULT_SETTINGS_FILE=/tmp/code-server-default-settings.json \
   /tmp/workspace-init.sh
 ```
@@ -109,23 +116,70 @@ code-server-<version>-linux-amd64.tar.gz
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
 | `CODE_SERVER_MIRROR_URL` | `__CODE_SERVER_MIRROR_URL__` | code-server 下载 mirror 地址。 |
+| `GITLENS_MIRROR_URL` | `__GITLENS_MIRROR_URL__` | GitLens mirror 地址，渲染时默认为 `https://bin.${DOMAIN}/artifactory/general/mirrors/gitlens`。 |
 | `CODE_SERVER_PREFIX_DIR` | `$HOME/.local` | code-server 安装目录。 |
 | `CODE_SERVER_DEFAULT_SETTINGS_FILE` | 无 | 首次初始化时复制到 code-server `User/settings.json` 的默认设置文件，由 `main.tf` 提供。 |
 
 脚本不会生成 Claude Code 或 Codex 的认证文件；`settings.json` 中包含的扩展设置会作为新工作区的默认用户设置。
 
-## 自定义 apt 包镜像构建
+## GitLens mirror
 
-用户在创建 workspace 时如果填写 `workspace_packages`，模板会：
+每次工作区启动时，脚本读取 GitLens mirror 目录的 `last_version` 属性，与扩展 CLI 返回的已安装 `jutze.gitlens` 版本比较。版本相同则跳过下载安装；不同（包括 mirror 版本回退）或尚未安装时，下载 `jutze.gitlens-<version>.vsix` 并强制安装，完整下载的 VSIX 会缓存复用。
 
-1. 使用 `Dockerfile.custom` 和所选工作区镜像生成构建上下文 ConfigMap。
-2. 创建 BuildKit `buildctl` Job，连接 `workspace_image_buildkit_addr` 指向的集群内 BuildKit 服务，安装用户填写的 apt 包。
-3. 将镜像推送到 `workspace_image_registry_repo`，tag 由 workspace id、所选镜像和包列表计算得到。
-4. workspace Deployment 等待构建完成后自动使用生成镜像启动。
+确认 mirror 版本已安装后，通过扩展 CLI 卸载旧的官方 `eamodio.gitlens`，避免两个 GitLens 同时启用。GitLens 继续标记为 resource/pinned，不参与市场自动更新。版本查询、下载或安装失败时会告警，不主动删除现有扩展，也不阻止工作区启动，下次启动再次检查。
+
+## 工作区镜像构建
+
+内置镜像由本目录的 `Dockerfile` 定义：单一 Ubuntu 26.04 基础镜像，`INSTALL_CPP`、`INSTALL_WEB` 构建参数分别来自 `workspace_enable_cpp`、`workspace_enable_web` 参数。两个复选框组合出 variant 和共享镜像 tag：
+
+| CPP | WEB | variant | 共享镜像 tag |
+|---|---|---|---|
+| 否 | 否 | `basic` | `<version>-basic` |
+| 是 | 否 | `cpp` | `<version>-cpp` |
+| 否 | 是 | `web` | `<version>-web` |
+| 是 | 是 | `all` | `<version>-all` |
+
+`<version>` 来自 `workspace-image.version`，初始为 `1.0.0`（例如 `1.0.0-all`）。修改内置 Dockerfile 后必须递增该版本号，否则同名 tag 已存在时会跳过构建，工作区继续使用旧镜像。
+
+`workspace_custom_dockerfile` 的内容会原样追加到内置 Dockerfile 的最后，不做任何改写；只有存在非注释的非空行时才构建个人镜像，tag 为：
+
+```text
+<version>-<variant>-<owner>-<workspace>-<hash>
+```
+
+其中 `<hash>` 是由 workspace id、镜像版本、variant 和完整 Dockerfile 内容计算的 12 位 SHA1，任何内容变化都会得到新 tag。
+
+内置镜像的默认构建用户是 `coder`，安装系统包时需要先切换到 root，完成后切回 coder：
+
+```dockerfile
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends htop && rm -rf /var/lib/apt/lists/*
+USER coder
+```
+
+构建上下文只包含渲染后的 Dockerfile，不包含本地项目文件。`/home/coder` 会被工作区持久卷覆盖，系统级配置应写入 `/etc` 或 `/usr/local`；不要在指令中填写密码、token 等敏感信息。
+
+### 构建流程
+
+每次工作区启动时模板都会创建 BuildKit Job，检查并按需构建该工作区选用的镜像：
+
+1. init 容器使用 `workspace_image_registry_check_image` 镜像执行 `skopeo inspect` 检查目标 tag 是否已存在。
+2. tag 已存在时跳过构建；返回明确的 manifest unknown / name unknown 时执行构建；其它错误（认证、网络等）直接令 Job 失败，不会静默重建或复用不确定的状态。
+3. 需要构建时，`buildctl` 容器连接 `workspace_image_buildkit_addr` 指向的集群内 BuildKit 服务，以 `linux/amd64` 平台（与 Coder Agent 的 amd64 架构一致）构建，并推送到 `workspace_image_registry_repo`。
+4. workspace Deployment 依赖该 Job，等待构建完成后才启动工作区 Pod。
+
+### 从旧参数迁移
+
+旧的 `workspace_image`、`workspace_packages`、`workspace_custom_run_script` 参数不会自动迁移到新参数：
+
+- 原来在 `workspace_packages` 里填 apt 包名列表，现在需要写成完整的 Dockerfile 指令，例如 `RUN apt-get update && apt-get install -y --no-install-recommends htop`。
+- 原来的自定义 shell 命令同样必须包在 `RUN` 中，或改用 `ENV` 等 Dockerfile 指令表达。
+- 原来按 Basic / C++ / Web 三选一的 `workspace_image` 参数，改为 `workspace_enable_cpp` / `workspace_enable_web` 两个复选框。
 
 ## 注意事项
 
 - `home_disk_size` 会影响 PVC 大小，创建后不建议修改。
 - 模板默认使用 `com-block-ssd` StorageClass，管理员可通过 `storage_class_name` 模板变量覆盖。
-- 工作区镜像必须是 Debian-like 镜像，否则 code-server 安装脚本和 apt 包构建流程会失败。
+- 内置镜像是 Ubuntu（Debian-like）；自定义指令中不要更改基础发行版，否则 code-server 安装脚本会失败。
+- 旧版 `build-workspace-image.sh` 创建的同名 opaque registry Secret 与 docker-registry 类型不兼容；如果目标 namespace 中还存在，先备份内容再通过 helper.sh 或手动方式重建。
 - `workspace-init.sh` 当前只支持从包含 `/artifactory/` 的 mirror URL 读取版本信息。
