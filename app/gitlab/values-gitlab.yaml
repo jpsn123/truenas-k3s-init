@@ -52,7 +52,6 @@ global:
     internal:
       names:
         - default
-        - default-2
   minio:
     enabled: false
   grafana:
