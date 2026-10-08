@@ -31,7 +31,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: sync
-              image: ${JFROG_REGISTRY}/jutze/mirror-code-server:1.1.2
+              image: ${JFROG_REGISTRY}/${BRAND_PREFIX_LOWER}/mirror-code-server:1.1.2
               imagePullPolicy: IfNotPresent
               envFrom:
                 - secretRef:

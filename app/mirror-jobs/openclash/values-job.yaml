@@ -31,7 +31,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: sync
-              image: ${JFROG_REGISTRY}/jutze/mirror-openclash:1.0.1
+              image: ${JFROG_REGISTRY}/${BRAND_PREFIX_LOWER}/mirror-openclash:1.0.1
               imagePullPolicy: IfNotPresent
               envFrom:
                 - secretRef:

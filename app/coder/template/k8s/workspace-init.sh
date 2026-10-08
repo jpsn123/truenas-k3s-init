@@ -13,7 +13,7 @@ GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL%/}"
 
 DEFAULT_EXTENSIONS_GALLERY='{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","itemUrl":"https://marketplace.visualstudio.com/items","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","controlUrl":""}'
 CLAUDE_CODE_EXTENSION_ID="anthropic.claude-code"
-GITLENS_EXTENSION_ID="jutze.gitlens"
+GITLENS_EXTENSION_ID="__BRAND_PREFIX_LOWER__.gitlens"
 
 ARTIFACTORY_BASE="${CODE_SERVER_MIRROR_URL%%/artifactory/*}/artifactory"
 ARTIFACTORY_REPO_PATH="${CODE_SERVER_MIRROR_URL#*/artifactory/}"

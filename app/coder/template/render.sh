@@ -22,6 +22,7 @@ CONFIG_KEYS=(
 
 RENDER_PLACEHOLDERS=(
     BRAND_PREFIX
+    BRAND_PREFIX_LOWER
     DOMAIN
     BRAND_DISPLAY_NAME
     CODE_SERVER_MIRROR_URL
@@ -35,6 +36,7 @@ for PLACEHOLDER in "${CONFIG_KEYS[@]}"; do
     printf -v "$PLACEHOLDER" '%s' ""
 done
 
+BRAND_PREFIX_LOWER="${BRAND_PREFIX,,}"
 BRAND_DISPLAY_NAME="${BRAND_PREFIX^}"
 
 function namespace_is_available() {

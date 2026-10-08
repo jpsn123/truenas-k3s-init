@@ -36,10 +36,12 @@
 `values-job.yaml` 就是该任务的完整 CronJob 清单，不引入额外配置文件。清单声明：
 
 - 资源名（`mirror-<name>`）、`schedule`/`timeZone`、资源限制、运行超时、重试与历史保留、TTL；`concurrencyPolicy: Forbid`，非 root、只读根文件系统、禁用 ServiceAccount token。
-- 镜像：`${JFROG_REGISTRY}/jutze/mirror-<name>:<tag>`，各任务独立维护 tag。
+- 镜像：`${JFROG_REGISTRY}/${BRAND_PREFIX_LOWER}/mirror-<name>:<tag>`，各任务独立维护 tag。
 - annotation `mirror-jobs/base-image`（当前 `alpine:3.22`）：安装脚本读取后作为 `BASE_IMAGE` 构建参数传入 Dockerfile。
 - 公共 Secret `mirror-jobs-jfrog` 通过 `envFrom` 注入公共环境变量；不创建或引用镜像拉取 Secret，节点需能通过已有 registry 配置或匿名方式拉取任务镜像。
 - 清单中 `suspend: true` 表示任务保持暂停，安装脚本会跳过其初始运行。
+
+`BRAND_PREFIX_LOWER` 由仓库根目录 `parameter.sh` 的 `BRAND_PREFIX` 转为全小写生成，同时用于任务镜像路径和 GitLens publisher。
 
 安装脚本会校验清单契约：唯一 CronJob/主容器、annotation 与超时存在、无未替换占位符、镜像位于配置的 registry 下。
 
@@ -61,7 +63,7 @@
 | `KEEP_VERSIONS` | 稳定版制品保留版本数，默认 3；openclash 对 ipk/apk 分别保留，openclash-core 不使用此配置。 |
 | `REQUEST_TIMEOUT` | 单个请求超时秒数，默认 300。 |
 | `UPSTREAM_URL` / `CODE_SERVER_OS` / `CODE_SERVER_ARCH` | 仅 code-server：上游 release 地址与目标 OS/架构。 |
-| `RELEASE_API` / `PUBLISHER` / `MAX_DOWNLOAD` / `MAX_UNPACKED` | 仅 gitlens：上游发布 API、发布者 ID（默认 `jutze`）、下载与解包大小上限（字节，默认 200 MiB / 512 MiB）。 |
+| `RELEASE_API` / `PUBLISHER` / `MAX_DOWNLOAD` / `MAX_UNPACKED` | 仅 gitlens：上游发布 API、发布者 ID（`${BRAND_PREFIX_LOWER}`）、下载与解包大小上限（字节，默认 200 MiB / 512 MiB）。 |
 | `RELEASE_API` | openclash：GitHub 最新稳定版 API，默认 `https://api.github.com/repos/vernesong/OpenClash/releases/latest`。 |
 | `UPSTREAM_URL` / `CORE_GROUP` | openclash-core：上游仓库，默认 `https://github.com/vernesong/OpenClash`；同步 `core` 分支下的分组，默认 `master`，可改为 `dev`。 |
 
@@ -80,7 +82,7 @@ code-server、gitlens 和 openclash 使用稳定版制品编排：解析上游�
 - 下载官方最新稳定版 VSIX，校验后仅调整 Commit Graph 的账号/欢迎入口，保留 Pro access 检查、原作者及许可证信息，输出 `<publisher>.gitlens-<version>.vsix`。
 - 补丁后执行 Node 语法检查与 ZIP 回读校验；验证失败或上游结构变化时直接失败，不发布、不更新版本属性、不清理旧版本。
 - 远端只保存补丁 VSIX；原版、报告与解包临时文件不上传。
-- Coder 工作区每次启动时读取 `general/mirrors/gitlens/` 的 `last_version` 属性，已安装的 `jutze.gitlens` 版本不一致或未安装时下载对应 VSIX 并安装；安装成功后移除旧的官方 `eamodio.gitlens`，不再从市场更新 GitLens。
+- Coder 工作区每次启动时读取 `general/mirrors/gitlens/` 的 `last_version` 属性，已安装的 `${BRAND_PREFIX_LOWER}.gitlens` 版本不一致或未安装时下载对应 VSIX 并安装；安装成功后移除旧的官方 `eamodio.gitlens`，不再从市场更新 GitLens。
 
 ### openclash
 
@@ -109,7 +111,7 @@ code-server、gitlens 和 openclash 使用稳定版制品编排：解析上游�
 
 ## JFrog 前提
 
-- token 同时用于镜像和制品：对 Docker 仓库可推送/拉取 `jutze/mirror-*`，对制品仓库（默认 `general`）有 read/deploy/delete/annotate 权限（清理旧版本需要 delete）。
+- token 同时用于镜像和制品：对 Docker 仓库可推送/拉取 `${BRAND_PREFIX_LOWER}/mirror-*`，对制品仓库（默认 `general`）有 read/deploy/delete/annotate 权限（清理旧版本需要 delete）。
 - openclash-core 会覆盖同名内核，其目标路径还需允许 redeploy/overwrite，不能配置为禁止覆盖已有制品。
 - 凭据只保存在 Secret 中，不写入 YAML、构建参数或日志。
 - 现有 Coder workspace 匿名下载 mirror 制品，mirror 路径需保持匿名只读。

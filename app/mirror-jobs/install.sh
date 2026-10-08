@@ -14,6 +14,7 @@ source "$DEPLOY_LIB_DIR/libbuildkit.sh"
 source "$DEPLOY_ROOT/parameter.sh"
 cd "$SCRIPT_DIR"
 NS=mirror-jobs
+BRAND_PREFIX_LOWER="${BRAND_PREFIX,,}"
 
 INSTALL_MODE="${1:-full}"
 if [[ "$INSTALL_MODE" == */* ]] || [ ! -f "$INSTALL_MODE/values-job.yaml" ]; then

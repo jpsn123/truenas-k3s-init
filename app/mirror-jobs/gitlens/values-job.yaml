@@ -31,7 +31,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: sync
-              image: ${JFROG_REGISTRY}/jutze/mirror-gitlens:1.1.2
+              image: ${JFROG_REGISTRY}/${BRAND_PREFIX_LOWER}/mirror-gitlens:1.1.2
               imagePullPolicy: IfNotPresent
               envFrom:
                 - secretRef:
@@ -46,7 +46,7 @@ spec:
                 - name: RELEASE_API
                   value: https://api.github.com/repos/gitkraken/vscode-gitlens/releases/latest
                 - name: PUBLISHER
-                  value: jutze
+                  value: ${BRAND_PREFIX_LOWER}
                 - name: MAX_DOWNLOAD
                   value: "209715200"
                 - name: MAX_UNPACKED
