@@ -169,11 +169,6 @@ EOF
 init_code_server_defaults() {
   CODE_SERVER_DATA_DIR="$HOME/.local/share/code-server"
   CODE_SERVER_USER_DIR="$CODE_SERVER_DATA_DIR/User"
-  DEFAULT_MARKER="$CODE_SERVER_DATA_DIR/.defaults-initialized"
-
-  if [ -e "$DEFAULT_MARKER" ]; then
-    return
-  fi
 
   mkdir -p "$CODE_SERVER_USER_DIR"
 
@@ -185,7 +180,12 @@ init_code_server_defaults() {
     cp "$CODE_SERVER_DEFAULT_SETTINGS_FILE" "$CODE_SERVER_USER_DIR/settings.json"
   fi
 
-  echoh "Installing default code-server extensions. This may take a while."
+  if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)"; then
+    echoerr "Warning: failed to list installed extensions; default extensions will be checked again on next startup."
+    return
+  fi
+
+  echoh "Checking default code-server extensions and installing missing ones."
   for extension in \
     ginfuru.ginfuru-better-solarized-dark-theme \
     "$CLAUDE_CODE_EXTENSION_ID" \
@@ -194,15 +194,25 @@ init_code_server_defaults() {
     foxundermoon.shell-format \
     redhat.vscode-yaml
   do
+    if printf '%s\n' "$INSTALLED_EXTENSIONS" | cut -d@ -f1 | grep -Fxq "$extension"; then
+      continue
+    fi
+
     echoh "+ Installing extension: $extension"
-    if code_cli --install-extension "$extension" --force; then
+    if ! code_cli --install-extension "$extension"; then
+      echoerr "Warning: failed to install extension $extension; will retry on next startup."
+      continue
+    fi
+    if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)"; then
+      echoerr "Warning: failed to verify installed extensions; remaining default extensions will be checked again on next startup."
+      return
+    fi
+    if printf '%s\n' "$INSTALLED_EXTENSIONS" | cut -d@ -f1 | grep -Fxq "$extension"; then
       echoh "+ Installed extension: $extension"
     else
-      echoerr "Failed to install extension, skip: $extension"
+      echoerr "Warning: extension $extension was not registered after installation; will retry on next startup."
     fi
   done
-
-  touch "$DEFAULT_MARKER"
 }
 
 # Run VS Code extension CLI commands directly against the persistent data
@@ -239,6 +249,8 @@ for (let i = 0; i < flags.length; i++) {
     args[key] = flags[i + 1] && !flags[i + 1].startsWith("--") ? flags[++i] : true;
   }
 }
+// Suppress the server entry point's automatic CLI invocation on import.
+process.env.CODE_SERVER_PARENT_PID = String(process.pid);
 const mod = await import(`${vscodeRoot}/out/server-main.js`);
 const serverModule = await mod.loadCodeWithNls();
 await serverModule.spawnCli(args);
@@ -256,7 +268,7 @@ update_gitlens() {
   echoh "Checking the latest GitLens version from JFrog mirror."
   if ! GITLENS_PROPERTIES="$(curl -fsSL --connect-timeout 10 --max-time 60 \
     "${GITLENS_MIRROR_URL%%/artifactory/*}/artifactory/api/storage/${GITLENS_MIRROR_URL#*/artifactory/}?properties")"; then
-    echoerr "Failed to query GitLens mirror, keeping the installed extension."
+    echoerr "Warning: failed to query GitLens mirror; will retry on next startup."
     return
   fi
   if ! GITLENS_VERSION="$(printf '%s' "$GITLENS_PROPERTIES" | "$CODE_SERVER_ROOT/lib/node" -e '
@@ -268,12 +280,12 @@ update_gitlens() {
     }
     process.stdout.write(version);
   ')"; then
-    echoerr "Failed to read GitLens mirror version, keeping the installed extension."
+    echoerr "Warning: failed to read GitLens mirror version; will retry on next startup."
     return
   fi
 
   if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)"; then
-    echoerr "Failed to list installed extensions, skipping GitLens update."
+    echoerr "Warning: failed to list installed extensions; GitLens update will be retried on next startup."
     return
   fi
   if printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -Fxq "$GITLENS_EXTENSION_ID@$GITLENS_VERSION"; then
@@ -281,16 +293,16 @@ update_gitlens() {
   else
     GITLENS_VSIX="$CACHE_DIR/$GITLENS_EXTENSION_ID-$GITLENS_VERSION.vsix"
     if ! fetch "$GITLENS_MIRROR_URL/$GITLENS_EXTENSION_ID-$GITLENS_VERSION.vsix" "$GITLENS_VSIX"; then
-      echoerr "Failed to download GitLens v$GITLENS_VERSION, keeping the installed extension."
+      echoerr "Warning: failed to download GitLens v$GITLENS_VERSION; will retry on next startup."
       return
     fi
     if ! code_cli --install-extension "$GITLENS_VSIX" --force; then
-      echoerr "Failed to install GitLens v$GITLENS_VERSION, keeping the installed extension."
+      echoerr "Warning: failed to install GitLens v$GITLENS_VERSION; will retry on next startup."
       return
     fi
     if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)" ||
       ! printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -Fxq "$GITLENS_EXTENSION_ID@$GITLENS_VERSION"; then
-      echoerr "GitLens v$GITLENS_VERSION was not registered after installation, keeping existing extensions."
+      echoerr "Warning: GitLens v$GITLENS_VERSION was not registered after installation; will retry on next startup."
       return
     fi
     echoh "$GITLENS_EXTENSION_ID updated to v$GITLENS_VERSION from JFrog mirror."
