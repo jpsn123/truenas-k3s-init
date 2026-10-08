@@ -16,7 +16,9 @@ cd "$SCRIPT_DIR"
 NS=mirror-jobs
 
 INSTALL_MODE="${1:-full}"
-deploy_validate_mode "$INSTALL_MODE"
+if [[ "$INSTALL_MODE" == */* ]] || [ ! -f "$INSTALL_MODE/values-job.yaml" ]; then
+    deploy_validate_mode "$INSTALL_MODE"
+fi
 SHARED_SECRET=mirror-jobs-jfrog
 APP_DIR="$PWD"
 mkdir -p temp
@@ -80,6 +82,7 @@ registry_write_auth "$WORK_DIR/docker-config" "$JFROG_REGISTRY" "$JFROG_USERNAME
 
 for JOB_CONFIG in */values-job.yaml; do
     [ -f "$JOB_CONFIG" ] || continue
+    deploy_mode_enabled "$INSTALL_MODE" "${JOB_CONFIG%/values-job.yaml}" || continue
     (
         cd "$(dirname "$JOB_CONFIG")"
         deploy_render_values values-job.yaml

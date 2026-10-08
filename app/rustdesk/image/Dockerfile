@@ -31,7 +31,6 @@ RUN cp -f /tmp/assets/favicon.png /usr/share/rustdesk-server/static/web/icons/Ic
     cp -f /tmp/assets/icon.png /usr/share/rustdesk-server/static/web/icons/Icon-maskable-512.png && \
     cp -f /tmp/assets/favicon.png /usr/share/rustdesk-server/static/ && \
     cp -f /tmp/assets/favicon.svg /usr/share/rustdesk-server/static/web/ && \
-    cp -f /tmp/assets/favicon.svg /usr/share/rustdesk-server/static/web/assets/assets/icon.svg && \
     cp -f /tmp/assets/favicon.svg /usr/share/rustdesk-server/static/logo.svg && \
     cp -f /tmp/assets/patch.sh / && \
     mkdir -p /certs && chmod 700 /certs && \

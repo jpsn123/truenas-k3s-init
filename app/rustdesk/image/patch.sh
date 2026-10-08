@@ -8,29 +8,50 @@ FONT_CDN="https://fonts.gstatic.com/s"
 echo "=== RustDesk Web Intranet Patcher ==="
 echo "Web directory: $WEB_DIR"
 
-for f in flutter_bootstrap.js flutter.js main.dart.js index.html; do
-    if [ ! -f "$WEB_DIR/$f" ]; then
-        echo "ERROR: $f not found in $WEB_DIR"
+function find_resource_dir() {
+    local PREFIX="$1"
+    local DIR MATCH=""
+
+    for DIR in "$WEB_DIR/$PREFIX-"*; do
+        if [ -d "$DIR" ] && [[ "${DIR##*/}" =~ ^${PREFIX}-[0-9a-f]+$ ]]; then
+            if [ -n "$MATCH" ]; then
+                printf 'ERROR: Multiple %s resource directories in %s\n' "$PREFIX" "$WEB_DIR" >&2
+                return 1
+            fi
+            MATCH="${DIR##*/}"
+        fi
+    done
+    if [ -z "$MATCH" ]; then
+        printf 'ERROR: No %s resource directory in %s\n' "$PREFIX" "$WEB_DIR" >&2
+        return 1
+    fi
+    printf '%s\n' "$MATCH"
+}
+
+ASSETS_DIR=$(find_resource_dir assets)
+CANVASKIT_DIR=$(find_resource_dir canvaskit)
+
+for FILE in main.dart.js index.html favicon.svg "$ASSETS_DIR/assets/assets/icon.svg" \
+    "$CANVASKIT_DIR"/{,chromium/}canvaskit.{js,wasm}; do
+    if [ ! -f "$WEB_DIR/$FILE" ] || [ ! -s "$WEB_DIR/$FILE" ]; then
+        printf 'ERROR: %s missing or empty in %s\n' "$FILE" "$WEB_DIR" >&2
         exit 1
     fi
 done
 
-# ---------- 1 & 2. flutter_bootstrap.js + flutter.js ----------
-# Replace CanvasKit CDN fallback with local path.
-# Stable anchor: the URL "https://www.gstatic.com/flutter-canvaskit" and ".engineRevision"
-# Variable names are dynamic - use regex wildcards instead.
-echo "[1/4] Patching flutter_bootstrap.js + flutter.js (CanvasKit -> local)..."
+cp -f "$WEB_DIR/favicon.svg" "$WEB_DIR/$ASSETS_DIR/assets/assets/icon.svg"
 
-sed -E -i 's/\?([a-zA-Z_]+)\("https:\/\/www\.gstatic\.com\/flutter-canvaskit",([a-zA-Z_]+)\.engineRevision\):"canvaskit"/:"canvaskit"/g' \
-    "$WEB_DIR/flutter_bootstrap.js" "$WEB_DIR/flutter.js"
-
-# ---------- 3. main.dart.js ----------
-# CanvasKit: the hash after flutter-canvaskit/ is dynamic per build.
+# ---------- 1. main.dart.js ----------
+# Use the CanvasKit directory discovered in this image.
 # Font URLs: variable names are dynamic, only match the fixed URL strings.
-echo "[2/4] Patching main.dart.js (CanvasKit + Font URLs -> local)..."
+echo "[1/3] Patching main.dart.js (CanvasKit + Font URLs -> local)..."
 
-sed -E -i 's|"https://www\.gstatic\.com/flutter-canvaskit/[^/]+/"|"canvaskit/"|g' \
+sed -E -i 's|"https://www\.gstatic\.com/flutter-canvaskit/[^/]+/"|"'"$CANVASKIT_DIR"'/"|g' \
     "$WEB_DIR/main.dart.js"
+grep -Fq "\"$CANVASKIT_DIR/\"" "$WEB_DIR/main.dart.js" || {
+    printf 'ERROR: CanvasKit path replacement failed in %s/main.dart.js\n' "$WEB_DIR" >&2
+    exit 1
+}
 
 sed -E -i 's|"https://fonts\.gstatic\.com/s/a/"|"fonts/"|g' \
     "$WEB_DIR/main.dart.js"
@@ -38,8 +59,8 @@ sed -E -i 's|"https://fonts\.gstatic\.com/s/a/"|"fonts/"|g' \
 sed -E -i 's|"https://fonts\.gstatic\.com/s/"|"fonts/"|g' \
     "$WEB_DIR/main.dart.js"
 
-# ---------- 4. index.html ----------
-echo "[3/4] Patching index.html (remove Firebase, add fetch interceptor)..."
+# ---------- 2. index.html ----------
+echo "[2/3] Patching index.html (remove Firebase, add fetch interceptor)..."
 
 sed -i '/<script src="libs\/firebase-app\.js/d' "$WEB_DIR/index.html"
 sed -i '/<script src="libs\/firebase-analytics\.js/d' "$WEB_DIR/index.html"
@@ -76,9 +97,9 @@ if ! grep -q '_origFetch' "$WEB_DIR/index.html"; then
     mv "$WEB_DIR/index.html.tmp" "$WEB_DIR/index.html"
 fi
 
-# ---------- 5. Fonts ----------
+# ---------- 3. Fonts ----------
 # Dynamically extract all font paths from main.dart.js (names change per build)
-echo "[4/4] Downloading fonts..."
+echo "[3/3] Downloading fonts..."
 mkdir -p "$WEB_DIR/fonts"
 
 FONT_PATHS=$(grep -oE '"([a-z0-9]+/)+[a-zA-Z0-9_-]+\.ttf"' "$WEB_DIR/main.dart.js" | tr -d '"' | sort -u)
@@ -103,12 +124,6 @@ for font_path in $FONT_PATHS; do
 done
 
 echo "  Done: $count new, $((total - count)) cached"
-
-echo ""
-echo "=== Verify CanvasKit ==="
-for f in canvaskit/chromium/canvaskit.js canvaskit/chromium/canvaskit.wasm; do
-    [ -f "$WEB_DIR/$f" ] && [ -s "$WEB_DIR/$f" ] && echo "  OK: $f" || echo "  MISSING: $f"
-done
 
 echo ""
 echo "=== All done ==="

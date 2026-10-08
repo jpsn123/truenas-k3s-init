@@ -119,11 +119,15 @@ code-server、gitlens 和 openclash 使用稳定版制品编排：解析上游�
 先编辑仓库根目录 `parameter.sh`（域名、时区等）。安装主机需要 Bash、kubectl、jq、k3s 和 flock；集群与远程 BuildKit 服务、JFrog 的 Docker／通用制品仓库应已准备好，本脚本不创建这些服务或仓库。
 
 ```bash
-bash app/mirror-jobs/install.sh            # 安装 / 更新
-bash app/mirror-jobs/install.sh reinstall  # 同一流程，重新遍历执行
+bash app/mirror-jobs/install.sh                 # 安装 / 更新全部任务（默认 full）
+bash app/mirror-jobs/install.sh reinstall       # 同一流程，重新遍历全部任务
+bash app/mirror-jobs/install.sh code-server     # 仅安装 / 更新 code-server
+bash app/mirror-jobs/install.sh openclash-core  # 仅安装 / 更新 openclash-core
 ```
 
-两种模式执行同一循环：
+`INSTALL_MODE` 接收单个任务子目录名，不支持数组或多个任务；任务从 `*/values-job.yaml` 自动发现，不维护固定列表。`full` / `reinstall` 处理全部任务，指定任务名时仅处理对应任务，未知任务在访问集群前报错。
+
+各模式执行相同流程：
 
 1. 读取 Secret `mirror-jobs-jfrog`；缺失时提示 Artifactory URL、Docker registry、用户名/token、BuildKit 地址并保存，后续运行复用。
 2. 遍历 `*/values-job.yaml`，渲染并校验清单契约。

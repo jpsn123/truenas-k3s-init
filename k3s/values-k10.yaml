@@ -67,10 +67,10 @@ limiter:
   workloadRestoresPerAction: 3
   imageCopiesPerCluster: 3
 timeout:
-  blueprintBackup: 45
-  blueprintRestore: 600
-  blueprintDelete: 45
-  blueprintHooks: 20
+  backup: 45
+  restore: 600
+  retire: 45
+  blueprintResourceHooks: 20
   checkRepoPodReady: 360
   statsPodReady: 360
   efsRestorePodReady: 360
