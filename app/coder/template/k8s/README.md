@@ -20,13 +20,13 @@
 - GitLens 使用 mirror-jobs 同步的 `__BRAND_PREFIX_LOWER__.gitlens`；工作区每次启动检查 mirror 最新版本，版本不同或未安装时下载安装，并从市场更新检查中排除，其他扩展仍可正常自动更新。
 - 为每个工作区创建独立 PVC，挂载到 `/home/coder`。
 - 工作区启动时将 code-server 安装到持久化的 `/home/coder/.local`，并以 `--auth none --port 13337` 启动。
-- 在 Coder 中暴露 `code-server` 应用入口，默认打开 `/home/coder`。
+- 在 Coder 中通过子域名暴露 `code-server` 应用入口，默认打开 `/home/coder`；保留 `share = "owner"`，允许通过 Workspace Sharing 获得 `use/admin` 权限的用户访问，不向所有登录用户或匿名用户开放。
 - 工作区 Pod 和自定义镜像构建 Job 默认禁用 ServiceAccount token 自动挂载。
 - 使用 Pod anti-affinity 尽量将工作区 Pod 分散到不同节点。
 
 ## 前置条件
 
-- Coder 已部署完成。
+- Coder 已部署完成，并配置 `CODER_WILDCARD_ACCESS_URL`、通配符 Ingress 和 TLS。本仓库默认使用 `*.dev.${DOMAIN}`，需确保该通配符 DNS 解析到 Ingress 入口；证书自动签发不会创建应用访问所需的 DNS 记录。
 - `namespace` 指定的 Kubernetes namespace 已提前创建。
 - Coder 有权限在该 namespace 中创建 PVC、Deployment、Pod 等资源。
 - 目标 namespace 中存在 `workspace_image_registry_secret_name` 指向的 `kubernetes.io/dockerconfigjson` 类型 Secret（本地默认集群即 `coder` namespace），可由 `result/k8s/helper.sh` 创建。
@@ -70,6 +70,8 @@
 ```text
 app/coder/template/result/k8s
 ```
+
+已有工作区需更新到新模板版本并重新构建，使 `code-server` 的子域名路由生效；仅重启旧模板版本的工作区不会应用此修改。更新后，分别使用所有者和已获 `use/admin` 权限的共享用户验证 code-server 访问，并确认未获授权的用户不能访问。
 
 导入模板后，默认使用 Coder 默认安装所在的本地 Kubernetes 集群，工作区 namespace 固定为 `coder`：
 

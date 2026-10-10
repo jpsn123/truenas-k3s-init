@@ -374,7 +374,7 @@ resource "coder_app" "code-server" {
   display_name = "code-server"
   icon         = "/icon/code.svg"
   url          = "http://localhost:13337?folder=/home/coder"
-  subdomain    = false
+  subdomain    = true
   share        = "owner"
 
   healthcheck {
