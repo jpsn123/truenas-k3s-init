@@ -1,0 +1,122 @@
+global:
+  fullnameOverride: nocobase
+
+controllers:
+  main:
+    enabled: true
+    forceRename: nocobase
+    type: deployment
+    replicas: 1
+    strategy: Recreate
+    containers:
+      main:
+        image:
+          repository: nocobase/nocobase
+          tag: "${NOCOBASE_IMAGE_TAG}"
+          pullPolicy: IfNotPresent
+        env:
+          TZ: ${TIMEZONE}
+          APP_ENV: production
+          INIT_LANG: zh-CN
+          DB_DIALECT: postgres
+          DB_HOST: postgresql
+          DB_PORT: "5432"
+          DB_DATABASE: nocobase
+          DB_USER: nocobase
+          DB_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: nocobase-db
+                key: password
+        envFrom:
+          - secretRef:
+              name: nocobase-secrets
+        probes:
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/__health_check
+                port: 80
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 90
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/__health_check
+                port: 80
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 3
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/__health_check
+                port: 80
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 2Gi
+          limits:
+            cpu: 4
+            memory: 4Gi
+
+service:
+  main:
+    enabled: true
+    primary: true
+    forceRename: nocobase
+    controller: main
+    type: ClusterIP
+    ports:
+      http:
+        enabled: true
+        primary: true
+        port: 80
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      helm.sh/resource-policy: keep
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+      nginx.ingress.kubernetes.io/proxy-body-size: 512m
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    className: nginx
+    hosts:
+      - host: nb.${DOMAIN}
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              identifier: main
+              port: http
+    tls:
+      - hosts:
+          - nb.${DOMAIN}
+        secretName: nb.${DOMAIN}-tls
+
+persistence:
+  data:
+    enabled: true
+    forceRename: nocobase-data
+    type: persistentVolumeClaim
+    storageClass: ${DEFAULT_STORAGE_CLASS}
+    accessMode: ReadWriteOnce
+    size: 400Gi
+    retain: true
+    globalMounts:
+      - path: /app/nocobase/storage
+        readOnly: false
