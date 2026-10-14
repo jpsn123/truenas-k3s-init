@@ -120,13 +120,9 @@ data "coder_parameter" "memory" {
   display_name = "内存大小"
   order        = 2
   description  = "工作区容器可使用的最大内存，单位为 GB。创建后仍可修改。"
-  default      = "4"
+  default      = "8"
   icon         = "/icon/memory.svg"
   mutable      = true
-  option {
-    name  = "4 GB"
-    value = "4"
-  }
   option {
     name  = "8 GB"
     value = "8"
@@ -134,6 +130,10 @@ data "coder_parameter" "memory" {
   option {
     name  = "16 GB"
     value = "16"
+  }
+  option {
+    name  = "32 GB"
+    value = "32"
   }
 }
 

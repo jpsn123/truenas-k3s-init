@@ -1,8 +1,4 @@
-### ldap filter
-
-`(&(objectclass=inetOrgPerson)(authorizedService=git))`
-
-### run command in k8s shell
+# run command in k8s shell
 
 runuser --user www-data -- php occ upgrade
 runuser --user www-data -- php occ db:add-missing-columns
@@ -26,8 +22,3 @@ runuser --user www-data -- php occ config:app:set --value="" previewgenerator wi
 runuser --user www-data -- php occ config:app:set --value="" previewgenerator heightSizes
 runuser --user www-data -- php occ config:app:set --value="1024" previewgenerator coverWidthHeightSizes
 runuser --user www-data -- php /var/www/html/occ preview:generate-all -vvv
-
-### ldap 用户运维
-
-runuser --user www-data -- php occ ldap:show-remnants
-runuser --user www-data -- php occ user:delete [user]
