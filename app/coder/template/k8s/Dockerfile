@@ -69,7 +69,7 @@ RUN set -eux; \
       vim \
       nano \
       less \
-      bashtop \
+      btop \
       eza \
       duf \
       tree \
@@ -284,7 +284,7 @@ else
     alias la='ls -A'
     alias l='ls -CF'
 fi
-alias htop='bashtop'
+alias htop='btop'
 alias gs='git status -sb'
 alias ga='git add'
 alias gc='git commit'
