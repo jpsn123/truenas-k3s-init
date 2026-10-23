@@ -33,7 +33,6 @@ mount -o remount,rw /
 rm /usr/local/bin/apt* /usr/local/bin/dpkg 2>/dev/null || true
 export PATH="/usr/bin:$PATH"
 chmod +x /usr/bin/*
-wget -q -O- 'http://apt.tn.ixsystems.com/apt-direct/truenas.key' | apt-key add -
 cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d || true
 apt update
 command -v jq >/dev/null 2>&1 || apt install jq -y
