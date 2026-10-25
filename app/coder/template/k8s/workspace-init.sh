@@ -8,12 +8,10 @@ set -eu
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-__CODE_SERVER_MIRROR_URL__}"
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL%/}"
 CODE_SERVER_PREFIX_DIR="${CODE_SERVER_PREFIX_DIR:-$HOME/.local}"
-GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL:-__GITLENS_MIRROR_URL__}"
-GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL%/}"
 
 DEFAULT_EXTENSIONS_GALLERY='{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","itemUrl":"https://marketplace.visualstudio.com/items","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","controlUrl":""}'
 CLAUDE_CODE_EXTENSION_ID="anthropic.claude-code"
-GITLENS_EXTENSION_ID="__BRAND_PREFIX_LOWER__.gitlens"
+GITLENS_EXTENSION_ID="eamodio.gitlens"
 
 ARTIFACTORY_BASE="${CODE_SERVER_MIRROR_URL%%/artifactory/*}/artifactory"
 ARTIFACTORY_REPO_PATH="${CODE_SERVER_MIRROR_URL#*/artifactory/}"
@@ -29,8 +27,7 @@ main() {
 
   install_standalone
   init_code_server_defaults
-  update_gitlens
-  mark_extension_resource "$GITLENS_EXTENSION_ID"
+  remove_legacy_gitlens
   ensure_claude_code_cli_launcher
 }
 
@@ -190,6 +187,7 @@ init_code_server_defaults() {
     ginfuru.ginfuru-better-solarized-dark-theme \
     "$CLAUDE_CODE_EXTENSION_ID" \
     donjayamanne.githistory \
+    "$GITLENS_EXTENSION_ID" \
     pkief.material-icon-theme \
     foxundermoon.shell-format \
     redhat.vscode-yaml
@@ -259,116 +257,24 @@ EOF
   CODE_CLI_BOOTSTRAPPED=1
 }
 
-update_gitlens() {
-  if [ "${GITLENS_MIRROR_URL#*/artifactory/}" = "$GITLENS_MIRROR_URL" ]; then
-    echoerr "GITLENS_MIRROR_URL must contain /artifactory/: $GITLENS_MIRROR_URL"
-    return
-  fi
-
-  echoh "Checking the latest GitLens version from JFrog mirror."
-  if ! GITLENS_PROPERTIES="$(curl -fsSL --connect-timeout 10 --max-time 60 \
-    "${GITLENS_MIRROR_URL%%/artifactory/*}/artifactory/api/storage/${GITLENS_MIRROR_URL#*/artifactory/}?properties")"; then
-    echoerr "Warning: failed to query GitLens mirror; will retry on next startup."
-    return
-  fi
-  if ! GITLENS_VERSION="$(printf '%s' "$GITLENS_PROPERTIES" | "$CODE_SERVER_ROOT/lib/node" -e '
-    const fs = require("fs");
-    const version = JSON.parse(fs.readFileSync(0, "utf8"))?.properties?.last_version?.[0];
-    if (typeof version !== "string" || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) {
-      console.error("GitLens mirror last_version is missing or invalid.");
-      process.exit(1);
-    }
-    process.stdout.write(version);
-  ')"; then
-    echoerr "Warning: failed to read GitLens mirror version; will retry on next startup."
-    return
-  fi
-
+remove_legacy_gitlens() {
   if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)"; then
-    echoerr "Warning: failed to list installed extensions; GitLens update will be retried on next startup."
+    echoerr "Warning: failed to list installed extensions; legacy GitLens cleanup will be retried on next startup."
     return
   fi
-  if printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -Fxq "$GITLENS_EXTENSION_ID@$GITLENS_VERSION"; then
-    echoh "$GITLENS_EXTENSION_ID v$GITLENS_VERSION is already installed, skip downloading."
-  else
-    GITLENS_VSIX="$CACHE_DIR/$GITLENS_EXTENSION_ID-$GITLENS_VERSION.vsix"
-    if ! fetch "$GITLENS_MIRROR_URL/$GITLENS_EXTENSION_ID-$GITLENS_VERSION.vsix" "$GITLENS_VSIX"; then
-      echoerr "Warning: failed to download GitLens v$GITLENS_VERSION; will retry on next startup."
-      return
-    fi
-    if ! code_cli --install-extension "$GITLENS_VSIX" --force; then
-      echoerr "Warning: failed to install GitLens v$GITLENS_VERSION; will retry on next startup."
-      return
-    fi
-    if ! INSTALLED_EXTENSIONS="$(code_cli --list-extensions --show-versions)" ||
-      ! printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -Fxq "$GITLENS_EXTENSION_ID@$GITLENS_VERSION"; then
-      echoerr "Warning: GitLens v$GITLENS_VERSION was not registered after installation; will retry on next startup."
-      return
-    fi
-    echoh "$GITLENS_EXTENSION_ID updated to v$GITLENS_VERSION from JFrog mirror."
-  fi
-
-  # Remove the marketplace edition only after the mirror edition is available.
-  if printf '%s\n' "$INSTALLED_EXTENSIONS" | grep -q '^eamodio\.gitlens@'; then
-    if ! code_cli --uninstall-extension eamodio.gitlens; then
-      echoerr "Failed to uninstall eamodio.gitlens; both GitLens editions may remain installed."
-    fi
-  fi
-}
-
-# Resource extensions are excluded from marketplace update checks. Remove the
-# gallery identity as well so the marketplace cannot attach another version.
-mark_extension_resource() {
-  EXTENSION_ID="$1"
-  EXTENSIONS_JSON="$CODE_SERVER_DATA_DIR/extensions/extensions.json"
-
-  if [ ! -f "$EXTENSIONS_JSON" ]; then
+  # Keep the legacy edition until the marketplace edition is confirmed installed.
+  if ! printf '%s\n' "$INSTALLED_EXTENSIONS" | cut -d@ -f1 | grep -Fxq "$GITLENS_EXTENSION_ID"; then
     return
   fi
 
-  if ! "$CODE_SERVER_ROOT/lib/node" -e '
-    const fs = require("fs");
-    const file = process.argv[1];
-    const extensionId = process.argv[2];
-    let entries;
-    try {
-      entries = JSON.parse(fs.readFileSync(file, "utf8"));
-    } catch (error) {
-      console.error(String(error));
-      process.exit(1);
-    }
-    if (!Array.isArray(entries)) {
-      process.exit(0);
-    }
-    let changed = false;
-    for (const entry of entries) {
-      if (entry?.identifier?.id !== extensionId) {
-        continue;
-      }
-      if (entry.identifier.uuid !== undefined) {
-        delete entry.identifier.uuid;
-        changed = true;
-      }
-      const metadata = (entry.metadata ??= {});
-      if (metadata.id !== undefined) {
-        delete metadata.id;
-        changed = true;
-      }
-      if (metadata.source !== "resource") {
-        metadata.source = "resource";
-        changed = true;
-      }
-      if (metadata.pinned !== true) {
-        metadata.pinned = true;
-        changed = true;
-      }
-    }
-    if (changed) {
-      fs.writeFileSync(file, JSON.stringify(entries));
-    }
-  ' "$EXTENSIONS_JSON" "$EXTENSION_ID"; then
-    echoerr "Failed to mark $EXTENSION_ID as a resource extension in $EXTENSIONS_JSON, skip."
-  fi
+  for extension in $(printf '%s\n' "$INSTALLED_EXTENSIONS" | cut -d@ -f1 | grep '\.gitlens$' || true); do
+    if [ "$extension" = "$GITLENS_EXTENSION_ID" ]; then
+      continue
+    fi
+    if ! code_cli --uninstall-extension "$extension"; then
+      echoerr "Warning: failed to uninstall $extension; both GitLens editions may remain installed."
+    fi
+  done
 }
 
 fetch() {

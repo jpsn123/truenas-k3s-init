@@ -17,7 +17,6 @@
 - 通过 Coder 参数选择 CPU、内存和 home 目录磁盘大小。
 - 创建工作区时通过 CPP / WEB 复选框选择 C++ 和 Web 工具链，两个选择组合出 basic / cpp / web / all 四种共享镜像 variant。
 - 可填写自定义 Dockerfile 指令；填写后会先在集群内构建个人镜像、推送到镜像仓库，再用该镜像启动工作区。
-- GitLens 使用 mirror-jobs 同步的 `__BRAND_PREFIX_LOWER__.gitlens`；工作区每次启动检查 mirror 最新版本，版本不同或未安装时下载安装，并从市场更新检查中排除，其他扩展仍可正常自动更新。
 - 为每个工作区创建独立 PVC，挂载到 `/home/coder`。
 - 工作区启动时将 code-server 安装到持久化的 `/home/coder/.local`，并以 `--auth none --port 13337` 启动。
 - 在 Coder 中通过子域名暴露 `code-server` 应用入口，默认打开 `/home/coder`；保留 `share = "owner"`，允许通过 Workspace Sharing 获得 `use/admin` 权限的用户访问，不向所有登录用户或匿名用户开放。
@@ -31,7 +30,7 @@
 - Coder 有权限在该 namespace 中创建 PVC、Deployment、Pod 等资源。
 - 目标 namespace 中存在 `workspace_image_registry_secret_name` 指向的 `kubernetes.io/dockerconfigjson` 类型 Secret（本地默认集群即 `coder` namespace），可由 `result/k8s/helper.sh` 创建。
 - 集群中存在管理员在 `storage_class_name` 模板变量中配置的 StorageClass。
-- code-server 和 GitLens mirror 已可用，允许工作区匿名只读访问，并且各 mirror 目录上存在 `last_version` property。
+- code-server mirror 已可用，允许工作区匿名只读访问，并且 mirror 目录上存在 `last_version` property；工作区可访问 VS Code Marketplace 以安装默认扩展。
 - 首次启动某个新镜像 tag（版本号、variant 或自定义指令变化）前，集群内 BuildKit 服务已可用。
 
 ## 模板变量
@@ -42,7 +41,6 @@
 | `namespace` | `coder` | 工作区资源所在 namespace。默认安装所在本地集群只能使用 `coder`；选择其它集群时可自定义，且必须提前存在。 |
 | `kubeconfig` | 空 | `use_kubeconfig=true` 时使用的 base64 编码 kubeconfig，支持 token 或 client certificate 凭据。 |
 | `code_server_mirror_url` | `__CODE_SERVER_MIRROR_URL__` | 用于下载 code-server release 包的 mirror 地址。 |
-| `gitlens_mirror_url` | `__GITLENS_MIRROR_URL__` | 用于检查版本和下载 `__BRAND_PREFIX_LOWER__.gitlens` VSIX 的 mirror 地址。 |
 | `storage_class_name` | `__STORAGE_CLASS_NAME__` | 管理员为工作区 home PVC 指定的 Kubernetes StorageClass。 |
 | `workspace_image_registry_repo` | `__WORKSPACE_IMAGE_REGISTRY_REPO__` | 工作区镜像构建后推送的 Docker repository。 |
 | `workspace_image_registry_secret_name` | `coder-workspace-image-registry` | BuildKit 推送镜像和工作区 Pod 拉取镜像时使用的 docker registry Secret。 |
@@ -102,7 +100,6 @@ base64 kubeconfig.yaml | tr -d '\r\n'
 
 ```sh
 CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-<code_server_mirror_url>}" \
-  GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL:-<gitlens_mirror_url>}" \
   CODE_SERVER_DEFAULT_SETTINGS_FILE=/tmp/code-server-default-settings.json \
   /tmp/workspace-init.sh
 ```
@@ -118,19 +115,18 @@ code-server-<version>-linux-amd64.tar.gz
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
 | `CODE_SERVER_MIRROR_URL` | `__CODE_SERVER_MIRROR_URL__` | code-server 下载 mirror 地址。 |
-| `GITLENS_MIRROR_URL` | `__GITLENS_MIRROR_URL__` | GitLens mirror 地址，渲染时默认为 `https://bin.${DOMAIN}/artifactory/general/mirrors/gitlens`。 |
 | `CODE_SERVER_PREFIX_DIR` | `$HOME/.local` | code-server 安装目录。 |
 | `CODE_SERVER_DEFAULT_SETTINGS_FILE` | 无 | 首次初始化时复制到 code-server `User/settings.json` 的默认设置文件，由 `main.tf` 提供。 |
 
 脚本不会生成 Claude Code 或 Codex 的认证文件；`settings.json` 中包含的扩展设置会作为新工作区的默认用户设置。
 
-## GitLens mirror
+## GitLens
 
-扩展 ID 的品牌前缀由 `render.sh` 将中央配置 `BRAND_PREFIX` 转为全小写后填充，与 mirror-jobs 的 GitLens publisher 保持一致。切换品牌后需重新渲染并更新 Coder 模板。
+工作区每次启动检查官方 `eamodio.gitlens` 是否已安装，缺失时从 VS Code Marketplace 安装。官方版使用正常的市场自动更新，不再依赖 mirror 或设置 resource/pinned 标记。
 
-每次工作区启动时，脚本读取 GitLens mirror 目录的 `last_version` 属性，与扩展 CLI 返回的已安装 `__BRAND_PREFIX_LOWER__.gitlens` 版本比较。版本相同则跳过下载安装；不同（包括 mirror 版本回退）或尚未安装时，下载 `__BRAND_PREFIX_LOWER__.gitlens-<version>.vsix` 并强制安装，完整下载的 VSIX 会缓存复用。
+确认官方版已安装后，脚本通过扩展 CLI 卸载旧的非官方 `*.gitlens`，避免两个 GitLens 同时启用。安装、查询或卸载失败时会告警，不阻止工作区启动；官方版未安装成功时保留旧版，下次启动重试。
 
-确认 mirror 版本已安装后，通过扩展 CLI 卸载旧的官方 `eamodio.gitlens`，避免两个 GitLens 同时启用。GitLens 继续标记为 resource/pinned，不参与市场自动更新。版本查询、下载或安装失败时会告警，不主动删除现有扩展，也不阻止工作区启动，下次启动再次检查。
+已有工作区需更新到新模板版本并重启，才会切换到官方版。
 
 ## 工作区镜像构建
 

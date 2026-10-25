@@ -51,12 +51,6 @@ variable "code_server_mirror_url" {
   default     = "__CODE_SERVER_MIRROR_URL__"
 }
 
-variable "gitlens_mirror_url" {
-  type        = string
-  description = "The mirror URL used to download GitLens VSIX releases."
-  default     = "__GITLENS_MIRROR_URL__"
-}
-
 variable "storage_class_name" {
   type        = string
   description = "The Kubernetes StorageClass used for workspace home disks."
@@ -301,7 +295,6 @@ CODE_SERVER_DEFAULT_SETTINGS
 
     # Install code-server and initialize workspace defaults (settings and extensions).
     CODE_SERVER_MIRROR_URL="$${CODE_SERVER_MIRROR_URL:-${var.code_server_mirror_url}}" \
-      GITLENS_MIRROR_URL="$${GITLENS_MIRROR_URL:-${var.gitlens_mirror_url}}" \
       CODE_SERVER_DEFAULT_SETTINGS_FILE=/tmp/code-server-default-settings.json \
       /tmp/workspace-init.sh
     export PATH="$${HOME}/.local/bin:$${PATH}"

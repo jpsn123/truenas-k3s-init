@@ -281,7 +281,7 @@ gitlab:
         periodSeconds: 30
     service:
       type: LoadBalancer
-      externalTrafficPolicy: Local
+      #externalTrafficPolicy: Local
       loadBalancerIP: ${GITLAB_SHELL_LOAD_BALANCER_IP}
       externalIPs:
         - 10.33.0.11 # 内网域名劫持到本地lb时和ingress共享ip，这样可以同时访问443和22端口

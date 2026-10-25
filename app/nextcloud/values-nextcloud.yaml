@@ -127,6 +127,8 @@ nextcloud:
     before-starting: |-
       cd /var/www/html
 
+      printf '%s\n' 'User-agent: *' 'Allow: /' > robots.txt || exit 1
+
       TARGET_TRUSTED_DOMAIN="pan.${DOMAIN}"
 
       if php occ status 2>/dev/null | grep -q "installed: true"; then

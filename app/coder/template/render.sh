@@ -15,18 +15,15 @@ CONFIGMAP_NAME=coder-template-render-config
 
 CONFIG_KEYS=(
     CODE_SERVER_MIRROR_URL
-    GITLENS_MIRROR_URL
     STORAGE_CLASS_NAME
     WORKSPACE_IMAGE_REGISTRY_REPO
 )
 
 RENDER_PLACEHOLDERS=(
     BRAND_PREFIX
-    BRAND_PREFIX_LOWER
     DOMAIN
     BRAND_DISPLAY_NAME
     CODE_SERVER_MIRROR_URL
-    GITLENS_MIRROR_URL
     STORAGE_CLASS_NAME
     WORKSPACE_IMAGE_REGISTRY_REPO
     DEFAULT_REGISTRY_SERVER
@@ -36,7 +33,6 @@ for PLACEHOLDER in "${CONFIG_KEYS[@]}"; do
     printf -v "$PLACEHOLDER" '%s' ""
 done
 
-BRAND_PREFIX_LOWER="${BRAND_PREFIX,,}"
 BRAND_DISPLAY_NAME="${BRAND_PREFIX^}"
 
 function namespace_is_available() {
@@ -83,7 +79,6 @@ function load_render_config() {
 
 function set_derived_defaults() {
     DEFAULT_CODE_SERVER_MIRROR_URL="https://bin.${DOMAIN}/artifactory/general/mirrors/code-server"
-    DEFAULT_GITLENS_MIRROR_URL="https://bin.${DOMAIN}/artifactory/general/mirrors/gitlens"
     DEFAULT_STORAGE_CLASS_NAME="$DEFAULT_STORAGE_CLASS"
     DEFAULT_WORKSPACE_IMAGE_REGISTRY_REPO="hub.bin.${DOMAIN}/${BRAND_PREFIX}/coder-workspace"
 }
@@ -92,7 +87,6 @@ function prompt_render_config() {
     set_derived_defaults
 
     CODE_SERVER_MIRROR_URL="${CODE_SERVER_MIRROR_URL:-$(prompt_with_default "" "code-server mirror URL" "$DEFAULT_CODE_SERVER_MIRROR_URL")}"
-    GITLENS_MIRROR_URL="${GITLENS_MIRROR_URL:-$(prompt_with_default "" "GitLens mirror URL" "$DEFAULT_GITLENS_MIRROR_URL")}"
     STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-$(prompt_with_default "" "workspace storage class" "$DEFAULT_STORAGE_CLASS_NAME")}"
     WORKSPACE_IMAGE_REGISTRY_REPO="${WORKSPACE_IMAGE_REGISTRY_REPO:-$(prompt_with_default "" "workspace image registry repository" "$DEFAULT_WORKSPACE_IMAGE_REGISTRY_REPO")}"
     DEFAULT_REGISTRY_SERVER=$(registry_host "$WORKSPACE_IMAGE_REGISTRY_REPO")
@@ -106,7 +100,6 @@ function save_render_config() {
 
     kube_configmap_apply_vars "$NS" "$CONFIGMAP_NAME" \
         CODE_SERVER_MIRROR_URL=CODE_SERVER_MIRROR_URL \
-        GITLENS_MIRROR_URL=GITLENS_MIRROR_URL \
         STORAGE_CLASS_NAME=STORAGE_CLASS_NAME \
         WORKSPACE_IMAGE_REGISTRY_REPO=WORKSPACE_IMAGE_REGISTRY_REPO
 }

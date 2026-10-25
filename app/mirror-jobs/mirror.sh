@@ -49,7 +49,7 @@ function mirror_validate_config() {
 ## `last_version` / `last_checked_at` —— 这是 Coder workspace 消费端读取的
 ## 数据契约，不得改变。第一个属性写失败时立即返回，不会继续发布目录属性。
 ## $1: endpoint；$2: token；$3: 仓库内相对目录；$4: 超时秒
-## $5: 制品文件名；$6: 版本号；$7: 属性前缀（code_server / gitlens）
+## $5: 制品文件名；$6: 版本号；$7: 属性前缀（code_server / openclash）
 ## return: 0 成功；1 任一属性写失败
 function mirror_publish_properties() {
     local _MIRROR_ENDPOINT="$1"

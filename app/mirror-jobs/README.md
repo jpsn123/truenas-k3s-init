@@ -11,9 +11,8 @@
 | `<name>/values-job.yaml` | 该任务的 CronJob 清单及全部配置。 |
 | `<name>/Dockerfile` | 任务镜像构建文件，基础镜像来自清单 annotation。 |
 | `<name>/sync.sh` | 任务同步入口，随镜像发布；拥有自己的工作目录和 EXIT trap。 |
-| `gitlens/gitlens-patch.py` | GitLens 补丁脚本，仅 gitlens 任务使用。 |
 
-当前任务：`code-server`（CronJob `mirror-code-server`）、`gitlens`（CronJob `mirror-gitlens`）、`openclash`（CronJob `mirror-openclash`）和 `openclash-core`（CronJob `mirror-openclash-core`）。
+当前任务：`code-server`（CronJob `mirror-code-server`）、`openclash`（CronJob `mirror-openclash`）和 `openclash-core`（CronJob `mirror-openclash-core`）。
 
 ## 运行时布局
 
@@ -23,7 +22,6 @@
 /opt/mirror/
 ├── sync.sh            # 入口：source lib 与 mirror.sh，自建 WORK_DIR 和 trap
 ├── mirror.sh          # 业务策略（属性布局、版本保留）
-├── gitlens-patch.py   # 仅 gitlens
 └── lib/
     ├── liblog.sh      # 复制自仓库 scripts/lib/
     └── libjfrog.sh    # 复制自仓库 scripts/lib/
@@ -41,7 +39,7 @@
 - 公共 Secret `mirror-jobs-jfrog` 通过 `envFrom` 注入公共环境变量；不创建或引用镜像拉取 Secret，节点需能通过已有 registry 配置或匿名方式拉取任务镜像。
 - 清单中 `suspend: true` 表示任务保持暂停，安装脚本会跳过其初始运行。
 
-`BRAND_PREFIX_LOWER` 由仓库根目录 `parameter.sh` 的 `BRAND_PREFIX` 转为全小写生成，同时用于任务镜像路径和 GitLens publisher。
+`BRAND_PREFIX_LOWER` 由仓库根目录 `parameter.sh` 的 `BRAND_PREFIX` 转为全小写生成，用于任务镜像路径。
 
 安装脚本会校验清单契约：唯一 CronJob/主容器、annotation 与超时存在、无未替换占位符、镜像位于配置的 registry 下。
 
@@ -63,26 +61,18 @@
 | `KEEP_VERSIONS` | 稳定版制品保留版本数，默认 3；openclash 对 ipk/apk 分别保留，openclash-core 不使用此配置。 |
 | `REQUEST_TIMEOUT` | 单个请求超时秒数，默认 300。 |
 | `UPSTREAM_URL` / `CODE_SERVER_OS` / `CODE_SERVER_ARCH` | 仅 code-server：上游 release 地址与目标 OS/架构。 |
-| `RELEASE_API` / `PUBLISHER` / `MAX_DOWNLOAD` / `MAX_UNPACKED` | 仅 gitlens：上游发布 API、发布者 ID（`${BRAND_PREFIX_LOWER}`）、下载与解包大小上限（字节，默认 200 MiB / 512 MiB）。 |
 | `RELEASE_API` | openclash：GitHub 最新稳定版 API，默认 `https://api.github.com/repos/vernesong/OpenClash/releases/latest`。 |
 | `UPSTREAM_URL` / `CORE_GROUP` | openclash-core：上游仓库，默认 `https://github.com/vernesong/OpenClash`；同步 `core` 分支下的分组，默认 `master`，可改为 `dev`。 |
 
 ## 同步行为
 
-code-server、gitlens 和 openclash 使用稳定版制品编排：解析上游最新稳定版 → 检查 mirror 是否已有该文件（存在 / 明确 404 / 其他错误三态区分，其他错误直接失败）→ 缺失时下载或补丁并上传（远端 checksum 一致时跳过传输，元数据查询失败不写远端）→ 发布属性 → 确认远端列表包含当前文件后才清理旧版本。
+code-server 和 openclash 使用稳定版制品编排：解析上游最新稳定版 → 检查 mirror 是否已有该文件（存在 / 明确 404 / 其他错误三态区分，其他错误直接失败）→ 缺失时下载并上传（远端 checksum 一致时跳过传输，元数据查询失败不写远端）→ 发布属性 → 确认远端列表包含当前文件后才清理旧版本。
 
 ### code-server
 
 - 查询上游最新稳定版；mirror 已有同版本 tarball 时跳过下载，否则下载上传。
 - 文件名保持 `code-server-<version>-<os>-<arch>.tar.gz`，目录属性 `last_version`/`last_checked_at` 与制品属性不变，现有 Coder workspace 消费端无需修改。
 - 上传并写完属性后按 `KEEP_VERSIONS` 清理旧版本，只删除精确匹配的稳定版文件。
-
-### gitlens
-
-- 下载官方最新稳定版 VSIX，校验后仅调整 Commit Graph 的账号/欢迎入口，保留 Pro access 检查、原作者及许可证信息，输出 `<publisher>.gitlens-<version>.vsix`。
-- 补丁后执行 Node 语法检查与 ZIP 回读校验；验证失败或上游结构变化时直接失败，不发布、不更新版本属性、不清理旧版本。
-- 远端只保存补丁 VSIX；原版、报告与解包临时文件不上传。
-- Coder 工作区每次启动时读取 `general/mirrors/gitlens/` 的 `last_version` 属性，已安装的 `${BRAND_PREFIX_LOWER}.gitlens` 版本不一致或未安装时下载对应 VSIX 并安装；安装成功后移除旧的官方 `eamodio.gitlens`，不再从市场更新 GitLens。
 
 ### openclash
 
@@ -103,10 +93,10 @@ code-server、gitlens 和 openclash 使用稳定版制品编排：解析上游�
 
 ### 版本保留与属性契约
 
-以下版本保留规则适用于 code-server、gitlens 和 openclash；内核任务行为见上节。
+以下版本保留规则适用于 code-server 和 openclash；内核任务行为见上节。
 
 - 当前版本永不清理（含上游回退），另保留数字版本最高的 `KEEP_VERSIONS-1` 个匹配文件；其他平台、预发布或不匹配文件一律不动。
-- 制品属性 `<prefix>_version`/`<prefix>_checked_at`（前缀 `code_server`/`gitlens`/`openclash`），目录属性 `last_version`/`last_checked_at`。
+- 制品属性 `<prefix>_version`/`<prefix>_checked_at`（前缀 `code_server`/`openclash`），目录属性 `last_version`/`last_checked_at`。
 - 上传、属性发布全部成功且远端列表确认包含当前文件后才允许删除；任一步失败都不会进入清理。
 
 ## JFrog 前提
@@ -141,7 +131,7 @@ bash app/mirror-jobs/install.sh openclash-core  # 仅安装 / 更新 openclash-c
 
 ### 镜像 tag 规则
 
-镜像 tag 声明在各任务清单中。修改 `sync.sh`、`Dockerfile`、补丁脚本、共享 `mirror.sh`、`scripts/lib/libjfrog.sh`/`liblog.sh` 或基础镜像后必须提升相关任务的 tag：安装脚本只在镜像拉取失败时才构建，同 tag 已存在不会重建。仅修改 schedule、环境变量、保留数量、publisher 等清单配置不需要重建镜像。
+镜像 tag 声明在各任务清单中。修改 `sync.sh`、`Dockerfile`、共享 `mirror.sh`、`scripts/lib/libjfrog.sh`/`liblog.sh` 或基础镜像后必须提升相关任务的 tag：安装脚本只在镜像拉取失败时才构建，同 tag 已存在不会重建。仅修改 schedule、环境变量、保留数量等清单配置不需要重建镜像。
 
 ## 手动运行
 
@@ -189,8 +179,7 @@ kubectl -n mirror-jobs logs "job/$JOB"
 
 - 初始 Job 失败：CronJob 保持 `suspend: true`，通过 `kubectl -n mirror-jobs describe job` 和对应 Job 的 `logs` 定位原因，修复后重跑 `install.sh`。
 - 401/403 是认证或权限问题，404 才表示尚未上传；网络、认证和元数据错误不会被当作已同步，也不会触发清理。
-- 清理只按精确文件名匹配当前 publisher 或 OS/arch 的稳定版文件，不会递归删除目录；当前 `last_version` 对应文件始终保留，其余名额保留数字版本最高的文件。
-- 补丁逻辑更新不会覆盖已存在的同版本 VSIX；若需重新发布同版本，先暂停任务、备份旧文件，再由管理员删除对应 VSIX 后重新运行。
+- 清理只按精确文件名匹配对应 OS/arch 的稳定版文件，不会递归删除目录；当前 `last_version` 对应文件始终保留，其余名额保留数字版本最高的文件。
 
 ## 验证
 

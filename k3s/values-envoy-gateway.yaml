@@ -3,11 +3,11 @@ deployment:
   envoyGateway:
     resources:
       requests:
-        cpu: 100m
+        cpu: 50m
         memory: 256Mi
       limits:
-        cpu: 4
-        memory: 8Gi
+        cpu: 1
+        memory: 1Gi
 
 config:
   envoyGateway:
@@ -17,6 +17,4 @@ config:
 
 kubernetesClusterDomain: cluster.local
 crds:
-  gatewayAPI:
-    safeUpgradePolicy:
-      enabled: true
+  enabled: false

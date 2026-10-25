@@ -291,6 +291,10 @@ alias gc='git commit'
 alias gd='git diff'
 alias gl='git log --oneline --graph --decorate --all'
 
+function ssh() {
+    coder gitssh -- "$@"
+}
+
 # Alias definitions.
 # You may want to put all your additions into a separate file like
 # ~/.bash_aliases, instead of adding them here directly.
