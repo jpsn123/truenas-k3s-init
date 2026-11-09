@@ -1,0 +1,39 @@
+global:
+  defaultStorageClass: ${DEFAULT_STORAGE_CLASS}
+  postgresql:
+    auth:
+      username: openproject
+      database: openproject
+      existingSecret: openproject-db
+      secretKeys:
+        adminPasswordKey: password
+        userPasswordKey: password
+
+clusterDomain: "cluster.local"
+architecture: standalone
+
+primary:
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 60
+  readinessProbe:
+    periodSeconds: 30
+  extraEnvVars:
+    - name: TZ
+      value: ${TIMEZONE}
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  service:
+    type: ClusterIP
+  persistence:
+    size: 200Gi
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/postgresql
+  tag: 17.6.0-debian-12-r4

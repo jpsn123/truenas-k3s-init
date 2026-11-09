@@ -1,0 +1,40 @@
+# Rancher local-cluster monitoring; access the suite through the Rancher UI.
+global:
+  cattle:
+    clusterId: local
+    clusterName: local
+    url: https://srv.${DOMAIN}
+
+# K3s exposes control-plane and kubelet metrics through the shared server endpoint.
+k3sServer:
+  enabled: true
+
+grafana:
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    retentionSize: 280GiB
+    walCompression: true
+    # Large WAL replays must finish before the startup probe restarts Prometheus.
+    maximumStartupDurationSeconds: 3600
+    resources:
+      requests:
+        cpu: "100m"
+        memory: 4Gi
+      limits:
+        cpu: "4"
+        memory: 8Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: ${DEFAULT_STORAGE_CLASS}
+          resources:
+            requests:
+              storage: 300Gi

@@ -1,0 +1,114 @@
+fullnameOverride: openproject
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: IfNotPresent
+
+strategy:
+  type: RollingUpdate
+
+containerSecurityContext:
+  readOnlyRootFilesystem: false
+
+extraVolumes:
+  - name: enterprise-public-key
+    secret:
+      secretName: openproject-enterprise-keys
+      items:
+        - key: public.pem
+          path: demo_pub.key
+
+extraVolumeMounts:
+  - name: enterprise-public-key
+    mountPath: /app/.openproject-token.pub
+    subPath: demo_pub.key
+    readOnly: true
+
+environment:
+  TZ: "${TIMEZONE}"
+  OPENPROJECT_DEFAULT__LANGUAGE: "zh-CN"
+  OPENPROJECT_SSRF__PROTECTION__IP__ALLOWLIST: "10.0.0.0/8,172.16.0.0/12"
+  WAIT_FOR_DB_TIMEOUT_SECONDS: "600"
+
+openproject:
+  https: true
+  seed_locale: zh-CN
+  secretKeyBase:
+    existingSecret: openproject-secrets
+    secretKey: secret-key-base
+  admin_user:
+    password: ""
+    password_reset: "true"
+    name: OpenProject Admin
+    mail: admin@${DOMAIN}
+    secret: openproject-secrets
+    secretKeys:
+      password: admin-password
+  useTmpVolumes: false
+
+postgresql:
+  bundled: false
+  connection:
+    host: postgresql
+    port: 5432
+  auth:
+    username: openproject
+    database: openproject
+    existingSecret: openproject-db
+    secretKeys:
+      userPasswordKey: password
+
+memcached:
+  bundled: true
+
+workers:
+  default:
+    probes:
+      liveness:
+        initialDelaySeconds: 180
+        failureThreshold: 6
+      readiness:
+        initialDelaySeconds: 30
+
+hocuspocus:
+  enabled: true
+  image:
+    imagePullPolicy: IfNotPresent
+  auth:
+    existingSecret: openproject-secrets
+    secretKey: hocuspocus-secret
+
+persistence:
+  enabled: true
+  storageClassName: ${DEFAULT_LARGE_STORAGE_CLASS}
+  accessModes:
+    - ReadWriteMany
+  size: 1Ti
+  annotations:
+    helm.sh/resource-policy: keep
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  host: pm.${DOMAIN}
+  path: /
+  pathType: Prefix
+  annotations:
+    helm.sh/resource-policy: keep
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: ${DOMAIN}-letsencrypt-issuer
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  tls:
+    enabled: true
+    secretName: pm.${DOMAIN}-tls
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: 4
+    memory: 4Gi
